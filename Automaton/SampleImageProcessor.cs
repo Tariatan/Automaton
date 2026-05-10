@@ -7,10 +7,6 @@ namespace Automaton;
 internal sealed class SampleImageProcessor
 {
     private const string SamplesFolderName = "samples";
-    private const double FallbackPlayfieldLeftRatio = 0.047;
-    private const double FallbackPlayfieldTopRatio = 0.130;
-    private const double FallbackPlayfieldWidthRatio = 0.320;
-    private const double FallbackPlayfieldHeightRatio = 0.407;
     private const int SaturationThreshold = 45;
     private const int BrightnessThreshold = 55;
     private const int BinaryMaskMaxValue = 255;
@@ -98,6 +94,7 @@ internal sealed class SampleImageProcessor
     private static readonly ILogger Logger = Log.ForContext<SampleImageProcessor>();
 
     private readonly PlayfieldDetector m_PlayfieldDetector = new();
+    private readonly ErrorPopupDetector m_ErrorPopupDetector = new();
     private readonly KnownSampleMatcher m_KnownSampleMatcher;
 
     public SampleImageProcessor()
@@ -179,8 +176,14 @@ internal sealed class SampleImageProcessor
         IReadOnlyList<Point[]> polygons;
         var usedKnownSampleTemplate = false;
         string? matchedSampleFileName = null;
+        var popupDetection = m_ErrorPopupDetector.DetectPopup(image);
 
-        if (playfieldDetection.IsFound)
+        if (popupDetection.State != ErrorPopupDetector.PopupState.None)
+        {
+            polygons = Array.Empty<Point[]>();
+            playfieldDetection = PlayfieldDetectionResult.NotFound;
+        }
+        else if (playfieldDetection.IsFound)
         {
             using var playfieldImage = new Mat(image, playfieldDetection.Bounds);
             if (m_KnownSampleMatcher.TryMatch(playfieldImage, out var matchedPolygons, out matchedSampleFileName))
@@ -199,7 +202,7 @@ internal sealed class SampleImageProcessor
                 polygons = BuildClusterPolygons(candidateMask, candidateDensityMap, clusterMask, playfieldDetection.Bounds);
                 if (polygons.Count == 0)
                 {
-                    polygons = BuildFallbackPolygons(playfieldDetection.Bounds);
+                    polygons = BuildDefaultFallbackPolygons(playfieldDetection.Bounds);
                 }
             }
 
@@ -210,14 +213,21 @@ internal sealed class SampleImageProcessor
         }
         else
         {
-            polygons = BuildFallbackPolygons(BuildFallbackPlayfieldBounds(image.Size()));
+            polygons = BuildDefaultFallbackPolygons();
         }
 
         var outputPath = imagePath;
         if (writeAnnotatedOutput)
         {
             using var annotated = image.Clone();
-            DrawDebugOverlay(annotated, playfieldDetection, polygons);
+            if (popupDetection.State != ErrorPopupDetector.PopupState.None)
+            {
+                DrawPopupDebugOverlay(annotated, popupDetection);
+            }
+            else
+            {
+                DrawDebugOverlay(annotated, playfieldDetection, polygons);
+            }
 
             var outputSuffix = usedKnownSampleTemplate
                 ? $".annotated.byexample{BuildMatchedExampleSuffix(matchedSampleFileName)}.png"
@@ -2291,61 +2301,31 @@ internal sealed class SampleImageProcessor
             (int)Math.Round(start.Y + (dy * t)));
     }
 
-    private static IReadOnlyList<Point[]> BuildFallbackPolygons(Rect playfield)
+    private IReadOnlyList<Point[]> BuildDefaultFallbackPolygons(Rect targetPlayfield)
     {
-        var x = playfield.X;
-        var y = playfield.Y;
-        var w = playfield.Width;
-        var h = playfield.Height;
-
-        var topPolygon = new[]
+        if (!m_KnownSampleMatcher.TryLoadDefaultFallbackPolygons(out var fallbackPolygons, out var sourcePlayfieldSize) ||
+            sourcePlayfieldSize.Width <= 0 ||
+            sourcePlayfieldSize.Height <= 0)
         {
-            P(0.14, 0.03),
-            P(0.52, 0.01),
-            P(0.87, 0.04),
-            P(0.95, 0.18),
-            P(0.94, 0.33),
-            P(0.79, 0.42),
-            P(0.56, 0.45),
-            P(0.29, 0.45),
-            P(0.09, 0.43),
-            P(0.00, 0.20)
-        };
+            return Array.Empty<Point[]>();
+        }
 
-        var bottomPolygon = new[]
-        {
-            P(0.03, 0.50),
-            P(0.50, 0.50),
-            P(0.86, 0.51),
-            P(0.96, 0.66),
-            P(0.97, 0.86),
-            P(0.86, 0.95),
-            P(0.53, 0.95),
-            P(0.26, 0.94),
-            P(0.05, 0.92),
-            P(0.00, 0.62)
-        };
-
-        return [topPolygon, bottomPolygon];
-
-        Point P(double px, double py) => new(
-            x + (int)Math.Round(w * px),
-            y + (int)Math.Round(h * py));
+        var scaleX = targetPlayfield.Width / (double)sourcePlayfieldSize.Width;
+        var scaleY = targetPlayfield.Height / (double)sourcePlayfieldSize.Height;
+        return fallbackPolygons
+            .Select(polygon => polygon
+                .Select(point => new Point(
+                    targetPlayfield.X + (int)Math.Round(point.X * scaleX),
+                    targetPlayfield.Y + (int)Math.Round(point.Y * scaleY)))
+                .ToArray())
+            .ToArray();
     }
 
-    private static Rect BuildFallbackPlayfieldBounds(Size imageSize)
+    private IReadOnlyList<Point[]> BuildDefaultFallbackPolygons()
     {
-        var left = (int)Math.Round(imageSize.Width * FallbackPlayfieldLeftRatio);
-        var top = (int)Math.Round(imageSize.Height * FallbackPlayfieldTopRatio);
-        var width = (int)Math.Round(imageSize.Width * FallbackPlayfieldWidthRatio);
-        var height = (int)Math.Round(imageSize.Height * FallbackPlayfieldHeightRatio);
-
-        left = Math.Clamp(left, 0, Math.Max(0, imageSize.Width - 1));
-        top = Math.Clamp(top, 0, Math.Max(0, imageSize.Height - 1));
-        width = Math.Clamp(width, 1, Math.Max(1, imageSize.Width - left));
-        height = Math.Clamp(height, 1, Math.Max(1, imageSize.Height - top));
-
-        return new Rect(left, top, width, height);
+        return m_KnownSampleMatcher.TryLoadDefaultFallbackScreenPolygons(out var fallbackPolygons)
+            ? fallbackPolygons
+            : Array.Empty<Point[]>();
     }
 
     private static void DrawDebugOverlay(Mat annotated, PlayfieldDetectionResult playfieldDetection, IReadOnlyList<Point[]> polygons)
@@ -2386,6 +2366,33 @@ internal sealed class SampleImageProcessor
             HersheyFonts.HersheySimplex,
             OverlayTextScale,
             playfieldDetection.IsFound ? new Scalar(80, 220, 120) : new Scalar(80, 120, 255),
+            OverlayTextThickness,
+            LineTypes.AntiAlias);
+    }
+
+    private static void DrawPopupDebugOverlay(Mat annotated, ErrorPopupDetector.PopupDetection popupDetection)
+    {
+        var label = popupDetection.State switch
+        {
+            ErrorPopupDetector.PopupState.ConnectionLost => "Connection Lost popup detected",
+            ErrorPopupDetector.PopupState.MaximumSubmissions => "Maximum submissions popup detected",
+            ErrorPopupDetector.PopupState.SlowDown => "Slow Down popup detected",
+            ErrorPopupDetector.PopupState.Unknown => "Popup detected but ambiguous",
+            _ => "Popup detected"
+        };
+
+        if (popupDetection.Bounds.Width > 0 && popupDetection.Bounds.Height > 0)
+        {
+            Cv2.Rectangle(annotated, popupDetection.Bounds, new Scalar(70, 150, 255), OverlayStrokeThickness);
+        }
+
+        Cv2.PutText(
+            annotated,
+            label,
+            new Point(OverlayLeftPadding, OverlayTopPadding),
+            HersheyFonts.HersheySimplex,
+            OverlayTextScale,
+            new Scalar(80, 120, 255),
             OverlayTextThickness,
             LineTypes.AntiAlias);
     }

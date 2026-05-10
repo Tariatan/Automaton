@@ -75,6 +75,13 @@ internal static class SyntheticDiscoveryImageFactory
         return image;
     }
 
+    public static Mat CreateConnectionLostPopupImage()
+    {
+        var image = new Mat(new Size(2551, 2008), MatType.CV_8UC3, new Scalar(18, 24, 26));
+        DrawConnectionLostPopup(image);
+        return image;
+    }
+
     public static Mat CreateWideScreenMaximumSubmissionsPopupImage()
     {
         var image = new Mat(new Size(3000, 1600), MatType.CV_8UC3, new Scalar(12, 14, 16));
@@ -129,6 +136,12 @@ internal static class SyntheticDiscoveryImageFactory
     public static void WriteSlowDownPopupImage(string outputPath)
     {
         using var image = CreateSlowDownPopupImage();
+        Cv2.ImWrite(outputPath, image);
+    }
+
+    public static void WriteConnectionLostPopupImage(string outputPath)
+    {
+        using var image = CreateConnectionLostPopupImage();
         Cv2.ImWrite(outputPath, image);
     }
 
@@ -290,6 +303,42 @@ internal static class SyntheticDiscoveryImageFactory
         Cv2.Rectangle(image, button, new Scalar(75, 60, 35), -1);
         Cv2.Rectangle(image, button, new Scalar(180, 165, 80));
         Cv2.PutText(image, "OK", new Point(button.X + (button.Width / 2) - 15, button.Y + 32), HersheyFonts.HersheySimplex, 0.7, Scalar.All(220), 1, LineTypes.AntiAlias);
+    }
+
+    private static void DrawConnectionLostPopup(Mat image)
+    {
+        var popup = new Rect(
+            (int)Math.Round(image.Width * 0.42),
+            (int)Math.Round(image.Height * 0.62),
+            (int)Math.Round(image.Width * 0.30),
+            (int)Math.Round(image.Height * 0.29));
+        Cv2.Rectangle(image, popup, new Scalar(7, 7, 7), -1);
+        Cv2.Rectangle(image, popup, new Scalar(65, 60, 45));
+
+        var iconCenter = new Point(
+            popup.X + (int)Math.Round(popup.Width * 0.10),
+            popup.Y + (int)Math.Round(popup.Height * 0.12));
+        Cv2.Circle(image, iconCenter, 24, new Scalar(230, 230, 230), -1, LineTypes.AntiAlias);
+        Cv2.PutText(image, "!", new Point(iconCenter.X - 6, iconCenter.Y + 13), HersheyFonts.HersheyDuplex, 1.0, new Scalar(25, 25, 25), 2, LineTypes.AntiAlias);
+
+        var titleLeft = popup.X + (int)Math.Round(popup.Width * 0.20);
+        var titleTop = popup.Y + (int)Math.Round(popup.Height * 0.13);
+        Cv2.PutText(image, "Connection Lost", new Point(titleLeft, titleTop), HersheyFonts.HersheySimplex, 1.2, Scalar.All(235), 3, LineTypes.AntiAlias);
+
+        var bodyLeft = popup.X + (int)Math.Round(popup.Width * 0.04);
+        var bodyTop = popup.Y + (int)Math.Round(popup.Height * 0.34);
+        Cv2.PutText(image, "Connection to server was lost.", new Point(bodyLeft, bodyTop), HersheyFonts.HersheySimplex, 0.68, Scalar.All(220), 2, LineTypes.AntiAlias);
+        Cv2.PutText(image, "For advice on possible troubleshooting please see", new Point(bodyLeft, bodyTop + 52), HersheyFonts.HersheySimplex, 0.62, Scalar.All(220), 2, LineTypes.AntiAlias);
+        Cv2.PutText(image, "here.", new Point(bodyLeft + 430, bodyTop + 52), HersheyFonts.HersheySimplex, 0.62, new Scalar(30, 220, 255), 2, LineTypes.AntiAlias);
+
+        var button = new Rect(
+            popup.X + (int)Math.Round(popup.Width * 0.04),
+            popup.Y + (int)Math.Round(popup.Height * 0.84),
+            (int)Math.Round(popup.Width * 0.92),
+            (int)Math.Round(popup.Height * 0.12));
+        Cv2.Rectangle(image, button, new Scalar(75, 60, 35), -1);
+        Cv2.Rectangle(image, button, new Scalar(180, 165, 80));
+        Cv2.PutText(image, "Quit", new Point(button.X + (button.Width / 2) - 27, button.Y + 32), HersheyFonts.HersheySimplex, 0.7, Scalar.All(220), 1, LineTypes.AntiAlias);
     }
 
     private readonly record struct ClusterDefinition(Point Center, Size Size, Scalar Color);

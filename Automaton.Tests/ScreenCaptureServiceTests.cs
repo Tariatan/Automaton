@@ -43,6 +43,7 @@ public sealed class ScreenCaptureServiceTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
+        DefaultFallbackExampleFactory.Create(workspace.Path);
         var screenCaptureProvider = new StubScreenCaptureProvider(CreateBlankCapture);
         var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
         ScreenCaptureSummary summary;
@@ -64,7 +65,7 @@ public sealed class ScreenCaptureServiceTests
         Assert.True(File.Exists(Path.Combine(workspace.Path, summary.CapturePath)));
         Assert.True(File.Exists(Path.Combine(workspace.Path, summary.Result.OutputPath)));
         Assert.False(summary.Result.PlayfieldFound);
-        Assert.Equal(2, summary.Result.ClusterCount);
+        Assert.Equal(3, summary.Result.ClusterCount);
     }
 
     [Fact]

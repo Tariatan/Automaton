@@ -86,6 +86,48 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     }
 
     [Fact]
+    public void DetectConnectionLost_ImageContainsConnectionLostPopup_ReturnsTrue()
+    {
+        // Arrange
+        using var image = SyntheticDiscoveryImageFactory.CreateConnectionLostPopupImage();
+        var detector = new ErrorPopupDetector();
+
+        // Act
+        var detected = detector.DetectConnectionLost(image);
+
+        // Assert
+        Assert.True(detected);
+    }
+
+    [Fact]
+    public void DetectConnectionLost_ImageContainsMaximumSubmissionsPopup_ReturnsFalse()
+    {
+        // Arrange
+        using var image = SyntheticDiscoveryImageFactory.CreateMaximumSubmissionsPopupImage();
+        var detector = new ErrorPopupDetector();
+
+        // Act
+        var detected = detector.DetectConnectionLost(image);
+
+        // Assert
+        Assert.False(detected);
+    }
+
+    [Fact]
+    public void DetectConnectionLost_ImageContainsSlowDownPopup_ReturnsFalse()
+    {
+        // Arrange
+        using var image = SyntheticDiscoveryImageFactory.CreateSlowDownPopupImage();
+        var detector = new ErrorPopupDetector();
+
+        // Act
+        var detected = detector.DetectConnectionLost(image);
+
+        // Assert
+        Assert.False(detected);
+    }
+
+    [Fact]
     public void Detect_FullScreenImageContainsMaximumSubmissionsPopupOutsideLegacySearchArea_ReturnsTrue()
     {
         // Arrange

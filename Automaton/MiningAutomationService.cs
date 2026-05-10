@@ -75,7 +75,8 @@ internal sealed class MiningAutomationService
             transition.CapturePath,
             transition.DockedScreen,
             transition.LocationChangeTimer,
-            transition.AsteroidBeltOverview);
+            transition.AsteroidBeltOverview,
+            transition.AsteroidBeltLanding);
     }
 
     private static IMiningAutomationState CreateState(MiningAutomationStateKind stateKind)
@@ -85,6 +86,7 @@ internal sealed class MiningAutomationService
             MiningAutomationStateKind.Docked => new DockedState(),
             MiningAutomationStateKind.Undocking => new UndockingState(),
             MiningAutomationStateKind.EmptyOnUndock => new EmptyOnUndockState(),
+            MiningAutomationStateKind.LandedOnAsteroidBelt => new LandedOnAsteroidBeltState(),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }
@@ -97,7 +99,8 @@ internal sealed record MiningAutomationStepSummary(
     string? CapturePath,
     DockedScreenAnalysis? DockedScreen,
     LocationChangeTimerLocation? LocationChangeTimer = null,
-    AsteroidBeltOverviewAnalysis? AsteroidBeltOverview = null);
+    AsteroidBeltOverviewAnalysis? AsteroidBeltOverview = null,
+    AsteroidBeltLandingAnalysis? AsteroidBeltLanding = null);
 
 internal enum MiningAutomationStateKind
 {
@@ -105,6 +108,8 @@ internal enum MiningAutomationStateKind
     Undocking,
     EmptyOnUndock,
     WarpingToAsteroidField,
+    LandedOnAsteroidBelt,
+    Mining,
     UnloadCargo,
     Recovery
 }
@@ -116,6 +121,7 @@ internal enum MiningAutomationActionKind
     Undock,
     CompleteUndock,
     WarpToAsteroidField,
+    ApproachAsteroid,
     UnloadCargo,
     Recover
 }

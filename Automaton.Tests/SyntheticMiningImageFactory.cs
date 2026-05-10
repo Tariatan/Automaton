@@ -11,6 +11,8 @@ internal static class SyntheticMiningImageFactory
     private static readonly Point LocationChangeTimerLocation = new(123, 46);
     private static readonly Rect OverviewBounds = new(1974, 261, 577, 900);
     private static readonly Rect OverviewBeltButtonBounds = new(2274, 333, 37, 26);
+    private static readonly Rect AsteroidBeltLabelBounds = new(1040, 1532, 410, 72);
+    private static readonly Rect MineOverviewBounds = new(1700, 1226, 270, 336);
     private static readonly Rect MiningHoldEntryBounds = new(64, 1654, 242, 52);
     private static readonly Rect ItemHangarEntryBounds = new(64, 1741, 242, 52);
     private static readonly Rect MiningHoldContentBounds = new(319, 1617, 178, 231);
@@ -63,6 +65,29 @@ internal static class SyntheticMiningImageFactory
         return image;
     }
 
+    public static Mat CreateWarpDriveActiveImage()
+    {
+        var image = CreateWarpToAsteroidFieldImage();
+        DrawWarpDriveActiveText(image);
+        return image;
+    }
+
+    public static Mat CreateLandedOnAsteroidBeltImage()
+    {
+        var image = CreateWarpToAsteroidFieldImage();
+        DrawAsteroidBeltLabel(image);
+        DrawMineOverview(image);
+        return image;
+    }
+
+    public static Mat CreateLandedOnEmptyAsteroidBeltImage()
+    {
+        var image = CreateWarpToAsteroidFieldImage();
+        DrawAsteroidBeltLabel(image);
+        DrawMineOverview(image, asteroidRowCount: 0);
+        return image;
+    }
+
     public static void WriteDockedItemHangarFocusedImage(string outputPath)
     {
         using var image = CreateDockedItemHangarFocusedImage();
@@ -90,6 +115,18 @@ internal static class SyntheticMiningImageFactory
     public static void WriteWarpToAsteroidFieldImage(string outputPath)
     {
         using var image = CreateWarpToAsteroidFieldImage();
+        Cv2.ImWrite(outputPath, image);
+    }
+
+    public static void WriteLandedOnAsteroidBeltImage(string outputPath)
+    {
+        using var image = CreateLandedOnAsteroidBeltImage();
+        Cv2.ImWrite(outputPath, image);
+    }
+
+    public static void WriteLandedOnEmptyAsteroidBeltImage(string outputPath)
+    {
+        using var image = CreateLandedOnEmptyAsteroidBeltImage();
         Cv2.ImWrite(outputPath, image);
     }
 
@@ -191,6 +228,75 @@ internal static class SyntheticMiningImageFactory
         }
     }
 
+    private static void DrawAsteroidBeltLabel(Mat image)
+    {
+        Cv2.PutText(
+            image,
+            "ASTEROID BELT",
+            new Point(AsteroidBeltLabelBounds.X + 12, AsteroidBeltLabelBounds.Y + 56),
+            HersheyFonts.HersheySimplex,
+            1.85,
+            new Scalar(235, 235, 235),
+            3,
+            LineTypes.AntiAlias);
+    }
+
+    private static void DrawWarpDriveActiveText(Mat image)
+    {
+        Cv2.PutText(
+            image,
+            "Warp Drive Active",
+            new Point(1110, 1568),
+            HersheyFonts.HersheySimplex,
+            1.2,
+            new Scalar(235, 235, 235),
+            2,
+            LineTypes.AntiAlias);
+        Cv2.PutText(
+            image,
+            "Destination: Syrikos VII - Asteroid Belt 1",
+            new Point(1088, 1605),
+            HersheyFonts.HersheySimplex,
+            0.68,
+            new Scalar(205, 205, 205),
+            1,
+            LineTypes.AntiAlias);
+        Cv2.PutText(
+            image,
+            "Distance: 0.95 AU",
+            new Point(1202, 1634),
+            HersheyFonts.HersheySimplex,
+            0.68,
+            new Scalar(205, 205, 205),
+            1,
+            LineTypes.AntiAlias);
+    }
+
+    private static void DrawMineOverview(Mat image, int asteroidRowCount = 5)
+    {
+        Cv2.Rectangle(image, MineOverviewBounds, new Scalar(8, 8, 8), -1);
+        Cv2.Line(
+            image,
+            MineOverviewBounds.TopLeft,
+            new Point(MineOverviewBounds.Right, MineOverviewBounds.Top),
+            new Scalar(34, 34, 34),
+            2);
+        Cv2.PutText(
+            image,
+            "Overview (MINE)",
+            new Point(MineOverviewBounds.X + 25, MineOverviewBounds.Y + 34),
+            HersheyFonts.HersheySimplex,
+            0.55,
+            TextColor,
+            1,
+            LineTypes.AntiAlias);
+
+        for (var rowIndex = 0; rowIndex < asteroidRowCount; rowIndex++)
+        {
+            DrawAsteroidRow(image, 1375 + rowIndex * 36);
+        }
+    }
+
     private static void DrawAsteroidBeltRow(Mat image, int centerY)
     {
         var rowBounds = new Rect(1999, centerY - 17, 515, 34);
@@ -202,6 +308,30 @@ internal static class SyntheticMiningImageFactory
             image,
             "Asteroid Belt",
             new Point(2358, centerY + 8),
+            HersheyFonts.HersheySimplex,
+            0.7,
+            TextColor,
+            1,
+            LineTypes.AntiAlias);
+    }
+
+    private static void DrawAsteroidRow(Mat image, int centerY)
+    {
+        var rowBounds = new Rect(MineOverviewBounds.X + 27, centerY - 17, MineOverviewBounds.Width - 55, 34);
+        Cv2.Rectangle(image, rowBounds, new Scalar(9, 9, 9), -1);
+        var iconCenter = new Point(MineOverviewBounds.X + 41, centerY);
+        var iconPoints = new[]
+        {
+            new Point(iconCenter.X, iconCenter.Y - 6),
+            new Point(iconCenter.X + 7, iconCenter.Y),
+            new Point(iconCenter.X, iconCenter.Y + 6),
+            new Point(iconCenter.X - 7, iconCenter.Y)
+        };
+        Cv2.FillConvexPoly(image, iconPoints, new Scalar(120, 120, 120), LineTypes.AntiAlias);
+        Cv2.PutText(
+            image,
+            "20 km",
+            new Point(MineOverviewBounds.Right - 92, centerY + 7),
             HersheyFonts.HersheySimplex,
             0.7,
             TextColor,

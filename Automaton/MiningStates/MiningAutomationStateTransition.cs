@@ -7,4 +7,5 @@ internal sealed record MiningAutomationStateTransition(
     string? CapturePath = null,
     DockedScreenAnalysis? DockedScreen = null,
     LocationChangeTimerLocation? LocationChangeTimer = null,
-    AsteroidBeltOverviewAnalysis? AsteroidBeltOverview = null);
+    AsteroidBeltOverviewAnalysis? AsteroidBeltOverview = null,
+    AsteroidBeltLandingAnalysis? AsteroidBeltLanding = null);

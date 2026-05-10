@@ -39,7 +39,8 @@ Recovery: a safe non-progress state used when expected screen evidence is missin
 - `DockedState` captures `.mining-docked`, uses `DockedScreenDetector`, focuses Mining Hold if needed, sends `Undock` when the hold is empty, and transitions to `UnloadCargo` when ore is present.
 - `UndockingState` waits 15 seconds, then polls once per second for 15 attempts for the resource-backed `location_change_timer` template in the fixed upper-left ROI.
 - `EmptyOnUndockState` locates the Overview BELT tab with the resource-backed `overview_belt` template, chooses a random detected belt row, clicks it, then presses `S` to warp.
-- `WarpingToAsteroidField`, `UnloadCargo`, and `Recovery` are currently pending states.
+- `LandedOnAsteroidBeltState` polls once per second for the lower-center asteroid belt label, locates the MINE overview to its right, clicks the first asteroid row, and presses `A`.
+- `Mining`, `UnloadCargo`, and `Recovery` are currently pending states.
 - `ScreenCaptureService` normalizes mining and discovery detectors to the left `2560x2160` game viewport at `(0,0)`. This is an intentional current constraint for the target setup.
 
 ## What Worked Well
@@ -68,18 +69,18 @@ Recovery: a safe non-progress state used when expected screen evidence is missin
 - Recovery is only a placeholder. The next real recovery design should distinguish retryable screen drift, bad overview tab state, lost focus, and hard-stop conditions.
 - `UnloadCargo` is pending even though `DockedState` can identify ore in the Mining Hold.
 - Pilot login and pilot selection for Mining are not wired yet. `PilotAvatarLocator` can be reused, but the Mining startup/login flow still needs its own state design.
-- Warping completion is not implemented. The dead Mining thread stopped just as `LandedOnAsteroidBelt` was being explored.
-- The landing signal should not depend on broad OCR. The promising first approach is a lower-center template or visual detector for the `ASTEROID BELT` label.
-- The MINE overview state is not implemented. After landing, the automation needs to locate the MINE overview to the right of the belt label, select the first asteroid, and press `A`.
+- Warping completion is implemented as `LandedOnAsteroidBeltState`, but it has only the first approach action after landing.
+- The landing signal does not depend on broad OCR or a new resource. It uses bright label detection in the lower-center ROI.
+- The MINE overview is detected from its cyan top border to the right of the belt label, then asteroid rows are inferred from the row icons.
 - Full cargo detection, mining laser activation, return-to-station, docking completion, and unloading are still open design areas.
 - The fixed capture viewport is practical now but is a known environmental assumption.
 
 ## Recommended Next Curve
 
-1. Add `WarpingToAsteroidFieldState` or `LandedOnAsteroidBeltState` as the next narrow slice.
-2. Detect the lower-center `ASTEROID BELT` label in a bounded ROI. Start with a resource-backed template only if the cropped label is stable across captures.
-3. Once the label is found, locate the MINE overview relative to the label/right-side panel, select the first asteroid row, and press `A`.
-4. Add generated fixtures for the landed belt screen and MINE overview, plus one local real-screenshot smoke pass during calibration.
+1. Add the first `Mining` state as the next narrow slice.
+2. Decide whether approaching alone is enough or whether the next action should lock the asteroid, activate mining, or both.
+3. Add cargo-full detection before designing return-to-station behavior.
+4. Keep using generated fixtures plus one temporary real-screenshot smoke pass during calibration.
 5. Promote the next enum/action values only when the state has tests and a real transition.
 6. Design `Recovery` before adding long unattended loops. Recovery should be conservative, logged, and easy to stop.
 
@@ -104,10 +105,10 @@ EmptyOnUndock:
 open/select BELT overview, choose random asteroid belt, press `S`.
 
 WarpingToAsteroidField:
-poll for lower-center asteroid belt arrival signal.
+currently bypassed by `LandedOnAsteroidBelt`; keep or remove once the final naming settles.
 
 LandedOnAsteroidBelt:
-locate MINE overview, select first asteroid, press `A`.
+poll for lower-center asteroid belt arrival signal, locate MINE overview, select first asteroid, press `A`.
 
 Mining:
 lock or activate mining once in range, monitor cargo fullness.

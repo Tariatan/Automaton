@@ -56,7 +56,7 @@ internal sealed class EmptyOnUndockState : IMiningAutomationState
         context.AutomationInputController.PressKey(VirtualKeyS, cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,
-            MiningAutomationStateKind.WarpingToAsteroidField,
+            MiningAutomationStateKind.LandedOnAsteroidBelt,
             MiningAutomationActionKind.WarpToAsteroidField,
             capturePath,
             AsteroidBeltOverview: analysis);

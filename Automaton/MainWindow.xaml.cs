@@ -152,16 +152,31 @@ public partial class MainWindow
                 cancellationSource.Token);
             var summary = await automationTask;
             Logger.Information(
-                "Automation completed. CapturePath={CapturePath}, FocusedCapturePath={FocusedCapturePath}, ClickedPointCount={ClickedPointCount}, MaximumSubmissionsReached={MaximumSubmissionsReached}, SlowDownPopupDetected={SlowDownPopupDetected}, PlayfieldMissingLimitReached={PlayfieldMissingLimitReached}, CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}, PilotSwitchSucceeded={PilotSwitchSucceeded}",
+                "Automation completed. CapturePath={CapturePath}, FocusedCapturePath={FocusedCapturePath}, ClickedPointCount={ClickedPointCount}, MaximumSubmissionsReached={MaximumSubmissionsReached}, SlowDownPopupDetected={SlowDownPopupDetected}, ConnectionLostDetected={ConnectionLostDetected}, PlayfieldMissingLimitReached={PlayfieldMissingLimitReached}, NoFurtherPilotsAvailable={NoFurtherPilotsAvailable}, CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}, PilotSwitchSucceeded={PilotSwitchSucceeded}",
                 summary.CaptureSummary.CapturePath,
                 summary.FocusedCapturePath,
                 summary.ClickedPointCount,
                 summary.MaximumSubmissionsReached,
                 summary.SlowDownPopupDetected,
+                summary.ConnectionLostDetected,
                 summary.PlayfieldMissingLimitReached,
+                summary.NoFurtherPilotsAvailable,
                 summary.CurrentPilotIndex,
                 summary.TargetPilotIndex,
                 summary.PilotSwitchSucceeded);
+            if (summary.ConnectionLostDetected)
+            {
+                Logger.Error("Connection Lost popup detected. Exiting process.");
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
+
+            if (summary.NoFurtherPilotsAvailable)
+            {
+                Logger.Information("No further pilots are available. Exiting process safely.");
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
         }
         catch (OperationCanceledException)
         {

@@ -130,4 +130,13 @@
   <data name="overview_belt" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\overview_belt.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="connection_lost_popup" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\popups\connection_lost_popup.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="max_submissions_popup" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\popups\max_submissions_popup.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="slow_down_popup" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\popups\slow_down_popup.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

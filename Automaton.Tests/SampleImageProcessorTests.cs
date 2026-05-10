@@ -36,6 +36,7 @@ public sealed class SampleImageProcessorTests
         using var workspace = new TemporaryDirectory();
         var processor = new SampleImageProcessor();
         SampleProcessingSummary summary;
+        CreateDefaultFallbackExample(workspace.Path);
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -56,7 +57,7 @@ public sealed class SampleImageProcessorTests
         var result = Assert.Single(summary.Results);
         Assert.Equal("01.png", result.FileName);
         Assert.False(result.PlayfieldFound);
-        Assert.Equal(2, result.ClusterCount);
+        Assert.Equal(3, result.ClusterCount);
         Assert.True(File.Exists(Path.Combine(workspace.Path, result.OutputPath)));
     }
 
@@ -69,6 +70,7 @@ public sealed class SampleImageProcessorTests
         SampleProcessingSummary summary;
 
         Directory.CreateDirectory(Path.Combine(workspace.Path, "samples"));
+        CreateDefaultFallbackExample(workspace.Path);
         SyntheticDiscoveryImageFactory.WriteTwoClusterImage(Path.Combine(workspace.Path, "samples", "05.sample.png"));
         CreateSolidImage(Path.Combine(workspace.Path, "samples", "99.png"), 900, 900);
 
@@ -95,17 +97,18 @@ public sealed class SampleImageProcessorTests
 
         var blankResult = Assert.Single(summary.Results, result => result.FileName == "99.png");
         Assert.False(blankResult.PlayfieldFound);
-        Assert.Equal(2, blankResult.ClusterCount);
+        Assert.Equal(3, blankResult.ClusterCount);
         Assert.True(File.Exists(Path.Combine(workspace.Path, blankResult.OutputPath)));
     }
 
     [Fact]
-    public void AnalyzeImageFile_PlayfieldNotFound_UsesFallbackPolygons()
+    public void AnalyzeImageFile_PlayfieldNotFound_UsesDefaultExpectedExamplePolygons()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
         var imagePath = Path.Combine(workspace.Path, "blank.png");
         CreateSolidImage(imagePath, 1200, 900);
+        CreateDefaultFallbackExample(workspace.Path);
         var processor = new SampleImageProcessor();
         SampleImageAnalysisResult analysis;
 
@@ -124,32 +127,44 @@ public sealed class SampleImageProcessorTests
 
         // Assert
         Assert.False(analysis.PlayfieldDetection.IsFound);
-        Assert.Equal(2, analysis.Polygons.Count);
-        Assert.Equal(2, analysis.Result.ClusterCount);
+        Assert.Equal(3, analysis.Polygons.Count);
+        Assert.Equal(3, analysis.Result.ClusterCount);
         Assert.True(File.Exists(Path.Combine(workspace.Path, analysis.Result.OutputPath)));
     }
 
     [Fact]
-    public void AnalyzeImageFile_FullscreenCapturePlayfieldNotFound_ScalesFallbackPolygonsToDiscoveryPlot()
+    public void AnalyzeImageFile_FullscreenCapturePlayfieldNotFound_UsesDefaultSamplePolygonsDirectly()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
         var imagePath = Path.Combine(workspace.Path, "fullscreen.png");
         CreateSolidImage(imagePath, 1792, 1414);
+        CreateDefaultFallbackExample(workspace.Path);
         var processor = new SampleImageProcessor();
+        SampleImageAnalysisResult analysis;
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath);
+        var currentDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(workspace.Path);
+
+        try
+        {
+            analysis = processor.AnalyzeImageFile(imagePath);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
 
         // Assert
         Assert.False(analysis.PlayfieldDetection.IsFound);
-        Assert.Equal(2, analysis.Polygons.Count);
+        Assert.Equal(3, analysis.Polygons.Count);
 
         var fallbackBounds = Cv2.BoundingRect(analysis.Polygons.SelectMany(polygon => polygon).ToArray());
-        Assert.InRange(fallbackBounds.Left, 75, 90);
-        Assert.InRange(fallbackBounds.Top, 185, 195);
-        Assert.InRange(fallbackBounds.Right, 635, 645);
-        Assert.InRange(fallbackBounds.Bottom, 725, 735);
+        Assert.InRange(fallbackBounds.Left, 125, 135);
+        Assert.InRange(fallbackBounds.Top, 215, 225);
+        Assert.InRange(fallbackBounds.Right, 715, 725);
+        Assert.InRange(fallbackBounds.Bottom, 745, 755);
     }
 
     [Fact]
@@ -1209,7 +1224,7 @@ public sealed class SampleImageProcessorTests
             polygon =>
             {
                 var bounds = Cv2.BoundingRect(polygon);
-                return (bounds.Width * bounds.Height) < 45_000;
+                return (bounds.Width * bounds.Height) < 70_000;
             });
     }
 
@@ -1255,6 +1270,11 @@ public sealed class SampleImageProcessorTests
 
         Cv2.AddWeighted(overlay, 0.55, playfield, 0.45, 0, playfield);
         Cv2.ImWrite(expectedPath, expectedImage);
+    }
+
+    private static void CreateDefaultFallbackExample(string workspacePath)
+    {
+        DefaultFallbackExampleFactory.Create(workspacePath);
     }
 
     private static void WriteMaskedExpectedOverlay(string samplePath, string maskedExpectedPath, IReadOnlyList<Point[]> localPolygons)

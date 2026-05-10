@@ -346,6 +346,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         // Assert
         Assert.True(summary.MaximumSubmissionsReached);
         Assert.False(summary.PilotSwitchSucceeded);
+        Assert.True(summary.NoFurtherPilotsAvailable);
         Assert.Equal(3, summary.CurrentPilotIndex);
         Assert.Equal(3, summary.TargetPilotIndex);
         Assert.Null(summary.PilotSwitchCapturePath);
@@ -358,7 +359,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     }
 
     [Fact]
-    public void AutomateCurrentScreen_FocusedCaptureContainsPlayfieldAndPopupEvidence_DoesNotSwitchPilot()
+    public void AutomateCurrentScreen_FocusedCaptureContainsPlayfieldAndPopupEvidence_StillSwitchesPilot()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -419,10 +420,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         }
 
         // Assert
-        Assert.False(summary.MaximumSubmissionsReached);
+        Assert.True(summary.MaximumSubmissionsReached);
         Assert.Equal(2, captureInvocationCount);
-        Assert.Equal(summary.ClickedPointCount + 3, automationInputController.ClickCount);
-        Assert.Empty(automationInputController.KeyboardInputs);
+        Assert.Equal(summary.ClickedPointCount + 1, automationInputController.ClickCount);
+        Assert.NotEmpty(automationInputController.KeyboardInputs);
     }
 
     [Fact]
@@ -453,7 +454,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
-                if (milliseconds == 60_000)
+                if (milliseconds == 70_000)
                 {
                     slowDownRecoveryObserved = true;
                     return;
@@ -505,7 +506,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(2, automationInputController.KeyboardInputs.Count);
         AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyW);
         AssertKeyChord(automationInputController.KeyboardInputs[1], VirtualKeyAlt, VirtualKeyL);
-        Assert.Contains(60_000, automationInputController.Delays);
+        Assert.Contains(70_000, automationInputController.Delays);
     }
 
     [Fact]
@@ -532,7 +533,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
-                if (milliseconds == 60_000)
+                if (milliseconds == 70_000)
                 {
                     slowDownRecoveryObserved = true;
                     return;
@@ -570,7 +571,70 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(2, automationInputController.KeyboardInputs.Count);
         AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyW);
         AssertKeyChord(automationInputController.KeyboardInputs[1], VirtualKeyAlt, VirtualKeyL);
-        Assert.Contains(60_000, automationInputController.Delays);
+        Assert.Contains(70_000, automationInputController.Delays);
+    }
+
+    [Fact]
+    public void AutomateCurrentScreen_ConnectionLostPopupAppearsAfterSubmit_StopsAutomationImmediately()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var capturePath = Path.Combine(workspace.Path, "fixture-capture.png");
+        var connectionLostPopupPath = Path.Combine(workspace.Path, "connection-lost.png");
+        SyntheticDiscoveryImageFactory.WriteSingleClusterImage(capturePath);
+        SyntheticDiscoveryImageFactory.WriteConnectionLostPopupImage(connectionLostPopupPath);
+        using (var popupImage = Cv2.ImRead(connectionLostPopupPath))
+        {
+            Assert.True(new ErrorPopupDetector().DetectConnectionLost(popupImage));
+        }
+
+        var captureInvocationCount = 0;
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath =>
+            {
+                captureInvocationCount++;
+                File.Copy(captureInvocationCount % 2 == 0 ? connectionLostPopupPath : capturePath, outputPath, overwrite: true);
+            }),
+            new SampleImageProcessor());
+        var automationClock = new StubAutomationClock();
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var delayCount = 0;
+        var automationInputController = new StubAutomationInputController
+        {
+            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
+            OnDelay = _ =>
+            {
+                delayCount++;
+                if (delayCount > 200)
+                {
+                    cancellationTokenSource.Cancel();
+                }
+            }
+        };
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        AutomationSummary summary;
+
+        // Act
+        var currentDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(workspace.Path);
+
+        try
+        {
+            summary = automationService.AutomateCurrentScreen(dpi, cancellationTokenSource.Token);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        Assert.True(summary.ConnectionLostDetected);
+        Assert.False(summary.MaximumSubmissionsReached);
+        Assert.False(summary.SlowDownPopupDetected);
+        Assert.True(captureInvocationCount >= 2);
+        Assert.True(automationInputController.ClickCount >= summary.ClickedPointCount + 1);
+        Assert.Empty(automationInputController.KeyboardInputs);
     }
 
     [Fact]
@@ -613,6 +677,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         // Assert
         Assert.True(summary.MaximumSubmissionsReached);
         Assert.False(summary.PilotSwitchSucceeded);
+        Assert.True(summary.NoFurtherPilotsAvailable);
         Assert.Equal(1, summary.CurrentPilotIndex);
         Assert.Equal(1, summary.TargetPilotIndex);
         Assert.Equal(2, captureInvocationCount);

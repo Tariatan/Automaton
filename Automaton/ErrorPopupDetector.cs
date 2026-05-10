@@ -1,9 +1,22 @@
 using OpenCvSharp;
+using Automaton.Properties;
+using System.IO;
+using System.Drawing.Imaging;
 
 namespace Automaton;
 
 internal sealed class ErrorPopupDetector
 {
+    internal readonly record struct PopupDetection(PopupState State, Rect Bounds, bool FromTemplate);
+    internal enum PopupState
+    {
+        None,
+        MaximumSubmissions,
+        SlowDown,
+        ConnectionLost,
+        Unknown
+    }
+
     private const double SearchLeftRatio = 0.56;
     private const double SearchTopRatio = 0.62;
     private const double SearchRightRatio = 0.92;
@@ -44,6 +57,13 @@ internal sealed class ErrorPopupDetector
     private const int MinimumPopupCandidateStep = 32;
     private const string MaxSubmissionsOverlayText = "Maximum submissions popup detected";
     private const string SlowDownDebugOverlayText = "Slow down popup detected";
+    private const string ConnectionLostDebugOverlayText = "Connection lost popup detected";
+    private const string AmbiguousPopupDebugOverlayText = "Popup detected but ambiguous";
+    private const int ConnectionLostTitleWhiteMinimum = 700;
+    private const int ConnectionLostTitleWhiteMaximum = 3_300;
+    private const int ConnectionLostTitleSecondHalfWhiteMaximum = 1_400;
+    private const int ConnectionLostYellowMinimum = 10;
+    private const int ConnectionLostYellowMaximum = 1_400;
     private const double DebugOverlayTextScale = 0.8;
     private const int DebugOverlayTextThickness = 2;
     private const int DebugOverlayLeftPadding = 30;
@@ -53,7 +73,10 @@ internal sealed class ErrorPopupDetector
     private static readonly Scalar IconMinimum = new(135, 135, 135);
     private static readonly Scalar CyanMinimum = new(80, 40, 45);
     private static readonly Scalar CyanMaximum = new(105, 255, 230);
+    private static readonly Scalar YellowMinimum = new(20, 90, 150);
+    private static readonly Scalar YellowMaximum = new(35, 255, 255);
     private static readonly Scalar DebugOverlayTextColor = new(80, 120, 255);
+    private static readonly Lazy<PopupTemplates> s_PopupTemplates = new(PopupTemplates.Load);
 
     public bool Detect(string imagePath)
     {
@@ -97,6 +120,226 @@ internal sealed class ErrorPopupDetector
         return Detect(image, PopupTitleKind.SlowDown);
     }
 
+    public bool DetectConnectionLostAndDrawDebugOverlay(string imagePath)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (!DetectConnectionLostPopup(image))
+        {
+            return false;
+        }
+
+        DrawDebugOverlay(image, ConnectionLostDebugOverlayText);
+        Cv2.ImWrite(imagePath, image);
+        return true;
+    }
+
+    public bool DetectConnectionLost(Mat image)
+    {
+        return DetectConnectionLostPopup(image);
+    }
+
+    public PopupState DetectPopupStateAndDrawDebugOverlay(string imagePath)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        var popupState = DetectPopupState(image);
+        var overlayText = popupState switch
+        {
+            PopupState.MaximumSubmissions => MaxSubmissionsOverlayText,
+            PopupState.SlowDown => SlowDownDebugOverlayText,
+            PopupState.ConnectionLost => ConnectionLostDebugOverlayText,
+            PopupState.Unknown => AmbiguousPopupDebugOverlayText,
+            _ => null
+        };
+        if (!string.IsNullOrWhiteSpace(overlayText))
+        {
+            DrawDebugOverlay(image, overlayText);
+            Cv2.ImWrite(imagePath, image);
+        }
+
+        return popupState;
+    }
+
+    public PopupState DetectPopupState(Mat image)
+    {
+        return DetectPopup(image).State;
+    }
+
+    public PopupDetection DetectPopup(Mat image)
+    {
+        if (TryDetectPopupStateByTemplate(image, out var templateState, out var templateBounds))
+        {
+            return new PopupDetection(templateState, templateBounds, true);
+        }
+
+        if (DetectConnectionLostPopup(image))
+        {
+            return new PopupDetection(PopupState.ConnectionLost, new Rect(), false);
+        }
+
+        if (image.Empty())
+        {
+            return new PopupDetection(PopupState.None, new Rect(), false);
+        }
+
+        using var masks = PopupEvidenceMasks.Create(image);
+        var popupKind = DetectPopupKind(masks, image.Size());
+        if (popupKind is null)
+        {
+            return new PopupDetection(PopupState.None, new Rect(), false);
+        }
+
+        var maxCandidate = FindBestPopupCandidate(masks, image.Size(), PopupTitleKind.MaximumSubmissions);
+        var slowCandidate = FindBestPopupCandidate(masks, image.Size(), PopupTitleKind.SlowDown);
+        if (maxCandidate is not null && slowCandidate is not null)
+        {
+            var scoreDelta = Math.Abs(maxCandidate.Value.Score - slowCandidate.Value.Score);
+            if (scoreDelta < 700)
+            {
+                return new PopupDetection(PopupState.Unknown, new Rect(), false);
+            }
+        }
+
+        var state = popupKind switch
+        {
+            PopupTitleKind.MaximumSubmissions => PopupState.MaximumSubmissions,
+            PopupTitleKind.SlowDown => PopupState.SlowDown,
+            PopupTitleKind.ConnectionLost => PopupState.ConnectionLost,
+            _ => PopupState.None
+        };
+        return new PopupDetection(state, new Rect(), false);
+    }
+
+    private static bool TryDetectPopupStateByTemplate(Mat image, out PopupState popupState, out Rect popupBounds)
+    {
+        popupState = PopupState.None;
+        popupBounds = new Rect();
+        if (image.Empty())
+        {
+            return false;
+        }
+
+        using var gray = new Mat();
+        Cv2.CvtColor(image, gray, ColorConversionCodes.BGR2GRAY);
+        var searchBounds = BuildClampedBounds(
+            (int)Math.Round(image.Width * 0.20),
+            (int)Math.Round(image.Height * 0.35),
+            (int)Math.Round(image.Width * 0.60),
+            (int)Math.Round(image.Height * 0.55),
+            image.Size());
+        using var searchRegion = new Mat(gray, searchBounds);
+
+        var matches = new List<PopupTemplateMatch>
+        {
+            GetBestTemplateMatch(searchRegion, s_PopupTemplates.Value.ConnectionLostGray, PopupState.ConnectionLost, 0.56),
+            GetBestTemplateMatch(searchRegion, s_PopupTemplates.Value.MaximumSubmissionsGray, PopupState.MaximumSubmissions, 0.63),
+            GetBestTemplateMatch(searchRegion, s_PopupTemplates.Value.SlowDownGray, PopupState.SlowDown, 0.63)
+        };
+        var best = matches.OrderByDescending(match => match.Score).First();
+        if (best.Score < best.Threshold)
+        {
+            return false;
+        }
+
+        if (!HasTemplateContentEvidence(searchRegion, best))
+        {
+            return false;
+        }
+
+        popupBounds = new Rect(
+            searchBounds.X + best.Bounds.X,
+            searchBounds.Y + best.Bounds.Y,
+            best.Bounds.Width,
+            best.Bounds.Height);
+
+        var secondBest = matches.OrderByDescending(match => match.Score).Skip(1).First();
+        if (best.Score - secondBest.Score < 0.02)
+        {
+            popupState = PopupState.Unknown;
+            return true;
+        }
+
+        popupState = best.PopupState;
+        return true;
+    }
+
+    private static PopupTemplateMatch GetBestTemplateMatch(Mat searchRegionGray, Mat templateGray, PopupState popupState, double threshold)
+    {
+        var bestScore = 0.0;
+        var bestBounds = new Rect(0, 0, 0, 0);
+        var bestScale = 1.0;
+        foreach (var scale in new[] { 0.92, 1.0, 1.08 })
+        {
+            using var scaledTemplate = ResizeTemplate(templateGray, scale);
+            if (scaledTemplate.Width > searchRegionGray.Width || scaledTemplate.Height > searchRegionGray.Height)
+            {
+                continue;
+            }
+
+            var resultWidth = searchRegionGray.Width - scaledTemplate.Width + 1;
+            var resultHeight = searchRegionGray.Height - scaledTemplate.Height + 1;
+            using var result = new Mat(new Size(resultWidth, resultHeight), MatType.CV_32FC1);
+            Cv2.MatchTemplate(searchRegionGray, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+            Cv2.MinMaxLoc(result, out _, out var maxValue, out _, out var maxPoint);
+            if (maxValue > bestScore)
+            {
+                bestScore = maxValue;
+                bestBounds = new Rect(maxPoint.X, maxPoint.Y, scaledTemplate.Width, scaledTemplate.Height);
+                bestScale = scale;
+            }
+        }
+
+        return new PopupTemplateMatch(popupState, bestScore, threshold, bestBounds, bestScale);
+    }
+
+    private static Mat ResizeTemplate(Mat templateGray, double scale)
+    {
+        if (Math.Abs(scale - 1.0) < 0.001)
+        {
+            return templateGray.Clone();
+        }
+
+        var resized = new Mat();
+        Cv2.Resize(
+            templateGray,
+            resized,
+            new Size(),
+            scale,
+            scale,
+            InterpolationFlags.Linear);
+        return resized;
+    }
+
+    private static bool HasTemplateContentEvidence(Mat searchRegionGray, PopupTemplateMatch match)
+    {
+        if (match.Bounds.Width <= 0 || match.Bounds.Height <= 0)
+        {
+            return false;
+        }
+
+        var contentBands = new[] { BuildRelativeRect(match.Bounds, 0.18, 0.03, 0.70, 0.22), BuildRelativeRect(match.Bounds, 0.05, 0.32, 0.90, 0.34), BuildRelativeRect(match.Bounds, 0.05, 0.78, 0.90, 0.18) };
+        return contentBands.All(contentBand =>
+        {
+            if (contentBand.Width <= 4 || contentBand.Height <= 4)
+            {
+                return false;
+            }
+
+            using var content = new Mat(searchRegionGray, contentBand);
+            Cv2.MeanStdDev(content, out _, out var stdDev);
+            var contrast = stdDev.Val0;
+            return contrast >= 8.0;
+        });
+    }
+
+    private static Rect BuildRelativeRect(Rect bounds, double leftRatio, double topRatio, double widthRatio, double heightRatio)
+    {
+        return new Rect(
+            bounds.X + (int)Math.Round(bounds.Width * leftRatio),
+            bounds.Y + (int)Math.Round(bounds.Height * topRatio),
+            Math.Max(1, (int)Math.Round(bounds.Width * widthRatio)),
+            Math.Max(1, (int)Math.Round(bounds.Height * heightRatio)));
+    }
+
     private static bool Detect(Mat image, PopupTitleKind titleKind)
     {
         if (image.Empty())
@@ -105,7 +348,55 @@ internal sealed class ErrorPopupDetector
         }
 
         using var masks = PopupEvidenceMasks.Create(image);
-        return DetectPopupKind(masks, image.Size()) == titleKind;
+        return FindBestPopupCandidate(masks, image.Size(), titleKind) is not null;
+    }
+
+    private static bool DetectConnectionLostPopup(Mat image)
+    {
+        if (image.Empty())
+        {
+            return false;
+        }
+
+        using var hsv = new Mat();
+        using var yellowMask = new Mat();
+        using var whiteMask = new Mat();
+        Cv2.CvtColor(image, hsv, ColorConversionCodes.BGR2HSV);
+        Cv2.InRange(hsv, YellowMinimum, YellowMaximum, yellowMask);
+        Cv2.InRange(image, WhiteMinimum, WhiteMaximum, whiteMask);
+
+        Cv2.FindContours(yellowMask.Clone(), out var contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+        foreach (var contour in contours)
+        {
+            var area = Cv2.ContourArea(contour);
+            if (area < 8.0)
+            {
+                continue;
+            }
+
+            var bounds = Cv2.BoundingRect(contour);
+            var centerX = bounds.X + (bounds.Width / 2);
+            var centerY = bounds.Y + (bounds.Height / 2);
+            if (centerX < image.Width * 0.30 || centerX > image.Width * 0.75 ||
+                centerY < image.Height * 0.45 || centerY > image.Height * 0.88)
+            {
+                continue;
+            }
+
+            var contextBounds = BuildClampedBounds(
+                bounds.X - 520,
+                bounds.Y - 40,
+                560,
+                100,
+                image.Size());
+            var whitePixels = Cv2.CountNonZero(new Mat(whiteMask, contextBounds));
+            if (whitePixels >= 650)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IEnumerable<Rect> BuildCandidateBounds(Size imageSize)
@@ -157,14 +448,47 @@ internal sealed class ErrorPopupDetector
     {
         var maximumSubmissionsCandidate = FindBestPopupCandidate(masks, imageSize, PopupTitleKind.MaximumSubmissions);
         var slowDownCandidate = FindBestPopupCandidate(masks, imageSize, PopupTitleKind.SlowDown);
+        var connectionLostCandidate = FindBestPopupCandidate(masks, imageSize, PopupTitleKind.ConnectionLost);
         if (maximumSubmissionsCandidate is null)
         {
-            return slowDownCandidate is null ? null : PopupTitleKind.SlowDown;
+            if (slowDownCandidate is null)
+            {
+                return connectionLostCandidate is null ? null : PopupTitleKind.ConnectionLost;
+            }
+
+            if (connectionLostCandidate is null)
+            {
+                return PopupTitleKind.SlowDown;
+            }
+
+            return connectionLostCandidate.Value.Score > slowDownCandidate.Value.Score
+                ? PopupTitleKind.ConnectionLost
+                : PopupTitleKind.SlowDown;
         }
 
         if (slowDownCandidate is null)
         {
-            return PopupTitleKind.MaximumSubmissions;
+            if (connectionLostCandidate is null)
+            {
+                return PopupTitleKind.MaximumSubmissions;
+            }
+
+            return connectionLostCandidate.Value.Score > maximumSubmissionsCandidate.Value.Score
+                ? PopupTitleKind.ConnectionLost
+                : PopupTitleKind.MaximumSubmissions;
+        }
+
+        if (connectionLostCandidate is null)
+        {
+            return slowDownCandidate.Value.Score > maximumSubmissionsCandidate.Value.Score
+                ? PopupTitleKind.SlowDown
+                : PopupTitleKind.MaximumSubmissions;
+        }
+
+        if (connectionLostCandidate.Value.Score > slowDownCandidate.Value.Score &&
+            connectionLostCandidate.Value.Score > maximumSubmissionsCandidate.Value.Score)
+        {
+            return PopupTitleKind.ConnectionLost;
         }
 
         return slowDownCandidate.Value.Score > maximumSubmissionsCandidate.Value.Score
@@ -180,7 +504,7 @@ internal sealed class ErrorPopupDetector
         PopupCandidateEvidence? bestCandidate = null;
         foreach (var candidate in BuildCandidateBounds(imageSize))
         {
-            if (!TryBuildPopupCandidateEvidence(masks, candidate, out var evidence) ||
+            if (!TryBuildPopupCandidateEvidence(masks, candidate, titleKind, out var evidence) ||
                 !HasTitleEvidence(masks, BuildTitleBounds(candidate), titleKind))
             {
                 continue;
@@ -198,6 +522,7 @@ internal sealed class ErrorPopupDetector
     private static bool TryBuildPopupCandidateEvidence(
         PopupEvidenceMasks masks,
         Rect candidate,
+        PopupTitleKind titleKind,
         out PopupCandidateEvidence evidence)
     {
         evidence = default;
@@ -211,11 +536,19 @@ internal sealed class ErrorPopupDetector
         var iconBounds = BuildIconBounds(candidate);
         var bodyWhitePixels = masks.CountWhitePixels(bodyBounds);
         var bodyTextBands = masks.CountWhiteTextBands(bodyBounds);
-        if (!HasWhitePixelEvidence(bodyWhitePixels, bodyBounds, BodyWhiteMinimum, BodyWhiteMaximumDensity) ||
-            bodyTextBands < MinimumBodyTextBands ||
+        var minimumBodyWhitePixels = titleKind == PopupTitleKind.ConnectionLost ? 1_200 : BodyWhiteMinimum;
+        var minimumBodyTextBands = titleKind == PopupTitleKind.ConnectionLost ? 2 : MinimumBodyTextBands;
+        if (!HasWhitePixelEvidence(bodyWhitePixels, bodyBounds, minimumBodyWhitePixels, BodyWhiteMaximumDensity) ||
+            bodyTextBands < minimumBodyTextBands ||
             !HasInformationIconEvidence(masks, iconBounds) ||
             masks.GetLargestWhiteContourArea(bodyBounds) > MaximumBodyWhiteContourArea ||
             !buttonEvidenceFound)
+        {
+            return false;
+        }
+
+        if (titleKind == PopupTitleKind.ConnectionLost &&
+            !HasConnectionLostBodyEvidence(masks, candidate))
         {
             return false;
         }
@@ -238,6 +571,7 @@ internal sealed class ErrorPopupDetector
         {
             PopupTitleKind.MaximumSubmissions => HasMaximumSubmissionsTitleEvidence(masks, titleBounds),
             PopupTitleKind.SlowDown => HasSlowDownTitleEvidence(masks, titleBounds),
+            PopupTitleKind.ConnectionLost => HasConnectionLostTitleEvidence(masks, titleBounds),
             _ => false
         };
     }
@@ -277,6 +611,29 @@ internal sealed class ErrorPopupDetector
                titleWhitePixels <= titleBounds.Width * titleBounds.Height * TitleWhiteMaximumDensity &&
                titleBandCount == 1 &&
                masks.CountWhitePixels(secondLineBounds) <= SlowDownTitleSecondHalfWhiteMaximum;
+    }
+
+    private static bool HasConnectionLostTitleEvidence(PopupEvidenceMasks masks, Rect titleBounds)
+    {
+        var secondLineBounds = BuildClampedBounds(
+            titleBounds.X,
+            titleBounds.Y + titleBounds.Height / 2,
+            titleBounds.Width,
+            titleBounds.Height - titleBounds.Height / 2,
+            new Size(titleBounds.Right, titleBounds.Bottom));
+        var titleWhitePixels = masks.CountWhitePixels(titleBounds);
+        var titleBandCount = masks.CountWhiteTextBands(titleBounds, TitleTextBandRowWhiteMinimum, MinimumTitleTextBandHeight);
+        return titleWhitePixels is >= ConnectionLostTitleWhiteMinimum and <= ConnectionLostTitleWhiteMaximum &&
+               titleWhitePixels <= titleBounds.Width * titleBounds.Height * TitleWhiteMaximumDensity &&
+               titleBandCount == 1 &&
+               masks.CountWhitePixels(secondLineBounds) <= ConnectionLostTitleSecondHalfWhiteMaximum;
+    }
+
+    private static bool HasConnectionLostBodyEvidence(PopupEvidenceMasks masks, Rect candidate)
+    {
+        var hereBounds = BuildRelativeBounds(candidate, 0.60, 0.42, 0.35, 0.24);
+        var yellowPixels = masks.CountYellowPixels(hereBounds);
+        return yellowPixels is >= ConnectionLostYellowMinimum and <= ConnectionLostYellowMaximum;
     }
 
     private static bool HasInformationIconEvidence(PopupEvidenceMasks masks, Rect iconBounds)
@@ -411,14 +768,16 @@ internal sealed class ErrorPopupDetector
         private readonly Mat m_WhiteIntegral;
         private readonly Mat m_IconIntegral;
         private readonly Mat m_CyanIntegral;
+        private readonly Mat m_YellowIntegral;
 
-        private PopupEvidenceMasks(Mat whiteMask, Mat iconMask, Mat whiteIntegral, Mat iconIntegral, Mat cyanIntegral)
+        private PopupEvidenceMasks(Mat whiteMask, Mat iconMask, Mat whiteIntegral, Mat iconIntegral, Mat cyanIntegral, Mat yellowIntegral)
         {
             m_WhiteMask = whiteMask;
             m_IconMask = iconMask;
             m_WhiteIntegral = whiteIntegral;
             m_IconIntegral = iconIntegral;
             m_CyanIntegral = cyanIntegral;
+            m_YellowIntegral = yellowIntegral;
         }
 
         public static PopupEvidenceMasks Create(Mat image)
@@ -430,16 +789,20 @@ internal sealed class ErrorPopupDetector
 
             using var hsv = new Mat();
             using var cyanMask = new Mat();
+            using var yellowMask = new Mat();
             Cv2.CvtColor(image, hsv, ColorConversionCodes.BGR2HSV);
             Cv2.InRange(hsv, CyanMinimum, CyanMaximum, cyanMask);
+            Cv2.InRange(hsv, YellowMinimum, YellowMaximum, yellowMask);
 
             var whiteIntegral = new Mat();
             var iconIntegral = new Mat();
             var cyanIntegral = new Mat();
+            var yellowIntegral = new Mat();
             Cv2.Integral(whiteMask, whiteIntegral, MatType.CV_64F);
             Cv2.Integral(iconMask, iconIntegral, MatType.CV_64F);
             Cv2.Integral(cyanMask, cyanIntegral, MatType.CV_64F);
-            return new PopupEvidenceMasks(whiteMask, iconMask, whiteIntegral, iconIntegral, cyanIntegral);
+            Cv2.Integral(yellowMask, yellowIntegral, MatType.CV_64F);
+            return new PopupEvidenceMasks(whiteMask, iconMask, whiteIntegral, iconIntegral, cyanIntegral, yellowIntegral);
         }
 
         public int CountWhitePixels(Rect bounds)
@@ -455,6 +818,11 @@ internal sealed class ErrorPopupDetector
         public int CountIconPixels(Rect bounds)
         {
             return CountPixels(m_IconIntegral, bounds);
+        }
+
+        public int CountYellowPixels(Rect bounds)
+        {
+            return CountPixels(m_YellowIntegral, bounds);
         }
 
         public int CountWhiteTextBands(Rect bounds, int rowWhiteMinimum = BodyTextBandRowWhiteMinimum, int minimumBandHeight = MinimumBodyTextBandHeight)
@@ -509,6 +877,7 @@ internal sealed class ErrorPopupDetector
             m_WhiteIntegral.Dispose();
             m_IconIntegral.Dispose();
             m_CyanIntegral.Dispose();
+            m_YellowIntegral.Dispose();
         }
 
         private static WhiteContour? GetLargestContour(Mat mask, Rect bounds)
@@ -552,8 +921,54 @@ internal sealed class ErrorPopupDetector
     private enum PopupTitleKind
     {
         MaximumSubmissions,
-        SlowDown
+        SlowDown,
+        ConnectionLost
     }
 
     private readonly record struct PopupCandidateEvidence(Rect Bounds, int Score);
+    private readonly record struct PopupTemplateMatch(PopupState PopupState, double Score, double Threshold, Rect Bounds, double Scale);
+
+    private sealed class PopupTemplates : IDisposable
+    {
+        private PopupTemplates(Mat connectionLostGray, Mat maximumSubmissionsGray, Mat slowDownGray)
+        {
+            ConnectionLostGray = connectionLostGray;
+            MaximumSubmissionsGray = maximumSubmissionsGray;
+            SlowDownGray = slowDownGray;
+        }
+
+        public Mat ConnectionLostGray { get; }
+        public Mat MaximumSubmissionsGray { get; }
+        public Mat SlowDownGray { get; }
+
+        public static PopupTemplates Load()
+        {
+            return new PopupTemplates(
+                LoadGrayTemplate(Resources.connection_lost_popup),
+                LoadGrayTemplate(Resources.max_submissions_popup),
+                LoadGrayTemplate(Resources.slow_down_popup));
+        }
+
+        public void Dispose()
+        {
+            ConnectionLostGray.Dispose();
+            MaximumSubmissionsGray.Dispose();
+            SlowDownGray.Dispose();
+        }
+
+        private static Mat LoadGrayTemplate(System.Drawing.Bitmap bitmap)
+        {
+            using var memory = new MemoryStream();
+            bitmap.Save(memory, ImageFormat.Png);
+            using var template = Cv2.ImDecode(memory.ToArray(), ImreadModes.Color);
+            if (template.Empty())
+            {
+                throw new InvalidOperationException("Popup template resource could not be decoded.");
+            }
+
+            var gray = new Mat();
+            Cv2.CvtColor(template, gray, ColorConversionCodes.BGR2GRAY);
+            return gray;
+        }
+    }
 }

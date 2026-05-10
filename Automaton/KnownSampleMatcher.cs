@@ -7,6 +7,7 @@ namespace Automaton;
 internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 {
     private const string SamplesFolderName = "expected";
+    private const string DefaultFallbackExampleName = "05.sample";
     private const string MaskedExpectedSuffix = ".expected.masked.png";
     private const int SignatureWidth = 96;
     private const int SignatureHeight = 96;
@@ -98,6 +99,66 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         return polygons.Count > 0;
     }
 
+    public bool TryLoadDefaultFallbackPolygons(out IReadOnlyList<Point[]> polygons, out Size playfieldSize)
+    {
+        polygons = Array.Empty<Point[]>();
+        playfieldSize = default;
+
+        var samplesDirectory = Path.Combine(Directory.GetCurrentDirectory(), SamplesFolderName);
+        if (!Directory.Exists(samplesDirectory) ||
+            !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var expectedPath, out var maskedExpectedPath))
+        {
+            return false;
+        }
+
+        using var sampleImage = Cv2.ImRead(samplePath);
+        using var expectedImage = Cv2.ImRead(expectedPath);
+        if (sampleImage.Empty() || expectedImage.Empty())
+        {
+            return false;
+        }
+
+        var playfieldDetection = playfieldDetector.Detect(sampleImage);
+        if (!playfieldDetection.IsFound)
+        {
+            return false;
+        }
+
+        polygons = LoadExpectedPolygons(sampleImage, expectedImage, maskedExpectedPath, playfieldDetection.Bounds);
+        playfieldSize = playfieldDetection.Bounds.Size;
+        return polygons.Count > 0;
+    }
+
+    public bool TryLoadDefaultFallbackScreenPolygons(out IReadOnlyList<Point[]> polygons)
+    {
+        polygons = Array.Empty<Point[]>();
+
+        var samplesDirectory = Path.Combine(Directory.GetCurrentDirectory(), SamplesFolderName);
+        if (!Directory.Exists(samplesDirectory) ||
+            !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var expectedPath, out var maskedExpectedPath))
+        {
+            return false;
+        }
+
+        using var sampleImage = Cv2.ImRead(samplePath);
+        using var expectedImage = Cv2.ImRead(expectedPath);
+        if (sampleImage.Empty() || expectedImage.Empty())
+        {
+            return false;
+        }
+
+        var playfieldDetection = playfieldDetector.Detect(sampleImage);
+        if (!playfieldDetection.IsFound)
+        {
+            return false;
+        }
+
+        polygons = LoadExpectedPolygons(sampleImage, expectedImage, maskedExpectedPath, playfieldDetection.Bounds)
+            .Select(points => TranslatePolygon(points, playfieldDetection.Bounds.Location))
+            .ToArray();
+        return polygons.Count > 0;
+    }
+
     private IReadOnlyList<KnownSampleTemplate> GetTemplates(string samplesDirectory)
     {
         return TemplateCache.GetOrAdd(
@@ -155,6 +216,38 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         }
 
         return templates;
+    }
+
+    private static bool TryFindDefaultFallbackSample(
+        string samplesDirectory,
+        out string samplePath,
+        out string expectedPath,
+        out string maskedExpectedPath)
+    {
+        samplePath = Path.Combine(samplesDirectory, $"{DefaultFallbackExampleName}.png");
+        expectedPath = Path.Combine(
+            samplesDirectory,
+            Path.GetFileNameWithoutExtension(samplePath) + ".expected.png");
+        maskedExpectedPath = Path.Combine(
+            samplesDirectory,
+            Path.GetFileNameWithoutExtension(samplePath) + MaskedExpectedSuffix);
+
+        if (File.Exists(samplePath) && File.Exists(expectedPath))
+        {
+            return true;
+        }
+
+        samplePath = string.Empty;
+        expectedPath = string.Empty;
+        maskedExpectedPath = string.Empty;
+        return false;
+    }
+
+    private static Point[] TranslatePolygon(Point[] polygon, Point offset)
+    {
+        return polygon
+            .Select(point => new Point(point.X + offset.X, point.Y + offset.Y))
+            .ToArray();
     }
 
     private static IReadOnlyList<Point[]> LoadExpectedPolygons(

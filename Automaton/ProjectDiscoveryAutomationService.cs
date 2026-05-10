@@ -156,20 +156,33 @@ internal sealed class ProjectDiscoveryAutomationService
                 traceImages.Track(captureSummary);
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (!captureSummary.Analysis.Result.PlayfieldFound &&
-                    m_ErrorPopupDetector.DetectSlowDownAndDrawDebugOverlay(captureSummary.CapturePath))
+                var popupState = m_ErrorPopupDetector.DetectPopupStateAndDrawDebugOverlay(captureSummary.CapturePath);
+                if (TryHandleDetectedPopup(
+                    popupState,
+                    captureSummary,
+                    traceImages,
+                    clickedPointCount: 0,
+                    controlBounds: null,
+                    focusedCapturePath: captureSummary.CapturePath,
+                    detectionStage: "main capture",
+                    cancellationToken,
+                    out var popupSummary))
                 {
-                    RecoverFromSlowDownPopup(captureSummary.CapturePath, cancellationToken);
-                    lastSummary = new AutomationSummary(
-                        captureSummary,
-                        0,
-                        null,
-                        captureSummary.CapturePath,
-                        CurrentPilotIndex: m_CurrentPilotIndex,
-                        SlowDownPopupDetected: true);
-                    consecutivePlayfieldMisses = 0;
-                    m_AutomationInputController.Delay(MinimumClickDelayMilliseconds, cancellationToken);
-                    continue;
+                    lastSummary = popupSummary;
+                    if (lastSummary is { SlowDownPopupDetected: true, MaximumSubmissionsReached: false, ConnectionLostDetected: false, PopupDetectionAmbiguous: false })
+                    {
+                        consecutivePlayfieldMisses = 0;
+                        m_AutomationInputController.Delay(MinimumClickDelayMilliseconds, cancellationToken);
+                        continue;
+                    }
+
+                    if (lastSummary is { MaximumSubmissionsReached: true, PilotSwitchSucceeded: true })
+                    {
+                        m_AutomationInputController.Delay(MinimumClickDelayMilliseconds, cancellationToken);
+                        continue;
+                    }
+
+                    return lastSummary;
                 }
 
                 if (captureSummary.Analysis.Result.PlayfieldFound)
@@ -245,25 +258,19 @@ internal sealed class ProjectDiscoveryAutomationService
         m_AutomationInputController.Delay(AfterSubmitDelayMilliseconds, cancellationToken);
         var focusedCapturePath = CaptureFocusedScreenTrace(captureSummary, cancellationToken);
         traceImages.Track(focusedCapturePath);
-        var focusedCaptureAnalysis = m_ScreenCaptureService.AnalyzeImageFile(focusedCapturePath, writeAnnotatedOutput: false);
-
-        if (!focusedCaptureAnalysis.Result.PlayfieldFound && m_ErrorPopupDetector.DetectSlowDownAndDrawDebugOverlay(focusedCapturePath))
+        var focusedPopupState = m_ErrorPopupDetector.DetectPopupStateAndDrawDebugOverlay(focusedCapturePath);
+        if (TryHandleDetectedPopup(
+            focusedPopupState,
+            captureSummary,
+            traceImages,
+            clickedPointCount,
+            ControlButtonBounds,
+            focusedCapturePath,
+            "post-submit focus",
+            cancellationToken,
+            out var popupSummary))
         {
-            RecoverFromSlowDownPopup(focusedCapturePath, cancellationToken);
-            return new AutomationSummary(
-                captureSummary,
-                clickedPointCount,
-                ControlButtonBounds,
-                focusedCapturePath,
-                CurrentPilotIndex: m_CurrentPilotIndex,
-                SlowDownPopupDetected: true);
-        }
-
-        if (!focusedCaptureAnalysis.Result.PlayfieldFound && m_ErrorPopupDetector.DetectAndDrawDebugOverlay(focusedCapturePath))
-        {
-            var pilotSwitchResult = SwitchToNextPilot(captureSummary, traceImages, cancellationToken);
-            Logger.Warning("Maximum submissions popup detected. FocusedCapturePath={FocusedCapturePath}, CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}, PilotSwitchSucceeded={PilotSwitchSucceeded}, PilotSwitchCapturePath={PilotSwitchCapturePath}", focusedCapturePath, m_CurrentPilotIndex, pilotSwitchResult.TargetPilotIndex, pilotSwitchResult.Succeeded, pilotSwitchResult.CapturePath);
-            return new AutomationSummary(captureSummary, clickedPointCount, ControlButtonBounds, focusedCapturePath, MaximumSubmissionsReached: true, CurrentPilotIndex: m_CurrentPilotIndex, TargetPilotIndex: pilotSwitchResult.TargetPilotIndex, PilotSwitchSucceeded: pilotSwitchResult.Succeeded, PilotSwitchCapturePath: pilotSwitchResult.CapturePath);
+            return popupSummary;
         }
 
         // Left-click the 'Continue' button.
@@ -294,7 +301,8 @@ internal sealed class ProjectDiscoveryAutomationService
     {
         if (!m_PilotAvatarLocator.TryGetNextPilotIndex(m_CurrentPilotIndex, out var nextPilotIndex))
         {
-            Logger.Warning("No next pilot is configured. CurrentPilotIndex={CurrentPilotIndex}", m_CurrentPilotIndex);
+            Logger.Warning("No next pilot is configured => Quit Game. CurrentPilotIndex={CurrentPilotIndex}", m_CurrentPilotIndex);
+            // Quit Game
             m_AutomationInputController.PressKeyChord(VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ, cancellationToken);
             m_AutomationInputController.Delay(FinalPilotLogoutConfirmDelayMilliseconds, cancellationToken);
             m_AutomationInputController.PressKey(VirtualKeyEnter, cancellationToken);
@@ -346,6 +354,74 @@ internal sealed class ProjectDiscoveryAutomationService
 
         Logger.Information("Pilot switch succeeded. CurrentPilotIndex={CurrentPilotIndex}, CapturePath={CapturePath}, Bounds={Bounds}", m_CurrentPilotIndex, pilotSelectionCapturePath, location.Bounds);
         return new PilotSwitchResult(nextPilotIndex, Succeeded: true, pilotSelectionCapturePath);
+    }
+
+    private bool TryHandleDetectedPopup(
+        ErrorPopupDetector.PopupState popupState,
+        ScreenCaptureAnalysisSummary captureSummary,
+        TraceImageScope traceImages,
+        int clickedPointCount,
+        Rect? controlBounds,
+        string focusedCapturePath,
+        string detectionStage,
+        CancellationToken cancellationToken,
+        out AutomationSummary summary)
+    {
+        switch (popupState)
+        {
+            case ErrorPopupDetector.PopupState.None:
+                summary = default!;
+                return false;
+            case ErrorPopupDetector.PopupState.ConnectionLost:
+                Logger.Error("Connection Lost popup detected during {DetectionStage}. Stopping automation. FocusedCapturePath={FocusedCapturePath}", detectionStage, focusedCapturePath);
+                summary = new AutomationSummary(
+                    captureSummary,
+                    clickedPointCount,
+                    controlBounds,
+                    focusedCapturePath,
+                    CurrentPilotIndex: m_CurrentPilotIndex,
+                    ConnectionLostDetected: true);
+                return true;
+            case ErrorPopupDetector.PopupState.SlowDown:
+                RecoverFromSlowDownPopup(focusedCapturePath, cancellationToken);
+                summary = new AutomationSummary(
+                    captureSummary,
+                    clickedPointCount,
+                    controlBounds,
+                    focusedCapturePath,
+                    CurrentPilotIndex: m_CurrentPilotIndex,
+                    SlowDownPopupDetected: true);
+                return true;
+            case ErrorPopupDetector.PopupState.MaximumSubmissions:
+                var pilotSwitchResult = SwitchToNextPilot(captureSummary, traceImages, cancellationToken);
+                Logger.Warning("Maximum submissions popup detected during {DetectionStage}. FocusedCapturePath={FocusedCapturePath}, CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}, PilotSwitchSucceeded={PilotSwitchSucceeded}, PilotSwitchCapturePath={PilotSwitchCapturePath}", detectionStage, focusedCapturePath, m_CurrentPilotIndex, pilotSwitchResult.TargetPilotIndex, pilotSwitchResult.Succeeded, pilotSwitchResult.CapturePath);
+                summary = new AutomationSummary(
+                    captureSummary,
+                    clickedPointCount,
+                    controlBounds,
+                    focusedCapturePath,
+                    MaximumSubmissionsReached: true,
+                    CurrentPilotIndex: m_CurrentPilotIndex,
+                    TargetPilotIndex: pilotSwitchResult.TargetPilotIndex,
+                    PilotSwitchSucceeded: pilotSwitchResult.Succeeded,
+                    PilotSwitchCapturePath: pilotSwitchResult.CapturePath,
+                    NoFurtherPilotsAvailable: !pilotSwitchResult.Succeeded &&
+                                              pilotSwitchResult.TargetPilotIndex == m_CurrentPilotIndex);
+                return true;
+            case ErrorPopupDetector.PopupState.Unknown:
+                Logger.Error("Ambiguous popup detected during {DetectionStage}. Stopping automation for safety. FocusedCapturePath={FocusedCapturePath}", detectionStage, focusedCapturePath);
+                summary = new AutomationSummary(
+                    captureSummary,
+                    clickedPointCount,
+                    controlBounds,
+                    focusedCapturePath,
+                    CurrentPilotIndex: m_CurrentPilotIndex,
+                    PopupDetectionAmbiguous: true);
+                return true;
+            default:
+                summary = default!;
+                return false;
+        }
     }
 
     private void RecoverFromSlowDownPopup(string focusedCapturePath, CancellationToken cancellationToken)
@@ -591,5 +667,8 @@ internal sealed record AutomationSummary(
     int? TargetPilotIndex = null,
     bool PilotSwitchSucceeded = false,
     string? PilotSwitchCapturePath = null,
+    bool NoFurtherPilotsAvailable = false,
     bool PlayfieldMissingLimitReached = false,
-    bool SlowDownPopupDetected = false);
+    bool SlowDownPopupDetected = false,
+    bool ConnectionLostDetected = false,
+    bool PopupDetectionAmbiguous = false);

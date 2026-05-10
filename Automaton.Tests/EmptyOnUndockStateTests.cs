@@ -42,18 +42,20 @@ public sealed class EmptyOnUndockStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.WarpingToAsteroidField, transition.NextState);
+        Assert.Equal(MiningAutomationStateKind.LandedOnAsteroidBelt, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.WarpToAsteroidField, transition.Action);
         Assert.NotNull(transition.AsteroidBeltOverview);
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
         Assert.Equal(new[] { 300, 300 }, automationInputController.Delays);
-        Assert.Equal(2, automationInputController.MoveTargets.Count);
+        Assert.Equal(4, automationInputController.MoveTargets.Count);
         Assert.Equal(new[] { VirtualKeyS }, automationInputController.KeyInputs);
         Assert.InRange(automationInputController.MoveTargets[0].X, 2270, 2315);
         Assert.InRange(automationInputController.MoveTargets[0].Y, 330, 365);
-        Assert.InRange(automationInputController.MoveTargets[1].X, 1990, 2525);
-        Assert.InRange(automationInputController.MoveTargets[1].Y, 490, 530);
+        AssertMouseParked(automationInputController.MoveTargets[1]);
+        Assert.InRange(automationInputController.MoveTargets[2].X, 1990, 2525);
+        Assert.InRange(automationInputController.MoveTargets[2].Y, 490, 530);
+        AssertMouseParked(automationInputController.MoveTargets[3]);
     }
 
     [Fact]
@@ -151,5 +153,11 @@ public sealed class EmptyOnUndockStateTests
     private sealed class StubAutomationClock : IAutomationClock
     {
         public DateTime UtcNow { get; } = new(2026, 5, 3, 12, 0, 0, DateTimeKind.Utc);
+    }
+
+    private static void AssertMouseParked(Point point)
+    {
+        Assert.InRange(point.X, 200, 299);
+        Assert.InRange(point.Y, 200, 299);
     }
 }
