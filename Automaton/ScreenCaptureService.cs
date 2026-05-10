@@ -8,7 +8,6 @@ namespace Automaton;
 
 internal sealed class ScreenCaptureService
 {
-    private const string CapturesFolderName = "captures";
     private const string CaptureFilePrefix = "capture-";
     private const string CaptureTimestampFormat = "yyyyMMdd-HHmmss";
     private const int MinimumCaptureDimension = 1;
@@ -24,7 +23,6 @@ internal sealed class ScreenCaptureService
 
     private readonly IScreenCaptureProvider m_ScreenCaptureProvider;
     private readonly SampleImageProcessor m_SampleImageProcessor;
-    private readonly string m_CapturesDirectory;
 
     public ScreenCaptureService()
         : this(new ScreenCaptureProvider(), new SampleImageProcessor())
@@ -37,7 +35,6 @@ internal sealed class ScreenCaptureService
     {
         m_ScreenCaptureProvider = screenCaptureProvider;
         m_SampleImageProcessor = sampleImageProcessor;
-        m_CapturesDirectory = CapturesFolderName;
     }
 
     public void ProcessSamples()
@@ -57,6 +54,7 @@ internal sealed class ScreenCaptureService
 
     internal ScreenCaptureAnalysisSummary CaptureAndAnalyzeCurrentScreen()
     {
+        var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
         // Persist the captured desktop first so the exact input remains available
         // for debugging, then process it through the same screenshot pipeline.
         var capturePath = CaptureCurrentScreenTrace();
@@ -68,14 +66,15 @@ internal sealed class ScreenCaptureService
             analysis.Result.ClusterCount,
             analysis.Result.OutputPath);
 
-        return new ScreenCaptureAnalysisSummary(m_CapturesDirectory, capturePath, analysis);
+        return new ScreenCaptureAnalysisSummary(capturesDirectory, capturePath, analysis);
     }
 
     internal string CaptureCurrentScreenTrace(string suffix = "")
     {
-        Directory.CreateDirectory(m_CapturesDirectory);
+        var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
+        Directory.CreateDirectory(capturesDirectory);
         var capturePath = Path.Combine(
-            m_CapturesDirectory,
+            capturesDirectory,
             $"{CaptureFilePrefix}{DateTime.Now.ToString(CaptureTimestampFormat)}{suffix}.png");
         CaptureCurrentScreenToFile(capturePath);
         Logger.Information("Captured current screen trace. CapturePath={CapturePath}", capturePath);

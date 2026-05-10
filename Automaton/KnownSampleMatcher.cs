@@ -6,7 +6,6 @@ namespace Automaton;
 
 internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 {
-    private const string SamplesFolderName = "expected";
     private const string DefaultFallbackExampleName = "05.sample";
     private const string MaskedExpectedSuffix = ".expected.masked.png";
     private const int SignatureWidth = 96;
@@ -57,7 +56,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         polygons = Array.Empty<Point[]>();
         matchedSampleFileName = null;
 
-        var samplesDirectory = Path.Combine(Directory.GetCurrentDirectory(), SamplesFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
         if (!Directory.Exists(samplesDirectory))
         {
             return false;
@@ -104,7 +103,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         polygons = Array.Empty<Point[]>();
         playfieldSize = default;
 
-        var samplesDirectory = Path.Combine(Directory.GetCurrentDirectory(), SamplesFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var expectedPath, out var maskedExpectedPath))
         {
@@ -133,7 +132,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     {
         polygons = Array.Empty<Point[]>();
 
-        var samplesDirectory = Path.Combine(Directory.GetCurrentDirectory(), SamplesFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var expectedPath, out var maskedExpectedPath))
         {

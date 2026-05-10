@@ -1,4 +1,6 @@
+using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -31,6 +33,8 @@ public partial class MainWindow
     {
         m_AutomationMode = automationMode;
         InitializeComponent();
+        UpdateTelemetryMenuItemHeader();
+        UpdateHallmarkMenuItemHeader();
         ApplyAutomationMode();
         RestoreWindowPosition();
         SourceInitialized += MainWindow_SourceInitialized;
@@ -361,9 +365,90 @@ public partial class MainWindow
 
     private void ApplyDebugImageRetention()
     {
-        var keepDebugImages = DebugCheckBox.IsChecked == true;
+        var keepDebugImages = DebugMenuItem.IsChecked;
         m_ProjectDiscoveryAutomationService.KeepDebugImages = keepDebugImages;
         Logger.Information("Debug image retention set. KeepDebugImages={KeepDebugImages}", keepDebugImages);
+    }
+
+    private void DebugMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyDebugImageRetention();
+    }
+
+    private void TelemetryMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var folderDialog = new OpenFolderDialog
+        {
+            Title = "Select telemetry root folder"
+        };
+
+        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredRootDirectory();
+        if (!string.IsNullOrWhiteSpace(configuredRootDirectory) && Directory.Exists(configuredRootDirectory))
+        {
+            folderDialog.InitialDirectory = configuredRootDirectory;
+        }
+
+        if (folderDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(folderDialog.FolderName))
+        {
+            return;
+        }
+
+        TelemetryRootDirectory.SetConfiguredRootDirectory(folderDialog.FolderName);
+        UpdateTelemetryMenuItemHeader();
+        Logger.Information("Telemetry root directory selected. TelemetryRootDirectory={TelemetryRootDirectory}", folderDialog.FolderName);
+    }
+
+    private void UpdateTelemetryMenuItemHeader()
+    {
+        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredRootDirectory();
+        if (string.IsNullOrWhiteSpace(configuredRootDirectory))
+        {
+            TelemetryMenuItem.Header = "Telemetry";
+            return;
+        }
+
+        var folderName = Path.GetFileName(configuredRootDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        TelemetryMenuItem.Header = string.IsNullOrWhiteSpace(folderName)
+            ? configuredRootDirectory
+            : folderName;
+    }
+
+    private void HallmarkMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var folderDialog = new OpenFolderDialog
+        {
+            Title = "Select hallmark root folder"
+        };
+
+        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory();
+        if (!string.IsNullOrWhiteSpace(configuredRootDirectory) && Directory.Exists(configuredRootDirectory))
+        {
+            folderDialog.InitialDirectory = configuredRootDirectory;
+        }
+
+        if (folderDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(folderDialog.FolderName))
+        {
+            return;
+        }
+
+        TelemetryRootDirectory.SetConfiguredHallmarkRootDirectory(folderDialog.FolderName);
+        UpdateHallmarkMenuItemHeader();
+        Logger.Information("Hallmark root directory selected. HallmarkRootDirectory={HallmarkRootDirectory}", folderDialog.FolderName);
+    }
+
+    private void UpdateHallmarkMenuItemHeader()
+    {
+        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory();
+        if (string.IsNullOrWhiteSpace(configuredRootDirectory))
+        {
+            HallmarkMenuItem.Header = "Hallmark";
+            return;
+        }
+
+        var folderName = Path.GetFileName(configuredRootDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        HallmarkMenuItem.Header = string.IsNullOrWhiteSpace(folderName)
+            ? configuredRootDirectory
+            : folderName;
     }
 
     private void PilotIndexDecrease_Click(object sender, RoutedEventArgs e)
