@@ -77,6 +77,7 @@ internal sealed class ErrorPopupDetector
     private static readonly Scalar YellowMaximum = new(35, 255, 255);
     private static readonly Scalar DebugOverlayTextColor = new(80, 120, 255);
     private static readonly Lazy<PopupTemplates> s_PopupTemplates = new(PopupTemplates.Load);
+    private readonly PlayNowButtonLocator m_PlayNowButtonLocator = new();
 
     public bool Detect(string imagePath)
     {
@@ -123,7 +124,8 @@ internal sealed class ErrorPopupDetector
     public bool DetectConnectionLostAndDrawDebugOverlay(string imagePath)
     {
         using var image = Cv2.ImRead(imagePath);
-        if (!DetectConnectionLostPopup(image))
+        if (DetectPopup(image).State != PopupState.ConnectionLost &&
+            !DetectConnectionLostPopup(image))
         {
             return false;
         }
@@ -135,7 +137,8 @@ internal sealed class ErrorPopupDetector
 
     public bool DetectConnectionLost(Mat image)
     {
-        return DetectConnectionLostPopup(image);
+        return DetectPopup(image).State == PopupState.ConnectionLost ||
+               DetectConnectionLostPopup(image);
     }
 
     public PopupState DetectPopupStateAndDrawDebugOverlay(string imagePath)
@@ -171,11 +174,6 @@ internal sealed class ErrorPopupDetector
             return new PopupDetection(templateState, templateBounds, true);
         }
 
-        if (DetectConnectionLostPopup(image))
-        {
-            return new PopupDetection(PopupState.ConnectionLost, new Rect(), false);
-        }
-
         if (image.Empty())
         {
             return new PopupDetection(PopupState.None, new Rect(), false);
@@ -185,6 +183,11 @@ internal sealed class ErrorPopupDetector
         var popupKind = DetectPopupKind(masks, image.Size());
         if (popupKind is null)
         {
+            if (DetectConnectionLostPopup(image) && !IsLauncherPlayNowVisible(image))
+            {
+                return new PopupDetection(PopupState.ConnectionLost, new Rect(), false);
+            }
+
             return new PopupDetection(PopupState.None, new Rect(), false);
         }
 
@@ -207,6 +210,11 @@ internal sealed class ErrorPopupDetector
             _ => PopupState.None
         };
         return new PopupDetection(state, new Rect(), false);
+    }
+
+    private bool IsLauncherPlayNowVisible(Mat image)
+    {
+        return m_PlayNowButtonLocator.TryLocate(image, out _);
     }
 
     private static bool TryDetectPopupStateByTemplate(Mat image, out PopupState popupState, out Rect popupBounds)
@@ -250,6 +258,12 @@ internal sealed class ErrorPopupDetector
             searchBounds.Y + best.Bounds.Y,
             best.Bounds.Width,
             best.Bounds.Height);
+
+        if (best.PopupState == PopupState.ConnectionLost &&
+            !HasConnectionLostTemplateEvidence(image, popupBounds))
+        {
+            return false;
+        }
 
         var secondBest = matches.OrderByDescending(match => match.Score).Skip(1).First();
         if (best.Score - secondBest.Score < 0.02)
@@ -338,6 +352,16 @@ internal sealed class ErrorPopupDetector
             bounds.Y + (int)Math.Round(bounds.Height * topRatio),
             Math.Max(1, (int)Math.Round(bounds.Width * widthRatio)),
             Math.Max(1, (int)Math.Round(bounds.Height * heightRatio)));
+    }
+
+    private static bool HasConnectionLostTemplateEvidence(Mat image, Rect popupBounds)
+    {
+        using var masks = PopupEvidenceMasks.Create(image);
+        return TryBuildPopupCandidateEvidence(
+            masks,
+            popupBounds,
+            PopupTitleKind.ConnectionLost,
+            out _);
     }
 
     private static bool Detect(Mat image, PopupTitleKind titleKind)

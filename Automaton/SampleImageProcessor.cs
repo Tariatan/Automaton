@@ -95,6 +95,7 @@ internal sealed class SampleImageProcessor
 
     private readonly PlayfieldDetector m_PlayfieldDetector = new();
     private readonly ErrorPopupDetector m_ErrorPopupDetector = new();
+    private readonly PlayNowButtonLocator m_PlayNowButtonLocator = new();
     private readonly KnownSampleMatcher m_KnownSampleMatcher;
 
     public SampleImageProcessor()
@@ -176,7 +177,14 @@ internal sealed class SampleImageProcessor
         IReadOnlyList<Point[]> polygons;
         var usedKnownSampleTemplate = false;
         string? matchedSampleFileName = null;
-        var popupDetection = m_ErrorPopupDetector.DetectPopup(image);
+        var popupDetection = m_PlayNowButtonLocator.TryLocate(image, out _)
+            ? new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect(), false)
+            : m_ErrorPopupDetector.DetectPopup(image);
+        if (popupDetection.State == ErrorPopupDetector.PopupState.ConnectionLost &&
+            playfieldDetection.IsFound)
+        {
+            popupDetection = new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect(), false);
+        }
 
         if (popupDetection.State != ErrorPopupDetector.PopupState.None)
         {

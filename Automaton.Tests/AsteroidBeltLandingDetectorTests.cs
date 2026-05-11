@@ -52,4 +52,23 @@ public sealed class AsteroidBeltLandingDetectorTests
         Assert.Null(analysis.MineOverviewBounds);
         Assert.Empty(analysis.Asteroids);
     }
+
+    [Fact]
+    public void Analyze_MineOverviewContainsHeaderLikeIcon_IgnoresHeaderAndKeepsAsteroidRows()
+    {
+        // Arrange
+        using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImageWithMineHeaderLikeIcon();
+        var detector = new AsteroidBeltLandingDetector();
+
+        // Act
+        var analysis = detector.Analyze(image);
+
+        // Assert
+        Assert.True(analysis.LandedOnAsteroidBelt);
+        Assert.NotNull(analysis.MineOverviewBounds);
+        Assert.Equal(5, analysis.Asteroids.Count);
+        Assert.All(
+            analysis.Asteroids,
+            asteroid => Assert.True(asteroid.Bounds.Top - analysis.MineOverviewBounds!.Value.Top >= 120));
+    }
 }

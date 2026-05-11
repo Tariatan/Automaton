@@ -15,6 +15,7 @@ internal sealed class AsteroidBeltLandingDetector
     private const int MaximumAsteroidIconWidth = 18;
     private const int MaximumAsteroidIconHeight = 18;
     private const int AsteroidIconGroupMaximumDistance = 18;
+    private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 120;
 
     public AsteroidBeltLandingAnalysis Analyze(Mat screen)
     {
@@ -212,7 +213,13 @@ internal sealed class AsteroidBeltLandingDetector
                 continue;
             }
 
-            iconCenters.Add(iconColumnBounds.Y + bounds.Y + bounds.Height / 2);
+            var iconCenterY = iconColumnBounds.Y + bounds.Y + bounds.Height / 2;
+            if (iconCenterY - mineOverviewBounds.Y < MinimumAsteroidRowCenterOffsetFromMineOverviewTop)
+            {
+                continue;
+            }
+
+            iconCenters.Add(iconCenterY);
         }
 
         var rowLeft = Math.Clamp(mineOverviewBounds.X + 28, 0, Math.Max(0, screen.Width - 1));

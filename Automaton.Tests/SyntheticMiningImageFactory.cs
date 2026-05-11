@@ -88,6 +88,13 @@ internal static class SyntheticMiningImageFactory
         return image;
     }
 
+    public static Mat CreateLandedOnAsteroidBeltImageWithMineHeaderLikeIcon()
+    {
+        var image = CreateLandedOnAsteroidBeltImage();
+        DrawMineHeaderLikeIcon(image);
+        return image;
+    }
+
     public static void WriteDockedItemHangarFocusedImage(string outputPath)
     {
         using var image = CreateDockedItemHangarFocusedImage();
@@ -127,6 +134,12 @@ internal static class SyntheticMiningImageFactory
     public static void WriteLandedOnEmptyAsteroidBeltImage(string outputPath)
     {
         using var image = CreateLandedOnEmptyAsteroidBeltImage();
+        Cv2.ImWrite(outputPath, image);
+    }
+
+    public static void WriteLandedOnAsteroidBeltImageWithMineHeaderLikeIcon(string outputPath)
+    {
+        using var image = CreateLandedOnAsteroidBeltImageWithMineHeaderLikeIcon();
         Cv2.ImWrite(outputPath, image);
     }
 
@@ -337,6 +350,19 @@ internal static class SyntheticMiningImageFactory
             TextColor,
             1,
             LineTypes.AntiAlias);
+    }
+
+    private static void DrawMineHeaderLikeIcon(Mat image)
+    {
+        var iconCenter = new Point(MineOverviewBounds.X + 41, MineOverviewBounds.Y + 88);
+        var iconPoints = new[]
+        {
+            new Point(iconCenter.X, iconCenter.Y - 5),
+            new Point(iconCenter.X + 6, iconCenter.Y),
+            new Point(iconCenter.X, iconCenter.Y + 5),
+            new Point(iconCenter.X - 6, iconCenter.Y)
+        };
+        Cv2.FillConvexPoly(image, iconPoints, new Scalar(120, 120, 120), LineTypes.AntiAlias);
     }
 
     private static Mat LoadLocationChangeTimer()

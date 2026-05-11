@@ -1,4 +1,5 @@
 using OpenCvSharp;
+using System.Drawing.Imaging;
 
 namespace Automaton.Tests;
 
@@ -225,6 +226,20 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         Assert.False(detected);
     }
 
+    [Fact]
+    public void DetectPopupState_ImageContainsLauncherPlayNowButton_ReturnsNone()
+    {
+        // Arrange
+        using var image = CreateLauncherPlayNowImage();
+        var detector = new ErrorPopupDetector();
+
+        // Act
+        var popupState = detector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+    }
+
     private static Mat CreateBusyPilotSelectionImage()
     {
         var image = new Mat(new Size(3000, 1600), MatType.CV_8UC3, new Scalar(14, 18, 22));
@@ -416,5 +431,27 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         Cv2.Line(image, new Point(icon.X + 12, icon.Y + 44), new Point(icon.X + 83, icon.Y + 12), Scalar.All(235), 2, LineTypes.AntiAlias);
         Cv2.PutText(image, "Capital", new Point(topLeft.X + 4, topLeft.Y + 92), HersheyFonts.HersheySimplex, 0.58, Scalar.All(225), 1, LineTypes.AntiAlias);
         Cv2.PutText(image, "Ship", new Point(topLeft.X + 22, topLeft.Y + 126), HersheyFonts.HersheySimplex, 0.58, Scalar.All(225), 1, LineTypes.AntiAlias);
+    }
+
+    private static Mat CreateLauncherPlayNowImage()
+    {
+        var image = new Mat(new Size(2551, 2008), MatType.CV_8UC3, new Scalar(14, 16, 20));
+        Cv2.Rectangle(image, new Rect(1070, 95, 1450, 880), new Scalar(10, 10, 12), -1);
+        Cv2.Rectangle(image, new Rect(1070, 95, 1450, 880), new Scalar(65, 60, 45));
+
+        using var playButton = LoadPlayButtonImage();
+        var playButtonBounds = new Rect(1965, 533, playButton.Width, playButton.Height);
+        using var playRegion = new Mat(image, playButtonBounds);
+        playButton.CopyTo(playRegion);
+
+        return image;
+    }
+
+    private static Mat LoadPlayButtonImage()
+    {
+        using var bitmap = Properties.Resources.play;
+        using var memoryStream = new MemoryStream();
+        bitmap.Save(memoryStream, ImageFormat.Png);
+        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
     }
 }

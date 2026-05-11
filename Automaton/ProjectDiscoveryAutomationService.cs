@@ -156,7 +156,7 @@ internal sealed class ProjectDiscoveryAutomationService
                 traceImages.Track(captureSummary);
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var popupState = m_ErrorPopupDetector.DetectPopupStateAndDrawDebugOverlay(captureSummary.CapturePath);
+                var popupState = DetectPopupStateWithLauncherGuard(captureSummary.CapturePath);
                 if (TryHandleDetectedPopup(
                     popupState,
                     captureSummary,
@@ -258,7 +258,7 @@ internal sealed class ProjectDiscoveryAutomationService
         m_AutomationInputController.Delay(AfterSubmitDelayMilliseconds, cancellationToken);
         var focusedCapturePath = CaptureFocusedScreenTrace(captureSummary, cancellationToken);
         traceImages.Track(focusedCapturePath);
-        var focusedPopupState = m_ErrorPopupDetector.DetectPopupStateAndDrawDebugOverlay(focusedCapturePath);
+        var focusedPopupState = DetectPopupStateWithLauncherGuard(focusedCapturePath);
         if (TryHandleDetectedPopup(
             focusedPopupState,
             captureSummary,
@@ -433,6 +433,22 @@ internal sealed class ProjectDiscoveryAutomationService
         m_AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyW, cancellationToken);
         m_AutomationInputController.Delay(SubmissionWindowMilliseconds, cancellationToken);
         m_AutomationInputController.PressKeyChord(VirtualKeyAlt, VirtualKeyL, cancellationToken);
+    }
+
+    private ErrorPopupDetector.PopupState DetectPopupStateWithLauncherGuard(string capturePath)
+    {
+        using var image = Cv2.ImRead(capturePath);
+        if (!image.Empty() &&
+            m_PlayNowButtonLocator.TryLocate(image, out var playButtonLocation))
+        {
+            Logger.Information(
+                "Skipping popup detection because launcher PLAY NOW button was found. CapturePath={CapturePath}, PlayButtonBounds={PlayButtonBounds}",
+                capturePath,
+                playButtonLocation.Bounds);
+            return ErrorPopupDetector.PopupState.None;
+        }
+
+        return m_ErrorPopupDetector.DetectPopupStateAndDrawDebugOverlay(capturePath);
     }
 
     private TraceImageScope CreateTraceImageScope()

@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Automaton.Properties;
+using Automaton.MiningStates;
 using Serilog;
 
 namespace Automaton;
@@ -13,8 +14,6 @@ public partial class MainWindow
 {
     private const int HotKeyId = 1;
     private const int WindowMessageHotKey = 0x0312;
-    private const int MinimumPilotIndex = 1;
-    private const int MaximumPilotIndex = 3;
     private const uint ModifierAlt = 0x0001;
     private const uint ModifierShift = 0x0004;
     private const uint VirtualKeyF11 = 0x7A;
@@ -28,6 +27,8 @@ public partial class MainWindow
     private HwndSource? m_WindowSource;
     private CancellationTokenSource? m_AutomationCancellationSource;
     private bool m_IsAutomationRunning;
+    private int m_DefaultPilotIndex = 1;
+    private MiningAutomationStateKind m_SelectedMiningStartState = MiningAutomationStateKind.StartingGame;
 
     public MainWindow(ApplicationAutomationMode automationMode = ApplicationAutomationMode.ProjectDiscovery)
     {
@@ -59,7 +60,7 @@ public partial class MainWindow
 
         if (m_AutomationMode == ApplicationAutomationMode.Mining)
         {
-            Logger.Information("Start requested from automation button. AutomationMode={AutomationMode}", m_AutomationMode);
+            Logger.Information("Start requested from automation button. AutomationMode={AutomationMode}, SelectedMiningStartState={SelectedMiningStartState}", m_AutomationMode, m_SelectedMiningStartState);
             await StartMiningAutomationAsync(new CancellationTokenSource());
             return;
         }
@@ -222,7 +223,7 @@ public partial class MainWindow
         try
         {
             var automationTask = Task.Run(
-                () => m_MiningAutomationService.AutomateCurrentScreen(cancellationSource.Token),
+                () => m_MiningAutomationService.AutomateCurrentScreen(m_SelectedMiningStartState, cancellationSource.Token),
                 cancellationSource.Token);
             var summary = await automationTask;
             Logger.Information(
@@ -358,9 +359,11 @@ public partial class MainWindow
     {
         var projectDiscoveryControlsEnabled = isEnabled &&
                                               m_AutomationMode == ApplicationAutomationMode.ProjectDiscovery;
-        PilotIndexDecreaseButton.IsEnabled = projectDiscoveryControlsEnabled;
-        PilotIndexIncreaseButton.IsEnabled = projectDiscoveryControlsEnabled;
-        SamplesButton.IsEnabled = projectDiscoveryControlsEnabled;
+        var miningControlsEnabled = isEnabled &&
+                                    m_AutomationMode == ApplicationAutomationMode.Mining;
+        DiscoveryMenuItem.IsEnabled = projectDiscoveryControlsEnabled;
+        SamplesMenuItem.IsEnabled = projectDiscoveryControlsEnabled;
+        MiningMenuItem.IsEnabled = miningControlsEnabled;
     }
 
     private void ApplyDebugImageRetention()
@@ -451,40 +454,105 @@ public partial class MainWindow
             : folderName;
     }
 
-    private void PilotIndexDecrease_Click(object sender, RoutedEventArgs e)
+    private void Pilot1MenuItem_Click(object sender, RoutedEventArgs e)
     {
-        SetPilotIndex(GetPilotIndex() - 1);
+        SetPilotIndex(1);
     }
 
-    private void PilotIndexIncrease_Click(object sender, RoutedEventArgs e)
+    private void Pilot2MenuItem_Click(object sender, RoutedEventArgs e)
     {
-        SetPilotIndex(GetPilotIndex() + 1);
+        SetPilotIndex(2);
     }
 
-    private void PilotIndexTextBox_LostFocus(object sender, RoutedEventArgs e)
+    private void Pilot3MenuItem_Click(object sender, RoutedEventArgs e)
     {
-        SetPilotIndex(GetPilotIndex());
+        SetPilotIndex(3);
     }
 
     private int GetPilotIndex()
     {
-        var pilotIndex = int.TryParse(PilotIndexTextBox.Text, out var parsedPilotIndex)
-            ? parsedPilotIndex
-            : MinimumPilotIndex;
-        pilotIndex = Math.Clamp(pilotIndex, MinimumPilotIndex, MaximumPilotIndex);
-        SetPilotIndex(pilotIndex);
-        return pilotIndex;
+        return m_DefaultPilotIndex;
     }
 
     private void SetPilotIndex(int pilotIndex)
     {
-        PilotIndexTextBox.Text = pilotIndex.ToString();
+        m_DefaultPilotIndex = pilotIndex;
+        Pilot1MenuItem.IsChecked = pilotIndex == 1;
+        Pilot2MenuItem.IsChecked = pilotIndex == 2;
+        Pilot3MenuItem.IsChecked = pilotIndex == 3;
+        Logger.Information("Default pilot index changed. DefaultPilotIndex={DefaultPilotIndex}", m_DefaultPilotIndex);
     }
 
     private void Samples_Click(object sender, RoutedEventArgs e)
     {
         Logger.Information("Sample processing requested from main window.");
         m_ProjectDiscoveryAutomationService.ProcessSamples();
+    }
+
+    private void MiningStartingGameMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.StartingGame);
+    }
+
+    private void MiningLoginMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.Login);
+    }
+
+    private void MiningDockedMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.Docked);
+    }
+
+    private void MiningUndockingMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.Undocking);
+    }
+
+    private void MiningEmptyOnUndockMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.EmptyOnUndock);
+    }
+
+    private void MiningWarpingToAsteroidFieldMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.WarpingToAsteroidField);
+    }
+
+    private void MiningLandedOnAsteroidBeltMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.LandedOnAsteroidBelt);
+    }
+
+    private void MiningMiningMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.Mining);
+    }
+
+    private void MiningUnloadCargoMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.UnloadCargo);
+    }
+
+    private void MiningRecoveryMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.Recovery);
+    }
+
+    private void SetMiningStartState(MiningAutomationStateKind stateKind)
+    {
+        m_SelectedMiningStartState = stateKind;
+        MiningStartingGameMenuItem.IsChecked = stateKind == MiningAutomationStateKind.StartingGame;
+        MiningLoginMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Login;
+        MiningDockedMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Docked;
+        MiningUndockingMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Undocking;
+        MiningEmptyOnUndockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.EmptyOnUndock;
+        MiningWarpingToAsteroidFieldMenuItem.IsChecked = stateKind == MiningAutomationStateKind.WarpingToAsteroidField;
+        MiningLandedOnAsteroidBeltMenuItem.IsChecked = stateKind == MiningAutomationStateKind.LandedOnAsteroidBelt;
+        MiningMiningMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Mining;
+        MiningUnloadCargoMenuItem.IsChecked = stateKind == MiningAutomationStateKind.UnloadCargo;
+        MiningRecoveryMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Recovery;
+        Logger.Information("Mining start state changed. MiningStartState={MiningStartState}", m_SelectedMiningStartState);
     }
 
     private void ApplyAutomationMode()
@@ -494,6 +562,7 @@ public partial class MainWindow
             Title = "Automaton - Miner";
         }
 
+        SetMiningStartState(m_SelectedMiningStartState);
         SetPilotIndexControlsEnabled(isEnabled: true);
     }
 }

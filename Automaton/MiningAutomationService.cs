@@ -23,12 +23,20 @@ internal sealed class MiningAutomationService
         IAutomationClock automationClock)
     {
         m_Context = new MiningAutomationContext(screenCaptureService, automationInputController, automationClock);
-        m_CurrentState = new DockedState();
+        m_CurrentState = new StartingGameState();
     }
 
     public MiningAutomationStepSummary AutomateCurrentScreen(CancellationToken cancellationToken)
     {
-        Logger.Information("Mining automation loop starting.");
+        return AutomateCurrentScreen(MiningAutomationStateKind.StartingGame, cancellationToken);
+    }
+
+    public MiningAutomationStepSummary AutomateCurrentScreen(
+        MiningAutomationStateKind startingState,
+        CancellationToken cancellationToken)
+    {
+        m_CurrentState = CreateState(startingState);
+        Logger.Information("Mining automation loop starting. StartingState={StartingState}", startingState);
         m_Context.AutomationInputController.Delay(StartupDelayMilliseconds, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -83,6 +91,8 @@ internal sealed class MiningAutomationService
     {
         return stateKind switch
         {
+            MiningAutomationStateKind.StartingGame => new StartingGameState(),
+            MiningAutomationStateKind.Login => new LoginState(),
             MiningAutomationStateKind.Docked => new DockedState(),
             MiningAutomationStateKind.Undocking => new UndockingState(),
             MiningAutomationStateKind.EmptyOnUndock => new EmptyOnUndockState(),
@@ -104,6 +114,8 @@ internal sealed record MiningAutomationStepSummary(
 
 internal enum MiningAutomationStateKind
 {
+    StartingGame,
+    Login,
     Docked,
     Undocking,
     EmptyOnUndock,
@@ -117,6 +129,8 @@ internal enum MiningAutomationStateKind
 internal enum MiningAutomationActionKind
 {
     None,
+    StartGame,
+    LoginPilot,
     FocusMiningHold,
     Undock,
     CompleteUndock,
