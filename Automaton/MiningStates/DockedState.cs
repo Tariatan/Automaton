@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.MiningStates;
@@ -5,6 +6,10 @@ namespace Automaton.MiningStates;
 internal sealed class DockedState : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-docked";
+    private const ushort VirtualKeyControl = 0x11;
+    private const ushort VirtualKeyShift = 0x10;
+    private const ushort VirtualKeyF9 = 0x78;
+    private const int WindowActivationDelayMilliseconds = 2_000;
 
     private readonly DockedScreenDetector m_Detector;
 
@@ -82,6 +87,8 @@ internal sealed class DockedState : IMiningAutomationState
                 analysis);
         }
 
+        context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9, cancellationToken);
+        context.AutomationInputController.Delay(WindowActivationDelayMilliseconds, cancellationToken);
         context.ClickUiElement(Center(analysis.UndockButtonBounds.Value), cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,

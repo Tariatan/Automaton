@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.MiningStates;
@@ -6,10 +7,7 @@ internal sealed class LoginState : IMiningAutomationState
 {
     private const int PilotIndex = 2;
     private const int PilotLoginDelayMilliseconds = 20_000;
-    private const int WindowActivationDelayMilliseconds = 2_000;
     private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyShift = 0x10;
-    private const ushort VirtualKeyF9 = 0x78;
     private const ushort VirtualKeyW = 0x57;
     private const string CaptureSuffix = ".mining-login";
 
@@ -49,8 +47,6 @@ internal sealed class LoginState : IMiningAutomationState
         context.AutomationInputController.LeftClick(cancellationToken);
         context.AutomationInputController.Delay(PilotLoginDelayMilliseconds, cancellationToken);
         context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyW, cancellationToken);
-        context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9, cancellationToken);
-        context.AutomationInputController.Delay(WindowActivationDelayMilliseconds, cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Docked,

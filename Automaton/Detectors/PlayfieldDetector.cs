@@ -2,7 +2,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using OpenCvSharp;
 
-namespace Automaton;
+namespace Automaton.Detectors;
 
 internal sealed class PlayfieldDetector
 {

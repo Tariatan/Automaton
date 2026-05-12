@@ -1,6 +1,6 @@
 using OpenCvSharp;
 
-namespace Automaton;
+namespace Automaton.Detectors;
 
 internal sealed class FirstAsteroidDistanceUnitDetector
 {

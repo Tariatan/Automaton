@@ -1,4 +1,5 @@
 using System.Drawing.Imaging;
+using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.Tests;

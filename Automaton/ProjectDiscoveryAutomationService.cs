@@ -1,5 +1,6 @@
 using OpenCvSharp;
 using System.IO;
+using Automaton.Detectors;
 using Serilog;
 
 namespace Automaton;

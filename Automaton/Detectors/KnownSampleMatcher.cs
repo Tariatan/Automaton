@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using OpenCvSharp;
 
-namespace Automaton;
+namespace Automaton.Detectors;
 
 internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 {

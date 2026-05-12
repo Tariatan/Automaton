@@ -5,6 +5,10 @@ namespace Automaton.Tests;
 
 public sealed class DockedStateTests
 {
+    private const ushort VirtualKeyControl = 0x11;
+    private const ushort VirtualKeyShift = 0x10;
+    private const ushort VirtualKeyF9 = 0x78;
+
     [Fact]
     public void Execute_ItemHangarFocused_ClicksMiningHoldAndStaysDocked()
     {
@@ -79,6 +83,8 @@ public sealed class DockedStateTests
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
         Assert.Equal(2, automationInputController.MoveTargets.Count);
         Assert.Equal(1, automationInputController.ClickCount);
+        Assert.Single(automationInputController.KeyInputs);
+        Assert.Equal(new KeyboardInput(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9), automationInputController.KeyInputs[0]);
         Assert.Equal(new[] { 300 }, automationInputController.Delays);
         Assert.NotNull(transition.DockedScreen?.UndockButtonBounds);
         AssertPointInside(automationInputController.MoveTargets[0], transition.DockedScreen.UndockButtonBounds!.Value);
@@ -119,6 +125,7 @@ public sealed class DockedStateTests
         Assert.Equal(MiningAutomationActionKind.UnloadCargo, transition.Action);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Equal(0, automationInputController.ClickCount);
+        Assert.Empty(automationInputController.KeyInputs);
         Assert.Empty(automationInputController.Delays);
     }
 
@@ -149,6 +156,8 @@ public sealed class DockedStateTests
 
         public List<int> Delays { get; } = [];
 
+        public List<KeyboardInput> KeyInputs { get; } = [];
+
         public int ClickCount { get; private set; }
 
         public void MoveTo(Point point)
@@ -176,6 +185,8 @@ public sealed class DockedStateTests
             ushort virtualKey,
             CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            KeyInputs.Add(new KeyboardInput(firstModifierVirtualKey, secondModifierKey, virtualKey));
         }
 
         public void Delay(int milliseconds, CancellationToken cancellationToken)
@@ -184,6 +195,11 @@ public sealed class DockedStateTests
             Delays.Add(milliseconds);
         }
     }
+
+    private readonly record struct KeyboardInput(
+        ushort FirstModifierVirtualKey,
+        ushort SecondModifierVirtualKey,
+        ushort VirtualKey);
 
     private sealed class StubAutomationClock : IAutomationClock
     {

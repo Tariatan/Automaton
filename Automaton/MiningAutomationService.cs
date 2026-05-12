@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.MiningStates;
 using Serilog;
 

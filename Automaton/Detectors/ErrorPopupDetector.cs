@@ -4,7 +4,7 @@ using Automaton.Properties;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton;
+namespace Automaton.Detectors;
 
 internal sealed class ErrorPopupDetector
 {

@@ -10,19 +10,14 @@ public sealed class LandedOnAsteroidBeltStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var warpingPath = Path.Combine(workspace.Path, "warping.png");
         var landedPath = Path.Combine(workspace.Path, "landed.png");
-        SyntheticMiningImageFactory.WriteWarpToAsteroidFieldImage(warpingPath);
         SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImage(landedPath);
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
-                var sourcePath = captureInvocationCount < 3
-                    ? warpingPath
-                    : landedPath;
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                File.Copy(landedPath, outputPath, overwrite: true);
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -47,16 +42,15 @@ public sealed class LandedOnAsteroidBeltStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.ApproachAsteroid, transition.Action);
-        Assert.NotNull(transition.AsteroidBeltLanding);
-        Assert.Equal(3, captureInvocationCount);
-        Assert.Equal(new[] { 1_000, 1_000 }, automationInputController.Delays);
+        Assert.Equal(1, captureInvocationCount);
+        Assert.Empty(automationInputController.Delays);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.KeyInputs);
     }
 
     [Fact]
-    public void Execute_LandingEvidenceMissing_TransitionsToRecoveryWithoutClicking()
+    public void Execute_LandingEvidenceMissing_TransitionsToApproachingAsteroidWithoutClicking()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -85,17 +79,16 @@ public sealed class LandedOnAsteroidBeltStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal(60, automationInputController.Delays.Count);
-        Assert.All(automationInputController.Delays, delay => Assert.Equal(1_000, delay));
+        Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.ApproachAsteroid, transition.Action);
+        Assert.Empty(automationInputController.Delays);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.KeyInputs);
     }
 
     [Fact]
-    public void Execute_LandedWithEmptyMineOverview_TransitionsToSelectBeltAndWarpWithoutClicking()
+    public void Execute_LandedWithEmptyMineOverview_TransitionsToApproachingAsteroidWithoutClicking()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -124,13 +117,8 @@ public sealed class LandedOnAsteroidBeltStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.None, transition.Action);
-        Assert.NotNull(transition.AsteroidBeltLanding);
-        Assert.True(transition.AsteroidBeltLanding!.LandedOnAsteroidBelt);
-        Assert.NotNull(transition.AsteroidBeltLanding.MineOverviewBounds);
-        Assert.True(transition.AsteroidBeltLanding.NothingFoundDetected);
-        Assert.Empty(transition.AsteroidBeltLanding.Asteroids);
+        Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.ApproachAsteroid, transition.Action);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.KeyInputs);

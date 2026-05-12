@@ -1,3 +1,5 @@
+using Automaton.Detectors;
+
 namespace Automaton.MiningStates;
 
 internal sealed record MiningAutomationStateTransition(

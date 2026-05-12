@@ -1,3 +1,5 @@
+using Automaton.Detectors;
+
 namespace Automaton.Tests;
 
 public sealed class AsteroidBeltLandingDetectorTests

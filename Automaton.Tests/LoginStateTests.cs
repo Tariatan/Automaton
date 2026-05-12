@@ -6,8 +6,6 @@ namespace Automaton.Tests;
 public sealed class LoginStateTests
 {
     private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyShift = 0x10;
-    private const ushort VirtualKeyF9 = 0x78;
     private const ushort VirtualKeyW = 0x57;
 
     [Fact]
@@ -48,9 +46,8 @@ public sealed class LoginStateTests
         Assert.Equal(new Point(272, 212), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal(new[] { 20_000, 2_000 }, automationInputControllerMock.Delays);
-        Assert.Equal(2, automationInputControllerMock.KeyInputs.Count);
+        Assert.Single(automationInputControllerMock.KeyInputs);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputControllerMock.KeyInputs[1], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
     }
 
     [Fact]

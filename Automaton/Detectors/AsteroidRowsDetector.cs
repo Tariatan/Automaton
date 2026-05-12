@@ -1,6 +1,6 @@
 using OpenCvSharp;
 
-namespace Automaton;
+namespace Automaton.Detectors;
 
 internal sealed class AsteroidRowsDetector
 {
@@ -8,7 +8,8 @@ internal sealed class AsteroidRowsDetector
     private const int MaximumAsteroidIconWidth = 20;
     private const int MaximumAsteroidIconHeight = 20;
     private const int AsteroidIconGroupMaximumDistance = 18;
-    private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 90;
+    private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 124;
+    private const int MinimumDistanceColumnBrightPixelCount = 8;
 
     public IReadOnlyList<AsteroidOverviewEntry> Locate(Mat screen, Rect mineOverviewBounds)
     {
@@ -60,6 +61,7 @@ internal sealed class AsteroidRowsDetector
                 var rowHeight = Math.Clamp(34, 1, screen.Height - rowTop);
                 return new AsteroidOverviewEntry(new Rect(rowLeft, rowTop, rowWidth, rowHeight));
             })
+            .Where(row => RowLooksSelectable(screen, row.Bounds))
             .OrderBy(row => row.Bounds.Y)
             .ToArray();
     }
@@ -86,10 +88,26 @@ internal sealed class AsteroidRowsDetector
     private static Rect BuildMineAsteroidIconColumnBounds(Size imageSize, Rect mineOverviewBounds)
     {
         var left = Math.Clamp(mineOverviewBounds.X + 30, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(mineOverviewBounds.Y + 80, 0, Math.Max(0, imageSize.Height - 1));
+        var top = Math.Clamp(mineOverviewBounds.Y + 100, 0, Math.Max(0, imageSize.Height - 1));
         var bottom = Math.Min(imageSize.Height, mineOverviewBounds.Bottom);
         var width = Math.Clamp(70, 1, imageSize.Width - left);
         var height = Math.Clamp(bottom - top, 1, imageSize.Height - top);
         return new Rect(left, top, width, height);
+    }
+
+    private static bool RowLooksSelectable(Mat screen, Rect rowBounds)
+    {
+        var probeLeft = Math.Clamp(rowBounds.Right - 84, 0, Math.Max(0, screen.Width - 1));
+        var probeTop = Math.Clamp(rowBounds.Top + 3, 0, Math.Max(0, screen.Height - 1));
+        var probeRight = Math.Clamp(rowBounds.Right - 6, probeLeft + 1, screen.Width);
+        var probeBottom = Math.Clamp(rowBounds.Bottom - 3, probeTop + 1, screen.Height);
+        var probeBounds = new Rect(probeLeft, probeTop, probeRight - probeLeft, probeBottom - probeTop);
+
+        using var probe = new Mat(screen, probeBounds);
+        using var gray = new Mat();
+        using var mask = new Mat();
+        Cv2.CvtColor(probe, gray, ColorConversionCodes.BGR2GRAY);
+        Cv2.InRange(gray, new Scalar(120), new Scalar(255), mask);
+        return Cv2.CountNonZero(mask) >= MinimumDistanceColumnBrightPixelCount;
     }
 }

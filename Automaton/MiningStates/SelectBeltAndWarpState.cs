@@ -1,25 +1,32 @@
+using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.MiningStates;
 
 internal sealed class SelectBeltAndWarpState : IMiningAutomationState
 {
-    private const string CaptureSuffix = ".mining-empty-on-undock";
+    private const string CaptureSuffix = ".mining-select-belt-and-warp";
+    private const string LandingCaptureSuffix = ".mining-landed-on-asteroid-belt";
+    private const int LandingPollingMilliseconds = 1_000;
+    private const int LandingPollingAttemptCount = 60;
     private const ushort VirtualKeyS = 0x53;
 
     private readonly AsteroidBeltOverviewDetector m_Detector;
+    private readonly AsteroidBeltLandingDetector m_LandingDetector;
     private readonly Func<int, int> m_NextRandomIndex;
 
     public SelectBeltAndWarpState()
-        : this(new AsteroidBeltOverviewDetector(), Random.Shared.Next)
+        : this(new AsteroidBeltOverviewDetector(), new AsteroidBeltLandingDetector(), Random.Shared.Next)
     {
     }
 
     internal SelectBeltAndWarpState(
         AsteroidBeltOverviewDetector detector,
+        AsteroidBeltLandingDetector landingDetector,
         Func<int, int> nextRandomIndex)
     {
         m_Detector = detector;
+        m_LandingDetector = landingDetector;
         m_NextRandomIndex = nextRandomIndex;
     }
 
@@ -54,12 +61,35 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         var selectedAsteroidBelt = analysis.AsteroidBelts[selectedAsteroidBeltIndex];
         context.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
         context.AutomationInputController.PressKey(VirtualKeyS, cancellationToken);
+
+        AsteroidBeltLandingAnalysis? landingAnalysis = null;
+        for (var attempt = 0; attempt < LandingPollingAttemptCount; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(LandingCaptureSuffix);
+            using var landingScreen = Cv2.ImRead(capturePath);
+            landingAnalysis = m_LandingDetector.Analyze(landingScreen);
+            if (landingAnalysis.LandedOnAsteroidBelt)
+            {
+                return new MiningAutomationStateTransition(
+                    Kind,
+                    MiningAutomationStateKind.LandedOnAsteroidBelt,
+                    MiningAutomationActionKind.WarpToAsteroidField,
+                    capturePath,
+                    AsteroidBeltOverview: analysis,
+                    AsteroidBeltLanding: landingAnalysis);
+            }
+
+            context.AutomationInputController.Delay(LandingPollingMilliseconds, cancellationToken);
+        }
+
         return new MiningAutomationStateTransition(
             Kind,
-            MiningAutomationStateKind.LandedOnAsteroidBelt,
-            MiningAutomationActionKind.WarpToAsteroidField,
+            MiningAutomationStateKind.Recovery,
+            MiningAutomationActionKind.Recover,
             capturePath,
-            AsteroidBeltOverview: analysis);
+            AsteroidBeltOverview: analysis,
+            AsteroidBeltLanding: landingAnalysis);
     }
 
     private AsteroidBeltOverviewAnalysis Analyze(string capturePath)

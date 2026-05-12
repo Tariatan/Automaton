@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.MiningStates;
 using OpenCvSharp;
 
@@ -13,17 +14,22 @@ public sealed class EmptyOnUndockStateTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         var overviewPath = Path.Combine(workspace.Path, "overview.png");
+        var landedPath = Path.Combine(workspace.Path, "landed.png");
         SyntheticMiningImageFactory.WriteWarpToAsteroidFieldImage(overviewPath);
+        SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImage(landedPath);
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
-                File.Copy(overviewPath, outputPath, overwrite: true);
+                var sourcePath = captureInvocationCount < 4
+                    ? overviewPath
+                    : landedPath;
+                File.Copy(sourcePath, outputPath, overwrite: true);
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var state = new SelectBeltAndWarpState(new AsteroidBeltOverviewDetector(), _ => 1);
+        var state = new SelectBeltAndWarpState(new AsteroidBeltOverviewDetector(), new AsteroidBeltLandingDetector(), _ => 1);
         MiningAutomationStateTransition transition;
 
         // Act
@@ -45,9 +51,11 @@ public sealed class EmptyOnUndockStateTests
         Assert.Equal(MiningAutomationStateKind.LandedOnAsteroidBelt, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.WarpToAsteroidField, transition.Action);
         Assert.NotNull(transition.AsteroidBeltOverview);
-        Assert.Equal(2, captureInvocationCount);
+        Assert.NotNull(transition.AsteroidBeltLanding);
+        Assert.True(transition.AsteroidBeltLanding!.LandedOnAsteroidBelt);
+        Assert.Equal(4, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
-        Assert.Equal(new[] { 300, 300 }, automationInputController.Delays);
+        Assert.Equal(new[] { 300, 300, 1_000 }, automationInputController.Delays);
         Assert.Equal(4, automationInputController.MoveTargets.Count);
         Assert.Equal(new[] { VirtualKeyS }, automationInputController.KeyInputs);
         Assert.InRange(automationInputController.MoveTargets[0].X, 2270, 2315);
@@ -69,7 +77,7 @@ public sealed class EmptyOnUndockStateTests
             new StubScreenCaptureProvider(outputPath => File.Copy(undockedPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var state = new SelectBeltAndWarpState(new AsteroidBeltOverviewDetector(), _ => 0);
+        var state = new SelectBeltAndWarpState(new AsteroidBeltOverviewDetector(), new AsteroidBeltLandingDetector(), _ => 0);
         MiningAutomationStateTransition transition;
 
         // Act

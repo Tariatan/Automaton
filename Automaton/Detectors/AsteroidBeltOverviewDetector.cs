@@ -2,7 +2,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using OpenCvSharp;
 
-namespace Automaton;
+namespace Automaton.Detectors;
 
 internal sealed class AsteroidBeltOverviewDetector
 {
@@ -14,12 +14,7 @@ internal sealed class AsteroidBeltOverviewDetector
     private const int AsteroidIconGroupMaximumDistance = 18;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_OverviewBeltTemplate;
-
-    public AsteroidBeltOverviewDetector()
-    {
-        m_OverviewBeltTemplate = LoadTemplate(Properties.Resources.overview_belt, "overview_belt");
-    }
+    private readonly Mat m_OverviewBeltTemplate = LoadTemplate(Properties.Resources.overview_belt, "overview_belt");
 
     public AsteroidBeltOverviewAnalysis Analyze(Mat screen)
     {

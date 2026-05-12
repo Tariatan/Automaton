@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.Tests;
