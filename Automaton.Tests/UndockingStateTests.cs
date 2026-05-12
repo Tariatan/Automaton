@@ -44,7 +44,7 @@ public sealed class UndockingStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.EmptyOnUndock, transition.NextState);
+        Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.CompleteUndock, transition.Action);
         Assert.NotNull(transition.LocationChangeTimer);
         Assert.Equal(3, captureInvocationCount);

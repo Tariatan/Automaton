@@ -84,7 +84,15 @@ internal static class SyntheticMiningImageFactory
     {
         var image = CreateWarpToAsteroidFieldImage();
         DrawAsteroidBeltLabel(image);
-        DrawMineOverview(image, asteroidRowCount: 0);
+        DrawMineOverview(image, asteroidRowCount: 0, showNothingFound: true);
+        return image;
+    }
+
+    public static Mat CreateLandedOnAsteroidBeltImageWithMetersDistance()
+    {
+        var image = CreateWarpToAsteroidFieldImage();
+        DrawAsteroidBeltLabel(image);
+        DrawMineOverview(image, asteroidRowCount: 5, showNothingFound: false, firstRowUsesMeters: true);
         return image;
     }
 
@@ -134,6 +142,12 @@ internal static class SyntheticMiningImageFactory
     public static void WriteLandedOnEmptyAsteroidBeltImage(string outputPath)
     {
         using var image = CreateLandedOnEmptyAsteroidBeltImage();
+        Cv2.ImWrite(outputPath, image);
+    }
+
+    public static void WriteLandedOnAsteroidBeltImageWithMetersDistance(string outputPath)
+    {
+        using var image = CreateLandedOnAsteroidBeltImageWithMetersDistance();
         Cv2.ImWrite(outputPath, image);
     }
 
@@ -285,7 +299,11 @@ internal static class SyntheticMiningImageFactory
             LineTypes.AntiAlias);
     }
 
-    private static void DrawMineOverview(Mat image, int asteroidRowCount = 5)
+    private static void DrawMineOverview(
+        Mat image,
+        int asteroidRowCount = 5,
+        bool showNothingFound = false,
+        bool firstRowUsesMeters = false)
     {
         Cv2.Rectangle(image, MineOverviewBounds, new Scalar(8, 8, 8), -1);
         Cv2.Line(
@@ -306,7 +324,29 @@ internal static class SyntheticMiningImageFactory
 
         for (var rowIndex = 0; rowIndex < asteroidRowCount; rowIndex++)
         {
-            DrawAsteroidRow(image, 1375 + rowIndex * 36);
+            DrawAsteroidRow(image, 1375 + rowIndex * 36, rowIndex == 0 && firstRowUsesMeters);
+        }
+
+        if (showNothingFound)
+        {
+            Cv2.PutText(
+                image,
+                "Nothing",
+                new Point(MineOverviewBounds.X + 78, MineOverviewBounds.Y + 244),
+                HersheyFonts.HersheySimplex,
+                0.95,
+                TextColor,
+                2,
+                LineTypes.AntiAlias);
+            Cv2.PutText(
+                image,
+                "Found",
+                new Point(MineOverviewBounds.X + 92, MineOverviewBounds.Y + 284),
+                HersheyFonts.HersheySimplex,
+                0.95,
+                TextColor,
+                2,
+                LineTypes.AntiAlias);
         }
     }
 
@@ -328,7 +368,7 @@ internal static class SyntheticMiningImageFactory
             LineTypes.AntiAlias);
     }
 
-    private static void DrawAsteroidRow(Mat image, int centerY)
+    private static void DrawAsteroidRow(Mat image, int centerY, bool useMeters)
     {
         var rowBounds = new Rect(MineOverviewBounds.X + 27, centerY - 17, MineOverviewBounds.Width - 55, 34);
         Cv2.Rectangle(image, rowBounds, new Scalar(9, 9, 9), -1);
@@ -343,7 +383,7 @@ internal static class SyntheticMiningImageFactory
         Cv2.FillConvexPoly(image, iconPoints, new Scalar(120, 120, 120), LineTypes.AntiAlias);
         Cv2.PutText(
             image,
-            "20 km",
+            useMeters ? "7,356 m" : "20 km",
             new Point(MineOverviewBounds.Right - 92, centerY + 7),
             HersheyFonts.HersheySimplex,
             0.7,

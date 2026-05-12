@@ -95,8 +95,9 @@ internal sealed class MiningAutomationService
             MiningAutomationStateKind.Login => new LoginState(),
             MiningAutomationStateKind.Docked => new DockedState(),
             MiningAutomationStateKind.Undocking => new UndockingState(),
-            MiningAutomationStateKind.EmptyOnUndock => new EmptyOnUndockState(),
+            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(),
             MiningAutomationStateKind.LandedOnAsteroidBelt => new LandedOnAsteroidBeltState(),
+            MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }
@@ -118,9 +119,10 @@ internal enum MiningAutomationStateKind
     Login,
     Docked,
     Undocking,
-    EmptyOnUndock,
+    SelectBeltAndWarp,
     WarpingToAsteroidField,
     LandedOnAsteroidBelt,
+    ApproachingAsteroid,
     Mining,
     UnloadCargo,
     Recovery
@@ -136,6 +138,7 @@ internal enum MiningAutomationActionKind
     CompleteUndock,
     WarpToAsteroidField,
     ApproachAsteroid,
+    ActivateMiningLasers,
     UnloadCargo,
     Recover
 }

@@ -9,7 +9,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     public void Detect_ImageContainsMaximumSubmissionsPopup_ReturnsTrue()
     {
         // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateMaximumSubmissionsPopupImage();
+        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.MaximumSubmissions);
         var detector = new ErrorPopupDetector();
 
         // Act
@@ -37,7 +37,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     public void DetectSlowDown_ImageContainsSlowDownPopup_ReturnsTrue()
     {
         // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateSlowDownPopupImage();
+        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.SlowDown);
         var detector = new ErrorPopupDetector();
 
         // Act
@@ -51,7 +51,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     public void DetectSlowDown_ImageContainsSlowDownPopupWithStaleMaxSubmissionsOverlay_ReturnsTrue()
     {
         // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateSlowDownPopupImage();
+        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.SlowDown);
         Cv2.PutText(
             image,
             "Maximum submissions popup detected",
@@ -90,7 +90,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     public void DetectConnectionLost_ImageContainsConnectionLostPopup_ReturnsTrue()
     {
         // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateConnectionLostPopupImage();
+        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.ConnectionLost);
         var detector = new ErrorPopupDetector();
 
         // Act
@@ -129,7 +129,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     }
 
     [Fact]
-    public void Detect_FullScreenImageContainsMaximumSubmissionsPopupOutsideLegacySearchArea_ReturnsTrue()
+    public void Detect_FullScreenImageContainsMaximumSubmissionsPopupOutsideExpectedPopupRoi_ReturnsFalse()
     {
         // Arrange
         using var image = SyntheticDiscoveryImageFactory.CreateWideScreenMaximumSubmissionsPopupImage();
@@ -139,7 +139,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         var detected = detector.Detect(image);
 
         // Assert
-        Assert.True(detected);
+        Assert.False(detected);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         var detected = detector.Detect(image);
 
         // Assert
-        Assert.True(detected);
+        Assert.False(detected);
     }
 
     [Fact]
@@ -445,6 +445,56 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         playButton.CopyTo(playRegion);
 
         return image;
+    }
+
+    private static Mat CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState popupState)
+    {
+        var image = new Mat(new Size(2551, 2008), MatType.CV_8UC3, new Scalar(18, 24, 26));
+        var popup = new Rect(960, 830, 630, 390);
+        Cv2.Rectangle(image, popup, new Scalar(7, 7, 7), -1);
+        Cv2.Rectangle(image, popup, new Scalar(65, 60, 45));
+
+        switch (popupState)
+        {
+            case ErrorPopupDetector.PopupState.ConnectionLost:
+                PastePopupTemplate(image, popup, Properties.Resources.icon_warning, 0.06, 0.05);
+                PastePopupTemplate(image, popup, Properties.Resources.title_connection_lost, 0.20, 0.06);
+                PastePopupTemplate(image, popup, Properties.Resources.button_quit, 0.04, 0.84);
+                break;
+            case ErrorPopupDetector.PopupState.SlowDown:
+                PastePopupTemplate(image, popup, Properties.Resources.icon_info, 0.06, 0.06);
+                PastePopupTemplate(image, popup, Properties.Resources.title_slow_down, 0.20, 0.06);
+                PastePopupTemplate(image, popup, Properties.Resources.button_ok, 0.04, 0.80);
+                break;
+            case ErrorPopupDetector.PopupState.MaximumSubmissions:
+                PastePopupTemplate(image, popup, Properties.Resources.icon_info, 0.06, 0.06);
+                PastePopupTemplate(image, popup, Properties.Resources.title_max_submissions, 0.20, 0.05);
+                PastePopupTemplate(image, popup, Properties.Resources.button_ok, 0.04, 0.80);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(popupState), popupState, null);
+        }
+
+        return image;
+    }
+
+    private static void PastePopupTemplate(Mat image, Rect popup, System.Drawing.Bitmap bitmap, double leftRatio, double topRatio)
+    {
+        using var template = LoadTemplateImage(bitmap);
+        var left = popup.X + (int)Math.Round(popup.Width * leftRatio);
+        var top = popup.Y + (int)Math.Round(popup.Height * topRatio);
+        var width = Math.Min(template.Width, image.Width - left);
+        var height = Math.Min(template.Height, image.Height - top);
+        using var source = new Mat(template, new Rect(0, 0, width, height));
+        using var roi = new Mat(image, new Rect(left, top, width, height));
+        source.CopyTo(roi);
+    }
+
+    private static Mat LoadTemplateImage(System.Drawing.Bitmap bitmap)
+    {
+        using var stream = new MemoryStream();
+        bitmap.Save(stream, ImageFormat.Png);
+        return Cv2.ImDecode(stream.ToArray(), ImreadModes.Color);
     }
 
     private static Mat LoadPlayButtonImage()

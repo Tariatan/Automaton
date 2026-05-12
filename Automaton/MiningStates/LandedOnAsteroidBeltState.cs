@@ -7,8 +7,6 @@ internal sealed class LandedOnAsteroidBeltState : IMiningAutomationState
     private const int LandingPollingMilliseconds = 1_000;
     private const int LandingPollingAttemptCount = 60;
     private const string CaptureSuffix = ".mining-landed-on-asteroid-belt";
-    private const ushort VirtualKeyA = 0x41;
-
     private readonly AsteroidBeltLandingDetector m_Detector;
 
     public LandedOnAsteroidBeltState()
@@ -59,24 +57,27 @@ internal sealed class LandedOnAsteroidBeltState : IMiningAutomationState
         {
             return new MiningAutomationStateTransition(
                 Kind,
-                MiningAutomationStateKind.EmptyOnUndock,
+                MiningAutomationStateKind.SelectBeltAndWarp,
                 MiningAutomationActionKind.None,
                 capturePath,
                 AsteroidBeltLanding: analysis);
         }
 
-        context.ClickUiElement(Center(analysis.Asteroids[0].Bounds), cancellationToken);
-        context.AutomationInputController.PressKey(VirtualKeyA, cancellationToken);
+        if (analysis.NothingFoundDetected)
+        {
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.SelectBeltAndWarp,
+                MiningAutomationActionKind.None,
+                capturePath,
+                AsteroidBeltLanding: analysis);
+        }
+
         return new MiningAutomationStateTransition(
             Kind,
-            MiningAutomationStateKind.Mining,
+            MiningAutomationStateKind.ApproachingAsteroid,
             MiningAutomationActionKind.ApproachAsteroid,
             capturePath,
             AsteroidBeltLanding: analysis);
-    }
-
-    private static Point Center(Rect bounds)
-    {
-        return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
     }
 }

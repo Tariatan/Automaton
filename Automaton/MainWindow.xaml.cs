@@ -511,7 +511,7 @@ public partial class MainWindow
 
     private void MiningEmptyOnUndockMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        SetMiningStartState(MiningAutomationStateKind.EmptyOnUndock);
+        SetMiningStartState(MiningAutomationStateKind.SelectBeltAndWarp);
     }
 
     private void MiningWarpingToAsteroidFieldMenuItem_Click(object sender, RoutedEventArgs e)
@@ -522,6 +522,11 @@ public partial class MainWindow
     private void MiningLandedOnAsteroidBeltMenuItem_Click(object sender, RoutedEventArgs e)
     {
         SetMiningStartState(MiningAutomationStateKind.LandedOnAsteroidBelt);
+    }
+
+    private void MiningApproachingAsteroidMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.ApproachingAsteroid);
     }
 
     private void MiningMiningMenuItem_Click(object sender, RoutedEventArgs e)
@@ -546,9 +551,10 @@ public partial class MainWindow
         MiningLoginMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Login;
         MiningDockedMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Docked;
         MiningUndockingMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Undocking;
-        MiningEmptyOnUndockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.EmptyOnUndock;
+        MiningEmptyOnUndockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.SelectBeltAndWarp;
         MiningWarpingToAsteroidFieldMenuItem.IsChecked = stateKind == MiningAutomationStateKind.WarpingToAsteroidField;
         MiningLandedOnAsteroidBeltMenuItem.IsChecked = stateKind == MiningAutomationStateKind.LandedOnAsteroidBelt;
+        MiningApproachingAsteroidMenuItem.IsChecked = stateKind == MiningAutomationStateKind.ApproachingAsteroid;
         MiningMiningMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Mining;
         MiningUnloadCargoMenuItem.IsChecked = stateKind == MiningAutomationStateKind.UnloadCargo;
         MiningRecoveryMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Recovery;

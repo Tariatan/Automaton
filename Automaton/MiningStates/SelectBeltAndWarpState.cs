@@ -2,7 +2,7 @@ using OpenCvSharp;
 
 namespace Automaton.MiningStates;
 
-internal sealed class EmptyOnUndockState : IMiningAutomationState
+internal sealed class SelectBeltAndWarpState : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-empty-on-undock";
     private const ushort VirtualKeyS = 0x53;
@@ -10,12 +10,12 @@ internal sealed class EmptyOnUndockState : IMiningAutomationState
     private readonly AsteroidBeltOverviewDetector m_Detector;
     private readonly Func<int, int> m_NextRandomIndex;
 
-    public EmptyOnUndockState()
+    public SelectBeltAndWarpState()
         : this(new AsteroidBeltOverviewDetector(), Random.Shared.Next)
     {
     }
 
-    internal EmptyOnUndockState(
+    internal SelectBeltAndWarpState(
         AsteroidBeltOverviewDetector detector,
         Func<int, int> nextRandomIndex)
     {
@@ -23,7 +23,7 @@ internal sealed class EmptyOnUndockState : IMiningAutomationState
         m_NextRandomIndex = nextRandomIndex;
     }
 
-    public MiningAutomationStateKind Kind => MiningAutomationStateKind.EmptyOnUndock;
+    public MiningAutomationStateKind Kind => MiningAutomationStateKind.SelectBeltAndWarp;
 
     public MiningAutomationStateTransition Execute(
         MiningAutomationContext context,

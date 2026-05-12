@@ -63,9 +63,39 @@ namespace Automaton.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap connection_lost_popup {
+        internal static System.Drawing.Bitmap button_ok {
             get {
-                object obj = ResourceManager.GetObject("connection_lost_popup", resourceCulture);
+                object obj = ResourceManager.GetObject("button_ok", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap button_quit {
+            get {
+                object obj = ResourceManager.GetObject("button_quit", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icon_info {
+            get {
+                object obj = ResourceManager.GetObject("icon_info", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icon_warning {
+            get {
+                object obj = ResourceManager.GetObject("icon_warning", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -93,16 +123,6 @@ namespace Automaton.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap max_submissions_popup {
-            get {
-                object obj = ResourceManager.GetObject("max_submissions_popup", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
         internal static System.Drawing.Bitmap overview_belt {
             get {
                 object obj = ResourceManager.GetObject("overview_belt", resourceCulture);
@@ -123,9 +143,29 @@ namespace Automaton.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap slow_down_popup {
+        internal static System.Drawing.Bitmap title_connection_lost {
             get {
-                object obj = ResourceManager.GetObject("slow_down_popup", resourceCulture);
+                object obj = ResourceManager.GetObject("title_connection_lost", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap title_max_submissions {
+            get {
+                object obj = ResourceManager.GetObject("title_max_submissions", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap title_slow_down {
+            get {
+                object obj = ResourceManager.GetObject("title_slow_down", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

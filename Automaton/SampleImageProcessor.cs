@@ -180,11 +180,6 @@ internal sealed class SampleImageProcessor
         var popupDetection = m_PlayNowButtonLocator.TryLocate(image, out _)
             ? new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect(), false)
             : m_ErrorPopupDetector.DetectPopup(image);
-        if (popupDetection.State == ErrorPopupDetector.PopupState.ConnectionLost &&
-            playfieldDetection.IsFound)
-        {
-            popupDetection = new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect(), false);
-        }
 
         if (popupDetection.State != ErrorPopupDetector.PopupState.None)
         {

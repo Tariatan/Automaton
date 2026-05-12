@@ -40,7 +40,7 @@ internal sealed class UndockingState : IMiningAutomationState
             {
                 return new MiningAutomationStateTransition(
                     Kind,
-                    MiningAutomationStateKind.EmptyOnUndock,
+                    MiningAutomationStateKind.SelectBeltAndWarp,
                     MiningAutomationActionKind.CompleteUndock,
                     capturePath,
                     LocationChangeTimer: location);

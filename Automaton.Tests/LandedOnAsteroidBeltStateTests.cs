@@ -5,10 +5,8 @@ namespace Automaton.Tests;
 
 public sealed class LandedOnAsteroidBeltStateTests
 {
-    private const ushort VirtualKeyA = 0x41;
-
     [Fact]
-    public void Execute_LandingEvidenceAppears_ClicksFirstAsteroidPressesAAndTransitionsToMining()
+    public void Execute_LandingEvidenceAppearsWithoutNothingFound_TransitionsToApproachingAsteroid()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -47,16 +45,14 @@ public sealed class LandedOnAsteroidBeltStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Mining, transition.NextState);
+        Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.ApproachAsteroid, transition.Action);
         Assert.NotNull(transition.AsteroidBeltLanding);
         Assert.Equal(3, captureInvocationCount);
-        Assert.Equal(new[] { 1_000, 1_000, 300 }, automationInputController.Delays);
-        Assert.Equal(2, automationInputController.MoveTargets.Count);
-        Assert.Equal(1, automationInputController.ClickCount);
-        Assert.Equal(new[] { VirtualKeyA }, automationInputController.KeyInputs);
-        AssertPointInside(automationInputController.MoveTargets[0], transition.AsteroidBeltLanding!.Asteroids[0].Bounds);
-        AssertMouseParked(automationInputController.MoveTargets[1]);
+        Assert.Equal(new[] { 1_000, 1_000 }, automationInputController.Delays);
+        Assert.Empty(automationInputController.MoveTargets);
+        Assert.Equal(0, automationInputController.ClickCount);
+        Assert.Empty(automationInputController.KeyInputs);
     }
 
     [Fact]
@@ -99,7 +95,7 @@ public sealed class LandedOnAsteroidBeltStateTests
     }
 
     [Fact]
-    public void Execute_LandedWithEmptyMineOverview_TransitionsToEmptyOnUndockWithoutClicking()
+    public void Execute_LandedWithEmptyMineOverview_TransitionsToSelectBeltAndWarpWithoutClicking()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -128,27 +124,16 @@ public sealed class LandedOnAsteroidBeltStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.EmptyOnUndock, transition.NextState);
+        Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.None, transition.Action);
         Assert.NotNull(transition.AsteroidBeltLanding);
         Assert.True(transition.AsteroidBeltLanding!.LandedOnAsteroidBelt);
         Assert.NotNull(transition.AsteroidBeltLanding.MineOverviewBounds);
+        Assert.True(transition.AsteroidBeltLanding.NothingFoundDetected);
         Assert.Empty(transition.AsteroidBeltLanding.Asteroids);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.KeyInputs);
-    }
-
-    private static void AssertPointInside(Point point, Rect bounds)
-    {
-        Assert.InRange(point.X, bounds.Left, bounds.Right - 1);
-        Assert.InRange(point.Y, bounds.Top, bounds.Bottom - 1);
-    }
-
-    private static void AssertMouseParked(Point point)
-    {
-        Assert.InRange(point.X, 200, 299);
-        Assert.InRange(point.Y, 200, 299);
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)

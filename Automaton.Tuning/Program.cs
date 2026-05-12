@@ -1,12 +1,7 @@
 using OpenCvSharp;
 using Automaton;
-var path = @"A:\Documents\Step\Programming\MYPROJECTS\C#\Automaton\Automaton\bin\Debug\net9.0-windows\samples\capture-20260511-100351.focused.png";
+var path = @"141.png";
 using var image = Cv2.ImRead(path);
 var detector = new ErrorPopupDetector();
-var popup = detector.DetectPopup(image);
-Console.WriteLine($"State={popup.State} FromTemplate={popup.FromTemplate} Bounds={popup.Bounds}");
-Console.WriteLine($"DetectConnectionLost={detector.DetectConnectionLost(image)}");
-Console.WriteLine($"DetectSlowDown={detector.DetectSlowDown(image)}");
-Console.WriteLine($"DetectMaxSub={detector.Detect(image)}");
-var play = new PlayNowButtonLocator();
-Console.WriteLine($"PlayNowVisible={play.TryLocate(image, out var loc)} {(play.TryLocate(image, out var loc2)?loc2.Bounds.ToString():"")}");
+Console.WriteLine($"state={detector.DetectPopupState(image)}");
+Console.WriteLine(detector.DescribeScores(image));
