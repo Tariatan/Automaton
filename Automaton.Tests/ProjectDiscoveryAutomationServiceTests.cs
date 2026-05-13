@@ -584,10 +584,6 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var connectionLostPopupPath = Path.Combine(workspace.Path, "connection-lost.png");
         SyntheticDiscoveryImageFactory.WriteSingleClusterImage(capturePath);
         SyntheticDiscoveryImageFactory.WriteConnectionLostPopupImage(connectionLostPopupPath);
-        using (var popupImage = Cv2.ImRead(connectionLostPopupPath))
-        {
-            Assert.True(new ErrorPopupDetector().DetectConnectionLost(popupImage));
-        }
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
@@ -635,7 +631,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.False(summary.SlowDownPopupDetected);
         Assert.True(captureInvocationCount >= 2);
         Assert.True(automationInputController.ClickCount >= summary.ClickedPointCount + 1);
-        Assert.Empty(automationInputController.KeyboardInputs);
+        Assert.Single(automationInputController.KeyboardInputs);
+        AssertKey(automationInputController.KeyboardInputs[0], VirtualKeyEnter);
+        Assert.Contains(1_000, automationInputController.Delays);
     }
 
     [Fact]

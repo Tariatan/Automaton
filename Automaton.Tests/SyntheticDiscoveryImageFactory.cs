@@ -5,6 +5,10 @@ namespace Automaton.Tests;
 
 internal static class SyntheticDiscoveryImageFactory
 {
+    private const int PopupLeft = 960;
+    private const int PopupTop = 830;
+    private const int PopupWidth = 630;
+    private const int PopupHeight = 390;
     private const int ImageWidth = 1200;
     private const int ImageHeight = 900;
     private const int PlayfieldLeft = 100;
@@ -216,11 +220,7 @@ internal static class SyntheticDiscoveryImageFactory
 
     private static void DrawMaximumSubmissionsPopup(Mat image)
     {
-        var popup = new Rect(
-            (int)Math.Round(image.Width * 0.56),
-            (int)Math.Round(image.Height * 0.62),
-            (int)Math.Round(image.Width * 0.36),
-            (int)Math.Round(image.Height * 0.29));
+        var popup = BuildPopupRect(image);
         Cv2.Rectangle(image, popup, new Scalar(7, 7, 7), -1);
         Cv2.Rectangle(image, popup, new Scalar(75, 65, 45));
         PastePopupTemplate(image, popup, Properties.Resources.icon_info, 0.06, 0.06);
@@ -237,11 +237,7 @@ internal static class SyntheticDiscoveryImageFactory
 
     private static void DrawSlowDownPopup(Mat image)
     {
-        var popup = new Rect(
-            (int)Math.Round(image.Width * 0.56),
-            (int)Math.Round(image.Height * 0.62),
-            (int)Math.Round(image.Width * 0.36),
-            (int)Math.Round(image.Height * 0.29));
+        var popup = BuildPopupRect(image);
         Cv2.Rectangle(image, popup, new Scalar(7, 7, 7), -1);
         Cv2.Rectangle(image, popup, new Scalar(60, 55, 42));
         PastePopupTemplate(image, popup, Properties.Resources.icon_info, 0.06, 0.06);
@@ -259,11 +255,7 @@ internal static class SyntheticDiscoveryImageFactory
 
     private static void DrawConnectionLostPopup(Mat image)
     {
-        var popup = new Rect(
-            (int)Math.Round(image.Width * 0.42),
-            (int)Math.Round(image.Height * 0.62),
-            (int)Math.Round(image.Width * 0.30),
-            (int)Math.Round(image.Height * 0.29));
+        var popup = BuildPopupRect(image);
         Cv2.Rectangle(image, popup, new Scalar(7, 7, 7), -1);
         Cv2.Rectangle(image, popup, new Scalar(65, 60, 45));
         PastePopupTemplate(image, popup, Properties.Resources.icon_warning, 0.06, 0.05);
@@ -303,6 +295,15 @@ internal static class SyntheticDiscoveryImageFactory
         using var stream = new MemoryStream();
         bitmap.Save(stream, ImageFormat.Png);
         return Cv2.ImDecode(stream.ToArray(), ImreadModes.Color);
+    }
+
+    private static Rect BuildPopupRect(Mat image)
+    {
+        var left = Math.Clamp(PopupLeft, 0, Math.Max(0, image.Width - 1));
+        var top = Math.Clamp(PopupTop, 0, Math.Max(0, image.Height - 1));
+        var width = Math.Min(PopupWidth, image.Width - left);
+        var height = Math.Min(PopupHeight, image.Height - top);
+        return new Rect(left, top, width, height);
     }
 
     private readonly record struct ClusterDefinition(Point Center, Size Size, Scalar Color);
