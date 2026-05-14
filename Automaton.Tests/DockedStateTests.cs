@@ -5,12 +5,8 @@ namespace Automaton.Tests;
 
 public sealed class DockedStateTests
 {
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyShift = 0x10;
-    private const ushort VirtualKeyF9 = 0x78;
-
     [Fact]
-    public void Execute_ItemHangarFocused_ClicksMiningHoldAndStaysDocked()
+    public void Execute_ItemHangarFocused_ClicksMiningHoldAndTransitionsToRecovery()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -20,7 +16,7 @@ public sealed class DockedStateTests
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var state = new DockedState();
+        var state = new UnloadingCargoState();
         MiningAutomationStateTransition transition;
 
         // Act
@@ -39,18 +35,19 @@ public sealed class DockedStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Docked, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.FocusMiningHold, transition.Action);
+        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(2, automationInputController.MoveTargets.Count);
         Assert.Equal(1, automationInputController.ClickCount);
-        Assert.Equal(new[] { 300 }, automationInputController.Delays);
+        Assert.Empty(automationInputController.Delays);
         Assert.NotNull(transition.DockedScreen?.MiningHoldEntryBounds);
         AssertPointInside(automationInputController.MoveTargets[0], transition.DockedScreen.MiningHoldEntryBounds!.Value);
         AssertMouseParked(automationInputController.MoveTargets[1]);
+        Assert.Empty(automationInputController.KeyInputs);
     }
 
     [Fact]
-    public void Execute_MiningHoldFocusedEmpty_ClicksUndockAndTransitionsToUndocking()
+    public void Execute_MiningHoldFocusedEmpty_TransitionsToUndockingWithoutClicking()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -60,7 +57,7 @@ public sealed class DockedStateTests
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var state = new DockedState();
+        var state = new UnloadingCargoState();
         MiningAutomationStateTransition transition;
 
         // Act
@@ -81,18 +78,14 @@ public sealed class DockedStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
-        Assert.Equal(2, automationInputController.MoveTargets.Count);
-        Assert.Equal(1, automationInputController.ClickCount);
-        Assert.Single(automationInputController.KeyInputs);
-        Assert.Equal(new KeyboardInput(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9), automationInputController.KeyInputs[0]);
-        Assert.Equal(new[] { 300 }, automationInputController.Delays);
-        Assert.NotNull(transition.DockedScreen?.UndockButtonBounds);
-        AssertPointInside(automationInputController.MoveTargets[0], transition.DockedScreen.UndockButtonBounds!.Value);
-        AssertMouseParked(automationInputController.MoveTargets[1]);
+        Assert.Empty(automationInputController.MoveTargets);
+        Assert.Equal(0, automationInputController.ClickCount);
+        Assert.Empty(automationInputController.KeyInputs);
+        Assert.Empty(automationInputController.Delays);
     }
 
     [Fact]
-    public void Execute_MiningHoldFocusedNotEmpty_TransitionsToUnloadCargoWithoutClicking()
+    public void Execute_MiningHoldFocusedNotEmpty_TransitionsToRecoveryWithoutClicking()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -102,7 +95,7 @@ public sealed class DockedStateTests
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var state = new DockedState();
+        var state = new UnloadingCargoState();
         MiningAutomationStateTransition transition;
 
         // Act
@@ -121,8 +114,8 @@ public sealed class DockedStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.UnloadCargo, transition.Action);
+        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.KeyInputs);

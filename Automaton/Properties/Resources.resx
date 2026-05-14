@@ -151,4 +151,25 @@
   <data name="title_max_submissions" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\popups\title_max_submissions.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="asteroid_pyroxeres" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\mining\asteroid_pyroxeres.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="asteroid_scordite" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\mining\asteroid_scordite.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="asteroid_veldspar" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\mining\asteroid_veldspar.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="mining_laser" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\mining\mining_laser.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="home_station" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\home_station.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="item_hangar" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\mining\item_hangar.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="mining_hold" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\mining\mining_hold.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

@@ -4,7 +4,7 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class LocationChangeTimerLocator
+internal sealed class LocationChangeTimerDetector
 {
     private const double MinimumMatchScore = 0.90;
     private static readonly Rect SearchBounds = new(80, 20, 180, 130);
@@ -12,7 +12,7 @@ internal sealed class LocationChangeTimerLocator
 
     private readonly Mat m_Template;
 
-    public LocationChangeTimerLocator()
+    public LocationChangeTimerDetector()
     {
         m_Template = LoadLocationChangeTimerFromResources();
         if (m_Template.Empty())

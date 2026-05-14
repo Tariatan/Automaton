@@ -2,14 +2,14 @@ using Automaton.Detectors;
 
 namespace Automaton.Tests;
 
-public sealed class LocationChangeTimerLocatorTests
+public sealed class LocationChangeTimerDetectorTests
 {
     [Fact]
     public void TryLocate_UndockedCompleteImage_ReturnsLocationChangeTimer()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateUndockedCompleteImage();
-        var locator = new LocationChangeTimerLocator();
+        var locator = new LocationChangeTimerDetector();
 
         // Act
         var located = locator.TryLocate(image, out var location);
@@ -26,7 +26,7 @@ public sealed class LocationChangeTimerLocatorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateUndockedImage();
-        var locator = new LocationChangeTimerLocator();
+        var locator = new LocationChangeTimerDetector();
 
         // Act
         var located = locator.TryLocate(image, out _);

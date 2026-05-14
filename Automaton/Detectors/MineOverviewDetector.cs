@@ -6,6 +6,11 @@ internal sealed class MineOverviewDetector
 {
     private const int MinimumMinePanelBorderPixelCount = 120;
     private const int NothingFoundMinimumBrightPixelCount = 180;
+    private const int NothingFoundMinimumGlyphArea = 80;
+    private const int NothingFoundMinimumLineWidth = 48;
+    private const int NothingFoundMinimumLineHeight = 10;
+    private const int NothingFoundMinimumLineCount = 2;
+    private const int NothingFoundWideLineWidth = 80;
 
     public bool TryLocate(Mat screen, Rect asteroidBeltLabelBounds, out Rect mineOverviewBounds)
     {
@@ -44,7 +49,35 @@ internal sealed class MineOverviewDetector
         using var mask = new Mat();
         Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
         Cv2.InRange(gray, new Scalar(110), new Scalar(255), mask);
-        return Cv2.CountNonZero(mask) >= NothingFoundMinimumBrightPixelCount;
+        if (Cv2.CountNonZero(mask) < NothingFoundMinimumBrightPixelCount)
+        {
+            return false;
+        }
+
+        using var mergedMask = new Mat();
+        using var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(7, 3));
+        Cv2.MorphologyEx(mask, mergedMask, MorphTypes.Close, kernel);
+        Cv2.FindContours(
+            mergedMask,
+            out var contours,
+            out _,
+            RetrievalModes.External,
+            ContourApproximationModes.ApproxSimple);
+
+        var lineBounds = contours
+            .Select(Cv2.BoundingRect)
+            .Where(bounds =>
+                bounds.Width >= NothingFoundMinimumLineWidth &&
+                bounds.Height >= NothingFoundMinimumLineHeight &&
+                bounds.Width * bounds.Height >= NothingFoundMinimumGlyphArea)
+            .ToArray();
+
+        if (lineBounds.Length >= NothingFoundMinimumLineCount)
+        {
+            return true;
+        }
+
+        return lineBounds.Any(bounds => bounds.Width >= NothingFoundWideLineWidth);
     }
 
     private static bool TryLocateInSearchBounds(Mat screen, Rect searchBounds, out Rect mineOverviewBounds, int? bottomLimit)
@@ -93,10 +126,7 @@ internal sealed class MineOverviewDetector
                 continue;
             }
 
-            if (bestBorder is null)
-            {
-                bestBorder = new BorderLocation(y, left, right, borderPixelCount);
-            }
+            bestBorder ??= new BorderLocation(y, left, right, borderPixelCount);
         }
 
         return bestBorder;
@@ -110,10 +140,8 @@ internal sealed class MineOverviewDetector
 
     private static bool IsMinePanelAccentBorderPixel(Vec3b pixel)
     {
-        return pixel.Item0 >= 70 &&
-               pixel.Item0 <= 150 &&
-               pixel.Item1 >= 70 &&
-               pixel.Item1 <= 150 &&
+        return pixel.Item0 is >= 70 and <= 150 &&
+               pixel.Item1 is >= 70 and <= 150 &&
                pixel.Item2 <= 80;
     }
 
@@ -142,10 +170,10 @@ internal sealed class MineOverviewDetector
 
     private static Rect BuildNothingFoundSearchBounds(Size imageSize, Rect mineOverviewBounds)
     {
-        var left = Math.Clamp(mineOverviewBounds.X + 82, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(mineOverviewBounds.Y + 205, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(mineOverviewBounds.Right - 72, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(mineOverviewBounds.Bottom - 24, top + 1, imageSize.Height);
+        var left = Math.Clamp(mineOverviewBounds.X + 40, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(mineOverviewBounds.Y + 185, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(mineOverviewBounds.Right - 28, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(mineOverviewBounds.Bottom - 30, top + 1, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
 

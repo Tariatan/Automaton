@@ -51,14 +51,13 @@
                       Header="Mining">
                 <MenuItem x:Name="MiningStartingGameMenuItem" Header="StartingGame" IsCheckable="True" IsChecked="True" Click="MiningStartingGameMenuItem_Click" />
                 <MenuItem x:Name="MiningLoginMenuItem" Header="Login" IsCheckable="True" Click="MiningLoginMenuItem_Click" />
-                <MenuItem x:Name="MiningDockedMenuItem" Header="Docked" IsCheckable="True" Click="MiningDockedMenuItem_Click" />
+                <MenuItem x:Name="MiningUnloadCargoMenuItem" Header="UnloadCargo" IsCheckable="True" Click="MiningUnloadCargoMenuItem_Click" />
                 <MenuItem x:Name="MiningUndockingMenuItem" Header="Undocking" IsCheckable="True" Click="MiningUndockingMenuItem_Click" />
                 <MenuItem x:Name="MiningEmptyOnUndockMenuItem" Header="SelectBeltAndWarp" IsCheckable="True" Click="MiningEmptyOnUndockMenuItem_Click" />
                 <MenuItem x:Name="MiningWarpingToAsteroidFieldMenuItem" Header="WarpingToAsteroidField" IsCheckable="True" Click="MiningWarpingToAsteroidFieldMenuItem_Click" />
-                <MenuItem x:Name="MiningLandedOnAsteroidBeltMenuItem" Header="LandedOnAsteroidBelt" IsCheckable="True" Click="MiningLandedOnAsteroidBeltMenuItem_Click" />
                 <MenuItem x:Name="MiningApproachingAsteroidMenuItem" Header="ApproachingAsteroid" IsCheckable="True" Click="MiningApproachingAsteroidMenuItem_Click" />
                 <MenuItem x:Name="MiningMiningMenuItem" Header="Mining" IsCheckable="True" Click="MiningMiningMenuItem_Click" />
-                <MenuItem x:Name="MiningUnloadCargoMenuItem" Header="UnloadCargo" IsCheckable="True" Click="MiningUnloadCargoMenuItem_Click" />
+                <MenuItem x:Name="MiningDockMenuItem" Header="Dock" IsCheckable="True" Click="MiningDockMenuItem_Click" />
                 <MenuItem x:Name="MiningRecoveryMenuItem" Header="Recovery" IsCheckable="True" Click="MiningRecoveryMenuItem_Click" />
             </MenuItem>
         </Menu>

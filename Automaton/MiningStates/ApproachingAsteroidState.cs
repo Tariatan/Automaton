@@ -1,5 +1,6 @@
 using Automaton.Detectors;
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.MiningStates;
 
@@ -19,20 +20,23 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
     private readonly MineOverviewDetector m_MineOverviewDetector;
     private readonly AsteroidRowsDetector m_AsteroidRowsDetector;
     private readonly FirstAsteroidDistanceUnitDetector m_FirstAsteroidDistanceUnitDetector;
+    private readonly ILogger m_Logger;
 
     public ApproachingAsteroidState()
-        : this(new MineOverviewDetector(), new AsteroidRowsDetector(), new FirstAsteroidDistanceUnitDetector())
+        : this(new MineOverviewDetector(), new AsteroidRowsDetector(), new FirstAsteroidDistanceUnitDetector(), Log.ForContext<ApproachingAsteroidState>())
     {
     }
 
     internal ApproachingAsteroidState(
         MineOverviewDetector mineOverviewDetector,
         AsteroidRowsDetector asteroidRowsDetector,
-        FirstAsteroidDistanceUnitDetector firstAsteroidDistanceUnitDetector)
+        FirstAsteroidDistanceUnitDetector firstAsteroidDistanceUnitDetector,
+        ILogger? logger = null)
     {
         m_MineOverviewDetector = mineOverviewDetector;
         m_AsteroidRowsDetector = asteroidRowsDetector;
         m_FirstAsteroidDistanceUnitDetector = firstAsteroidDistanceUnitDetector;
+        m_Logger = logger ?? Log.ForContext<ApproachingAsteroidState>();
     }
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.ApproachingAsteroid;
@@ -41,13 +45,19 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
+        m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Activate propulsion module
         context.AutomationInputController.PressKey(VirtualKeyF4, cancellationToken);
 
         var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
         using var initialScreen = Cv2.ImRead(capturePath);
-        if (!m_MineOverviewDetector.TryLocate(initialScreen, out var initialMineOverviewBounds))
+
+        // Failed to detect Mine overview tab
+        if (!m_MineOverviewDetector.TryLocate(initialScreen, out var mineOverviewBounds))
         {
+            m_Logger.Error("Failed to detect Mine overview tab");
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
@@ -55,9 +65,10 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
                 capturePath);
         }
 
-        var initialAsteroids = m_AsteroidRowsDetector.Locate(initialScreen, initialMineOverviewBounds);
-        if (initialAsteroids.Count == 0)
+        // Asteroid belt is empty
+        if (m_MineOverviewDetector.DetectNothingFound(initialScreen, mineOverviewBounds))
         {
+            m_Logger.Error("Asteroid belt is empty");
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
@@ -65,50 +76,48 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
                 capturePath);
         }
 
-        context.ClickUiElement(Center(initialAsteroids[0].Bounds), cancellationToken);
+        var asteroids = m_AsteroidRowsDetector.Locate(initialScreen, mineOverviewBounds);
+
+        // Select nearest asteroid
+        context.ClickUiElement(Center(asteroids[0].Bounds), cancellationToken);
+        // Approach
         context.AutomationInputController.PressKey(VirtualKeyA, cancellationToken);
 
         var analysis = AsteroidBeltLandingAnalysis.NotFound;
+
+        m_Logger.Information("Approaching nearest asteroid...");
+        // Approach asteroid until the distance becomes less than 10 km
         for (var attempt = 0; attempt < DistancePollingAttemptCount; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
             using var screen = Cv2.ImRead(capturePath);
-            if (!m_MineOverviewDetector.TryLocate(screen, out var mineOverviewBounds))
-            {
-                return new MiningAutomationStateTransition(
-                    Kind,
-                    MiningAutomationStateKind.Recovery,
-                    MiningAutomationActionKind.Recover,
-                    capturePath);
-            }
 
-            var asteroids = m_AsteroidRowsDetector.Locate(screen, mineOverviewBounds);
-            if (asteroids.Count == 0)
-            {
-                return new MiningAutomationStateTransition(
-                    Kind,
-                    MiningAutomationStateKind.Recovery,
-                    MiningAutomationActionKind.Recover,
-                    capturePath);
-            }
-
-            var firstAsteroidDistanceUnit = m_FirstAsteroidDistanceUnitDetector.Detect(screen, mineOverviewBounds, asteroids[0].Bounds);
+            var nearestAsteroidDistanceUnit = m_FirstAsteroidDistanceUnitDetector.Detect(screen, mineOverviewBounds, asteroids[0].Bounds);
             analysis = new AsteroidBeltLandingAnalysis(
                 LandedOnAsteroidBelt: true,
                 AsteroidBeltLabelBounds: null,
                 MineOverviewBounds: mineOverviewBounds,
                 Asteroids: asteroids,
                 NothingFoundDetected: false,
-                FirstAsteroidDistanceUnit: firstAsteroidDistanceUnit);
+                FirstAsteroidDistanceUnit: nearestAsteroidDistanceUnit);
 
-            if (firstAsteroidDistanceUnit == DistanceUnitKind.Meters)
+            // Distance decreased below 10 km
+            if (nearestAsteroidDistanceUnit == DistanceUnitKind.Meters)
             {
+                m_Logger.Information("Distance to asteroid decreased below 10 km => locking target and activating lasers");
+
+                // Target the asteroid
                 context.AutomationInputController.PressKey(VirtualKeyControl, cancellationToken);
+                // Wait for target lock
                 context.AutomationInputController.Delay(LockAsteroidDelayMilliseconds, cancellationToken);
+                // Activate first laser
                 context.AutomationInputController.PressKey(VirtualKeyF1, cancellationToken);
+                // Wait
                 context.AutomationInputController.Delay(BeforeSecondLaserDelayMilliseconds, cancellationToken);
+                // Activate second laser
                 context.AutomationInputController.PressKey(VirtualKeyF2, cancellationToken);
+
                 return new MiningAutomationStateTransition(
                     Kind,
                     MiningAutomationStateKind.Mining,
@@ -128,8 +137,5 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
             AsteroidBeltLanding: analysis);
     }
 
-    private static Point Center(Rect bounds)
-    {
-        return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
-    }
+    private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }

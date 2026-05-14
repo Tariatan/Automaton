@@ -1,5 +1,6 @@
 using Automaton.Detectors;
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.MiningStates;
 
@@ -11,15 +12,17 @@ internal sealed class StartingGameState : IMiningAutomationState
     private const string CaptureSuffix = ".mining-starting-game";
 
     private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
+    private readonly ILogger m_Logger;
 
     public StartingGameState()
-        : this(new PlayNowButtonLocator())
+        : this(new PlayNowButtonLocator(), Log.ForContext<StartingGameState>())
     {
     }
 
-    internal StartingGameState(PlayNowButtonLocator playNowButtonLocator)
+    internal StartingGameState(PlayNowButtonLocator playNowButtonLocator, ILogger? logger = null)
     {
         m_PlayNowButtonLocator = playNowButtonLocator;
+        m_Logger = logger ?? Log.ForContext<StartingGameState>();
     }
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.StartingGame;
@@ -28,6 +31,7 @@ internal sealed class StartingGameState : IMiningAutomationState
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
+        m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();

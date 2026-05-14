@@ -27,11 +27,6 @@ internal sealed class MiningAutomationService
         m_CurrentState = new StartingGameState();
     }
 
-    public MiningAutomationStepSummary AutomateCurrentScreen(CancellationToken cancellationToken)
-    {
-        return AutomateCurrentScreen(MiningAutomationStateKind.StartingGame, cancellationToken);
-    }
-
     public MiningAutomationStepSummary AutomateCurrentScreen(
         MiningAutomationStateKind startingState,
         CancellationToken cancellationToken)
@@ -94,11 +89,12 @@ internal sealed class MiningAutomationService
         {
             MiningAutomationStateKind.StartingGame => new StartingGameState(),
             MiningAutomationStateKind.Login => new LoginState(),
-            MiningAutomationStateKind.Docked => new DockedState(),
+            MiningAutomationStateKind.Dock => new DockingState(),
+            MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(),
             MiningAutomationStateKind.Undocking => new UndockingState(),
             MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(),
-            MiningAutomationStateKind.LandedOnAsteroidBelt => new LandedOnAsteroidBeltState(),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(),
+            MiningAutomationStateKind.Mining => new MiningState(),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }
@@ -118,11 +114,10 @@ internal enum MiningAutomationStateKind
 {
     StartingGame,
     Login,
-    Docked,
+    Dock,
     Undocking,
     SelectBeltAndWarp,
     WarpingToAsteroidField,
-    LandedOnAsteroidBelt,
     ApproachingAsteroid,
     Mining,
     UnloadCargo,
@@ -134,6 +129,7 @@ internal enum MiningAutomationActionKind
     None,
     StartGame,
     LoginPilot,
+    Dock,
     FocusMiningHold,
     Undock,
     CompleteUndock,

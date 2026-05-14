@@ -1,13 +1,12 @@
 using OpenCvSharp;
 
-namespace Automaton.MiningStates;
+namespace Automaton;
 
 internal sealed record MiningAutomationContext(
     ScreenCaptureService ScreenCaptureService,
     IAutomationInputController AutomationInputController,
     IAutomationClock AutomationClock)
 {
-    private const int UiClickDelayMilliseconds = 300;
     private const int MouseParkingAreaLeft = 200;
     private const int MouseParkingAreaTop = 200;
     private const int MouseParkingAreaWidth = 100;
@@ -16,7 +15,6 @@ internal sealed record MiningAutomationContext(
     public void ClickUiElement(Point point, CancellationToken cancellationToken)
     {
         AutomationInputController.MoveTo(point);
-        AutomationInputController.Delay(UiClickDelayMilliseconds, cancellationToken);
         AutomationInputController.LeftClick(cancellationToken);
         AutomationInputController.MoveTo(BuildRandomMouseParkingPoint());
     }

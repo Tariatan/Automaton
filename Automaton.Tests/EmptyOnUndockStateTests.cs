@@ -48,7 +48,7 @@ public sealed class EmptyOnUndockStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.LandedOnAsteroidBelt, transition.NextState);
+        Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.WarpToAsteroidField, transition.Action);
         Assert.NotNull(transition.AsteroidBeltOverview);
         Assert.NotNull(transition.AsteroidBeltLanding);

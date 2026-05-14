@@ -1,5 +1,6 @@
 using Automaton.Detectors;
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.MiningStates;
 
@@ -12,15 +13,17 @@ internal sealed class LoginState : IMiningAutomationState
     private const string CaptureSuffix = ".mining-login";
 
     private readonly PilotAvatarLocator m_PilotAvatarLocator;
+    private readonly ILogger m_Logger;
 
     public LoginState()
-        : this(new PilotAvatarLocator())
+        : this(new PilotAvatarLocator(), Log.ForContext<LoginState>())
     {
     }
 
-    internal LoginState(PilotAvatarLocator pilotAvatarLocator)
+    internal LoginState(PilotAvatarLocator pilotAvatarLocator, ILogger? logger = null)
     {
         m_PilotAvatarLocator = pilotAvatarLocator;
+        m_Logger = logger ?? Log.ForContext<LoginState>();
     }
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Login;
@@ -29,6 +32,7 @@ internal sealed class LoginState : IMiningAutomationState
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
+        m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace($"{CaptureSuffix}-{PilotIndex}");
         cancellationToken.ThrowIfCancellationRequested();
@@ -49,7 +53,7 @@ internal sealed class LoginState : IMiningAutomationState
         context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyW, cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,
-            MiningAutomationStateKind.Docked,
+            MiningAutomationStateKind.UnloadCargo,
             MiningAutomationActionKind.LoginPilot,
             capturePath);
     }

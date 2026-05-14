@@ -2,13 +2,10 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class DockedScreenDetector
+internal sealed class MiningHoldDetector
 {
     private const int BinaryMaskMaxValue = 255;
     private const double MinimumFocusedEntryBlueRatio = 0.18;
-    private const int MinimumUndockButtonWidth = 280;
-    private const int MinimumUndockButtonHeight = 30;
-    private const double MinimumUndockButtonBlueRatio = 0.12;
     private const int MinimumOreContourArea = 450;
     private const int MinimumOreContourWidth = 24;
     private const int MinimumOreContourHeight = 24;
@@ -23,7 +20,6 @@ internal sealed class DockedScreenDetector
         }
 
         var imageSize = screen.Size();
-        var undockButtonBounds = LocateUndockButton(screen);
         var miningHoldEntryBounds = BuildMiningHoldEntryBounds(imageSize);
         var itemHangarEntryBounds = BuildItemHangarEntryBounds(imageSize);
         var miningHoldFocused = HasFocusedEntryHighlight(screen, miningHoldEntryBounds);
@@ -33,55 +29,11 @@ internal sealed class DockedScreenDetector
             : MiningHoldContentState.Unknown;
 
         return new DockedScreenAnalysis(
-            undockButtonBounds is not null,
-            undockButtonBounds,
             miningHoldEntryBounds,
             itemHangarEntryBounds,
             miningHoldFocused,
             itemHangarFocused,
             miningHoldContent);
-    }
-
-    private static Rect? LocateUndockButton(Mat screen)
-    {
-        var searchBounds = BuildUndockButtonSearchBounds(screen.Size());
-        using var searchRegion = new Mat(screen, searchBounds);
-        using var blueMask = BuildBlueUiMask(searchRegion);
-        Cv2.FindContours(
-            blueMask,
-            out var contours,
-            out _,
-            RetrievalModes.External,
-            ContourApproximationModes.ApproxSimple);
-
-        Rect? bestBounds = null;
-        var bestArea = 0;
-        foreach (var contour in contours)
-        {
-            var bounds = Cv2.BoundingRect(contour);
-            if (bounds.Width < MinimumUndockButtonWidth ||
-                bounds.Height < MinimumUndockButtonHeight)
-            {
-                continue;
-            }
-
-            using var candidateMask = new Mat(blueMask, bounds);
-            var bluePixels = Cv2.CountNonZero(candidateMask);
-            var area = bounds.Width * bounds.Height;
-            if (bluePixels < area * MinimumUndockButtonBlueRatio || area <= bestArea)
-            {
-                continue;
-            }
-
-            bestArea = area;
-            bestBounds = new Rect(
-                searchBounds.X + bounds.X,
-                searchBounds.Y + bounds.Y,
-                bounds.Width,
-                bounds.Height);
-        }
-
-        return bestBounds;
     }
 
     private static bool HasFocusedEntryHighlight(Mat screen, Rect entryBounds)
@@ -119,8 +71,7 @@ internal sealed class DockedScreenDetector
             }
 
             var bounds = Cv2.BoundingRect(contour);
-            if (bounds.Width >= MinimumOreContourWidth &&
-                bounds.Height >= MinimumOreContourHeight)
+            if (bounds is { Width: >= MinimumOreContourWidth, Height: >= MinimumOreContourHeight })
             {
                 return MiningHoldContentState.ContainsOre;
             }
@@ -138,19 +89,14 @@ internal sealed class DockedScreenDetector
         return mask;
     }
 
-    private static Rect BuildUndockButtonSearchBounds(Size imageSize)
-    {
-        return BuildRelativeBounds(imageSize, 0.75, 0.13, 0.24, 0.18);
-    }
-
     private static Rect BuildMiningHoldEntryBounds(Size imageSize)
     {
-        return BuildRelativeBounds(imageSize, 0.025, 0.824, 0.095, 0.026);
+        return BuildRelativeBounds(imageSize, 0.025, 0.834, 0.095, 0.026);
     }
 
     private static Rect BuildItemHangarEntryBounds(Size imageSize)
     {
-        return BuildRelativeBounds(imageSize, 0.025, 0.867, 0.095, 0.026);
+        return BuildRelativeBounds(imageSize, 0.025, 0.877, 0.095, 0.026);
     }
 
     private static Rect BuildMiningHoldContentBounds(Size imageSize)
@@ -179,8 +125,6 @@ internal sealed class DockedScreenDetector
 }
 
 internal sealed record DockedScreenAnalysis(
-    bool IsDocked,
-    Rect? UndockButtonBounds,
     Rect? MiningHoldEntryBounds,
     Rect? ItemHangarEntryBounds,
     bool MiningHoldFocused,
@@ -188,8 +132,6 @@ internal sealed record DockedScreenAnalysis(
     MiningHoldContentState MiningHoldContent)
 {
     public static DockedScreenAnalysis NotFound { get; } = new(
-        false,
-        null,
         null,
         null,
         false,

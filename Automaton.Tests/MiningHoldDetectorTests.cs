@@ -3,21 +3,21 @@ using OpenCvSharp;
 
 namespace Automaton.Tests;
 
-public sealed class DockedScreenDetectorTests
+public sealed class MiningHoldDetectorTests
 {
     [Fact]
     public void Analyze_DockedItemHangarFocused_ReturnsDockedWithMiningHoldUnfocused()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateDockedItemHangarFocusedImage();
-        var detector = new DockedScreenDetector();
+        var detector = new MiningHoldDetector();
 
         // Act
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.True(analysis.IsDocked);
-        Assert.NotNull(analysis.UndockButtonBounds);
+        Assert.NotNull(analysis.MiningHoldEntryBounds);
+        Assert.NotNull(analysis.ItemHangarEntryBounds);
         Assert.False(analysis.MiningHoldFocused);
         Assert.True(analysis.ItemHangarFocused);
         Assert.Equal(MiningHoldContentState.Unknown, analysis.MiningHoldContent);
@@ -28,13 +28,13 @@ public sealed class DockedScreenDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateDockedMiningHoldFocusedEmptyImage();
-        var detector = new DockedScreenDetector();
+        var detector = new MiningHoldDetector();
 
         // Act
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.True(analysis.IsDocked);
+        Assert.NotNull(analysis.MiningHoldEntryBounds);
         Assert.True(analysis.MiningHoldFocused);
         Assert.False(analysis.ItemHangarFocused);
         Assert.Equal(MiningHoldContentState.Empty, analysis.MiningHoldContent);
@@ -45,30 +45,32 @@ public sealed class DockedScreenDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateDockedMiningHoldFocusedNotEmptyImage();
-        var detector = new DockedScreenDetector();
+        var detector = new MiningHoldDetector();
 
         // Act
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.True(analysis.IsDocked);
+        Assert.NotNull(analysis.MiningHoldEntryBounds);
         Assert.True(analysis.MiningHoldFocused);
         Assert.Equal(MiningHoldContentState.ContainsOre, analysis.MiningHoldContent);
     }
 
     [Fact]
-    public void Analyze_UndockedScreen_ReturnsNotDocked()
+    public void Analyze_UndockedScreen_ReturnsUnknownMiningHoldContent()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateUndockedImage();
-        var detector = new DockedScreenDetector();
+        var detector = new MiningHoldDetector();
 
         // Act
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.False(analysis.IsDocked);
-        Assert.Null(analysis.UndockButtonBounds);
+        Assert.NotNull(analysis.MiningHoldEntryBounds);
+        Assert.NotNull(analysis.ItemHangarEntryBounds);
+        Assert.False(analysis.MiningHoldFocused);
+        Assert.False(analysis.ItemHangarFocused);
         Assert.Equal(MiningHoldContentState.Unknown, analysis.MiningHoldContent);
     }
 }

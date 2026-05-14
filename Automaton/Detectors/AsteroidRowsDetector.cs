@@ -8,8 +8,8 @@ internal sealed class AsteroidRowsDetector
     private const int MaximumAsteroidIconWidth = 20;
     private const int MaximumAsteroidIconHeight = 20;
     private const int AsteroidIconGroupMaximumDistance = 18;
-    private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 124;
-    private const int MinimumDistanceColumnBrightPixelCount = 8;
+    private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 140;
+    private const int MinimumDistanceColumnBrightPixelCount = 10;
 
     public IReadOnlyList<AsteroidOverviewEntry> Locate(Mat screen, Rect mineOverviewBounds)
     {
@@ -31,25 +31,16 @@ internal sealed class AsteroidRowsDetector
             RetrievalModes.External,
             ContourApproximationModes.ApproxSimple);
 
-        var iconCenters = new List<int>();
-        foreach (var contour in contours)
-        {
-            var bounds = Cv2.BoundingRect(contour);
-            if (Cv2.ContourArea(contour) < MinimumAsteroidIconArea ||
-                bounds.Width > MaximumAsteroidIconWidth ||
-                bounds.Height > MaximumAsteroidIconHeight)
-            {
-                continue;
-            }
-
-            var iconCenterY = iconColumnBounds.Y + bounds.Y + bounds.Height / 2;
-            if (iconCenterY - mineOverviewBounds.Y < MinimumAsteroidRowCenterOffsetFromMineOverviewTop)
-            {
-                continue;
-            }
-
-            iconCenters.Add(iconCenterY);
-        }
+        var iconCenters = (from contour
+            in contours
+            let bounds = Cv2.BoundingRect(contour)
+            where !(Cv2.ContourArea(contour) < MinimumAsteroidIconArea)
+                  && bounds is { Width: <= MaximumAsteroidIconWidth, Height: <= MaximumAsteroidIconHeight }
+            select iconColumnBounds.Y + bounds.Y + bounds.Height / 2
+            into iconCenterY
+            where iconCenterY - mineOverviewBounds.Y >= MinimumAsteroidRowCenterOffsetFromMineOverviewTop
+            select iconCenterY)
+            .ToList();
 
         var rowLeft = Math.Clamp(mineOverviewBounds.X + 28, 0, Math.Max(0, screen.Width - 1));
         var rowWidth = Math.Clamp(mineOverviewBounds.Width - 55, 1, screen.Width - rowLeft);
@@ -88,7 +79,7 @@ internal sealed class AsteroidRowsDetector
     private static Rect BuildMineAsteroidIconColumnBounds(Size imageSize, Rect mineOverviewBounds)
     {
         var left = Math.Clamp(mineOverviewBounds.X + 30, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(mineOverviewBounds.Y + 100, 0, Math.Max(0, imageSize.Height - 1));
+        var top = Math.Clamp(mineOverviewBounds.Y + 120, 0, Math.Max(0, imageSize.Height - 1));
         var bottom = Math.Min(imageSize.Height, mineOverviewBounds.Bottom);
         var width = Math.Clamp(70, 1, imageSize.Width - left);
         var height = Math.Clamp(bottom - top, 1, imageSize.Height - top);

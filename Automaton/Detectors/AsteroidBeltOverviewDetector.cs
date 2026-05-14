@@ -33,7 +33,7 @@ internal sealed class AsteroidBeltOverviewDetector
             ? overviewBeltButtonLocation.Bounds
             : (Rect?)null;
         Rect? overviewBounds = overviewBeltButtonBounds is null
-            ? (Rect?)null
+            ? null
             : BuildOverviewBounds(searchableScreen.Size(), overviewBeltButtonBounds.Value);
         var asteroidBelts = overviewBounds is null ||
                             overviewBeltButtonBounds is null
@@ -65,36 +65,27 @@ internal sealed class AsteroidBeltOverviewDetector
             RetrievalModes.External,
             ContourApproximationModes.ApproxSimple);
 
-        var iconPartCenters = new List<int>();
-        foreach (var contour in contours)
-        {
-            var bounds = Cv2.BoundingRect(contour);
-            if (Cv2.ContourArea(contour) < MinimumAsteroidIconPartArea ||
-                bounds.Width > MaximumAsteroidIconPartWidth ||
-                bounds.Height > MaximumAsteroidIconPartHeight)
-            {
-                continue;
-            }
-
-            iconPartCenters.Add(iconColumnBounds.Y + bounds.Y + bounds.Height / 2);
-        }
+        var iconPartCenters = (from contour
+            in contours
+            let bounds = Cv2.BoundingRect(contour)
+            where !(Cv2.ContourArea(contour) < MinimumAsteroidIconPartArea)
+                  && bounds is { Width: <= MaximumAsteroidIconPartWidth, Height: <= MaximumAsteroidIconPartHeight }
+            select iconColumnBounds.Y + bounds.Y + bounds.Height / 2)
+            .ToList();
 
         var groups = GroupIconPartCenters(iconPartCenters);
         var rowLeft = Math.Clamp(overviewBounds.X + 25, 0, screen.Width - 1);
         var rowWidth = Math.Clamp(overviewBounds.Width - 55, 1, screen.Width - rowLeft);
-        var rows = new List<AsteroidBeltOverviewEntry>();
-        foreach (var group in groups)
-        {
-            if (group.Count < MinimumAsteroidIconPartCount)
-            {
-                continue;
-            }
-
-            var centerY = (int)Math.Round(group.Average());
-            var rowTop = Math.Clamp(centerY - 17, 0, Math.Max(0, screen.Height - 1));
-            var rowHeight = Math.Clamp(34, 1, screen.Height - rowTop);
-            rows.Add(new AsteroidBeltOverviewEntry(new Rect(rowLeft, rowTop, rowWidth, rowHeight)));
-        }
+        var rows = (from @group
+            in groups
+            where @group.Count >= MinimumAsteroidIconPartCount
+            select (int)Math.Round(@group.Average())
+            into centerY
+            select Math.Clamp(centerY - 17, 0, Math.Max(0, screen.Height - 1))
+            into rowTop
+            let rowHeight = Math.Clamp(34, 1, screen.Height - rowTop)
+            select new AsteroidBeltOverviewEntry(new Rect(rowLeft, rowTop, rowWidth, rowHeight)))
+            .ToList();
 
         return rows
             .OrderBy(row => row.Bounds.Y)

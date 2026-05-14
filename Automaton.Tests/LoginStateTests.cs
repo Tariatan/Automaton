@@ -40,12 +40,12 @@ public sealed class LoginStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Docked, transition.NextState);
+        Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.LoginPilot, transition.Action);
         Assert.Single(automationInputControllerMock.MoveTargets);
         Assert.Equal(new Point(272, 212), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal(new[] { 20_000, 2_000 }, automationInputControllerMock.Delays);
+        Assert.Equal(new[] { 20_000 }, automationInputControllerMock.Delays);
         Assert.Single(automationInputControllerMock.KeyInputs);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
     }

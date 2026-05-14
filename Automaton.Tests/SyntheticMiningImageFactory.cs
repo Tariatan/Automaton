@@ -13,8 +13,8 @@ internal static class SyntheticMiningImageFactory
     private static readonly Rect OverviewBeltButtonBounds = new(2274, 333, 37, 26);
     private static readonly Rect AsteroidBeltLabelBounds = new(1040, 1532, 410, 72);
     private static readonly Rect MineOverviewBounds = new(1700, 1226, 270, 336);
-    private static readonly Rect MiningHoldEntryBounds = new(64, 1654, 242, 52);
-    private static readonly Rect ItemHangarEntryBounds = new(64, 1741, 242, 52);
+    private static readonly Rect MiningHoldEntryBounds = new(64, 1675, 242, 52);
+    private static readonly Rect ItemHangarEntryBounds = new(64, 1761, 242, 52);
     private static readonly Rect MiningHoldContentBounds = new(319, 1617, 178, 231);
     private static readonly Scalar BackgroundColor = new(0, 0, 0);
     private static readonly Scalar PanelColor = new(13, 13, 13);

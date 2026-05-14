@@ -501,7 +501,12 @@ public partial class MainWindow
 
     private void MiningDockedMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        SetMiningStartState(MiningAutomationStateKind.Docked);
+        SetMiningStartState(MiningAutomationStateKind.UnloadCargo);
+    }
+
+    private void MiningDockMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetMiningStartState(MiningAutomationStateKind.Dock);
     }
 
     private void MiningUndockingMenuItem_Click(object sender, RoutedEventArgs e)
@@ -517,11 +522,6 @@ public partial class MainWindow
     private void MiningWarpingToAsteroidFieldMenuItem_Click(object sender, RoutedEventArgs e)
     {
         SetMiningStartState(MiningAutomationStateKind.WarpingToAsteroidField);
-    }
-
-    private void MiningLandedOnAsteroidBeltMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.LandedOnAsteroidBelt);
     }
 
     private void MiningApproachingAsteroidMenuItem_Click(object sender, RoutedEventArgs e)
@@ -549,14 +549,13 @@ public partial class MainWindow
         m_SelectedMiningStartState = stateKind;
         MiningStartingGameMenuItem.IsChecked = stateKind == MiningAutomationStateKind.StartingGame;
         MiningLoginMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Login;
-        MiningDockedMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Docked;
+        MiningUnloadCargoMenuItem.IsChecked = stateKind == MiningAutomationStateKind.UnloadCargo;
         MiningUndockingMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Undocking;
         MiningEmptyOnUndockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.SelectBeltAndWarp;
         MiningWarpingToAsteroidFieldMenuItem.IsChecked = stateKind == MiningAutomationStateKind.WarpingToAsteroidField;
-        MiningLandedOnAsteroidBeltMenuItem.IsChecked = stateKind == MiningAutomationStateKind.LandedOnAsteroidBelt;
         MiningApproachingAsteroidMenuItem.IsChecked = stateKind == MiningAutomationStateKind.ApproachingAsteroid;
         MiningMiningMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Mining;
-        MiningUnloadCargoMenuItem.IsChecked = stateKind == MiningAutomationStateKind.UnloadCargo;
+        MiningDockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Dock;
         MiningRecoveryMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Recovery;
         Logger.Information("Mining start state changed. MiningStartState={MiningStartState}", m_SelectedMiningStartState);
     }
