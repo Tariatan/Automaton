@@ -23,7 +23,7 @@ public partial class MainWindow
 
     private readonly ProjectDiscoveryAutomationService m_ProjectDiscoveryAutomationService = new();
     private readonly MiningAutomationService m_MiningAutomationService = new();
-    private readonly ApplicationAutomationMode m_AutomationMode;
+    private ApplicationAutomationMode m_AutomationMode;
     private HwndSource? m_WindowSource;
     private CancellationTokenSource? m_AutomationCancellationSource;
     private bool m_IsAutomationRunning;
@@ -91,11 +91,9 @@ public partial class MainWindow
         }
 
         var cancellationSource = new CancellationTokenSource();
-        m_AutomationCancellationSource = cancellationSource;
-        SetStartButtonEnabled(isEnabled: false);
-        SetPilotIndexControlsEnabled(isEnabled: false);
-        ApplyDebugImageRetention();
+        BeginAutomationSession(cancellationSource);
         var initialPilotIndex = GetPilotIndex();
+        var handedOffToAutomationRun = false;
 
         try
         {
@@ -116,7 +114,7 @@ public partial class MainWindow
             }
 
             await StartProjectDiscoveryAutomationAsync(initialPilotIndex, cancellationSource);
-            cancellationSource = null;
+            handedOffToAutomationRun = true;
         }
         catch (OperationCanceledException)
         {
@@ -124,13 +122,9 @@ public partial class MainWindow
         }
         finally
         {
-            if (cancellationSource is not null)
+            if (!handedOffToAutomationRun)
             {
-                cancellationSource.Dispose();
-                m_AutomationCancellationSource = null;
-                SetStartButtonState(isRunning: false);
-                SetStartButtonEnabled(isEnabled: true);
-                SetPilotIndexControlsEnabled(isEnabled: true);
+                EndAutomationSession(cancellationSource, disposeCancellationSource: true);
             }
         }
     }
@@ -138,11 +132,7 @@ public partial class MainWindow
     private async Task StartProjectDiscoveryAutomationAsync(int initialPilotIndex, CancellationTokenSource cancellationSource)
     {
         ApplyDebugImageRetention();
-        m_IsAutomationRunning = true;
-        SetStartButtonState(isRunning: true);
-        SetStartButtonEnabled(isEnabled: true);
-        SetPilotIndexControlsEnabled(isEnabled: false);
-        m_AutomationCancellationSource = cancellationSource;
+        BeginAutomationSession(cancellationSource);
         var dpi = VisualTreeHelper.GetDpi(this);
         Logger.Information(
             "Automation started. InitialPilotIndex={InitialPilotIndex}, DpiScaleX={DpiScaleX}, DpiScaleY={DpiScaleY}",
@@ -194,26 +184,13 @@ public partial class MainWindow
         }
         finally
         {
-            cancellationSource.Dispose();
-            if (ReferenceEquals(m_AutomationCancellationSource, cancellationSource))
-            {
-                m_AutomationCancellationSource = null;
-            }
-
-            m_IsAutomationRunning = false;
-            SetStartButtonState(isRunning: false);
-            SetStartButtonEnabled(isEnabled: true);
-            SetPilotIndexControlsEnabled(isEnabled: true);
+            EndAutomationSession(cancellationSource, disposeCancellationSource: true);
         }
     }
 
     private async Task StartMiningAutomationAsync(CancellationTokenSource cancellationSource)
     {
-        m_IsAutomationRunning = true;
-        SetStartButtonState(isRunning: true);
-        SetStartButtonEnabled(isEnabled: true);
-        SetPilotIndexControlsEnabled(isEnabled: false);
-        m_AutomationCancellationSource = cancellationSource;
+        BeginAutomationSession(cancellationSource);
         var dpi = VisualTreeHelper.GetDpi(this);
         Logger.Information(
             "Mining automation started. DpiScaleX={DpiScaleX}, DpiScaleY={DpiScaleY}",
@@ -244,16 +221,7 @@ public partial class MainWindow
         }
         finally
         {
-            cancellationSource.Dispose();
-            if (ReferenceEquals(m_AutomationCancellationSource, cancellationSource))
-            {
-                m_AutomationCancellationSource = null;
-            }
-
-            m_IsAutomationRunning = false;
-            SetStartButtonState(isRunning: false);
-            SetStartButtonEnabled(isEnabled: true);
-            SetPilotIndexControlsEnabled(isEnabled: true);
+            EndAutomationSession(cancellationSource, disposeCancellationSource: true);
         }
     }
 
@@ -350,9 +318,30 @@ public partial class MainWindow
         StartButton.Background = isRunning ? StopBrush : StartBrush;
     }
 
-    private void SetStartButtonEnabled(bool isEnabled)
+    private void BeginAutomationSession(CancellationTokenSource cancellationSource)
     {
-        StartButton.IsEnabled = isEnabled;
+        ApplyDebugImageRetention();
+        m_IsAutomationRunning = true;
+        m_AutomationCancellationSource = cancellationSource;
+        SetStartButtonState(isRunning: true);
+        SetPilotIndexControlsEnabled(isEnabled: false);
+    }
+
+    private void EndAutomationSession(CancellationTokenSource cancellationSource, bool disposeCancellationSource)
+    {
+        if (disposeCancellationSource)
+        {
+            cancellationSource.Dispose();
+        }
+
+        if (ReferenceEquals(m_AutomationCancellationSource, cancellationSource))
+        {
+            m_AutomationCancellationSource = null;
+        }
+
+        m_IsAutomationRunning = false;
+        SetStartButtonState(isRunning: false);
+        SetPilotIndexControlsEnabled(isEnabled: true);
     }
 
     private void SetPilotIndexControlsEnabled(bool isEnabled)
@@ -562,12 +551,48 @@ public partial class MainWindow
 
     private void ApplyAutomationMode()
     {
-        if (m_AutomationMode == ApplicationAutomationMode.Mining)
-        {
-            Title = "Automaton - Miner";
-        }
+        Title = m_AutomationMode == ApplicationAutomationMode.Mining
+            ? "Automaton - Miner"
+            : "Automaton";
+        SettingsDiscoveryModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.ProjectDiscovery;
+        SettingsMiningModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.Mining;
 
         SetMiningStartState(m_SelectedMiningStartState);
         SetPilotIndexControlsEnabled(isEnabled: true);
+    }
+
+    private void SettingsDiscoveryModeMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetAutomationMode(ApplicationAutomationMode.ProjectDiscovery);
+    }
+
+    private void SettingsMiningModeMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetAutomationMode(ApplicationAutomationMode.Mining);
+    }
+
+    private void SetAutomationMode(ApplicationAutomationMode automationMode)
+    {
+        if (m_IsAutomationRunning)
+        {
+            SettingsDiscoveryModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.ProjectDiscovery;
+            SettingsMiningModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.Mining;
+            Logger.Information(
+                "Automation mode change ignored because automation is running. CurrentMode={CurrentMode}, RequestedMode={RequestedMode}",
+                m_AutomationMode,
+                automationMode);
+            return;
+        }
+
+        if (m_AutomationMode == automationMode)
+        {
+            SettingsDiscoveryModeMenuItem.IsChecked = automationMode == ApplicationAutomationMode.ProjectDiscovery;
+            SettingsMiningModeMenuItem.IsChecked = automationMode == ApplicationAutomationMode.Mining;
+            return;
+        }
+
+        m_AutomationMode = automationMode;
+        ApplyAutomationMode();
+        Logger.Information("Automation mode changed from settings. AutomationMode={AutomationMode}", m_AutomationMode);
     }
 }

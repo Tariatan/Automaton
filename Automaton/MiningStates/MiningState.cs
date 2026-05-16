@@ -8,7 +8,7 @@ internal sealed class MiningState : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-state";
     private const int PollingDelayMilliseconds = 5_000;
-    private static readonly TimeSpan MiningLoopDuration = TimeSpan.FromMinutes(13);
+    private static readonly TimeSpan MiningLoopDuration = TimeSpan.FromMinutes(15);
     private readonly MiningAsteroidDetector m_AsteroidDetector;
     private readonly MiningLaserDetector m_LaserDetector;
     private readonly ILogger m_Logger;
@@ -45,7 +45,7 @@ internal sealed class MiningState : IMiningAutomationState
         var dockingReason = DockingReason.Timeout;
 
         // Start mining
-        m_Logger.Warning("Star mining...");
+        m_Logger.Information("Start mining...");
         while (DateTime.UtcNow - loopStart < MiningLoopDuration)
         {
             cancellationToken.ThrowIfCancellationRequested();

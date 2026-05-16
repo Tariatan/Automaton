@@ -5,7 +5,7 @@ namespace Automaton;
 
 internal sealed class AutomationInputController : IAutomationInputController
 {
-    private const int MouseDownDurationMilliseconds = 250;
+    private const int MouseDownDurationMilliseconds = 300;
     private const uint LeftDownEvent = 0x0002;
     private const uint LeftUpEvent = 0x0004;
     private const uint KeyUpEvent = 0x0002;
@@ -33,10 +33,10 @@ internal sealed class AutomationInputController : IAutomationInputController
             if (leftButtonPressed)
             {
                 mouse_event(LeftUpEvent, 0, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(MouseDownDurationMilliseconds);
             }
         }
 
-        Thread.Sleep(MouseDownDurationMilliseconds);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
@@ -64,9 +64,9 @@ internal sealed class AutomationInputController : IAutomationInputController
         finally
         {
             keybd_event((byte)modifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
+            Thread.Sleep(MouseDownDurationMilliseconds);
         }
 
-        Thread.Sleep(MouseDownDurationMilliseconds);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
@@ -90,9 +90,9 @@ internal sealed class AutomationInputController : IAutomationInputController
         {
             keybd_event((byte)secondModifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
             keybd_event((byte)firstModifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
+            Thread.Sleep(MouseDownDurationMilliseconds);
         }
 
-        Thread.Sleep(MouseDownDurationMilliseconds);
         cancellationToken.ThrowIfCancellationRequested();
     }
 

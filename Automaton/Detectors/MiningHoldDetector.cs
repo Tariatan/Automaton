@@ -1,16 +1,20 @@
+using System.Drawing.Imaging;
+using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
 internal sealed class MiningHoldDetector
 {
-    private const int BinaryMaskMaxValue = 255;
-    private const double MinimumFocusedEntryBlueRatio = 0.18;
-    private const int MinimumOreContourArea = 450;
-    private const int MinimumOreContourWidth = 24;
-    private const int MinimumOreContourHeight = 24;
-    private static readonly Scalar BlueUiMinimum = new(85, 35, 25);
-    private static readonly Scalar BlueUiMaximum = new(110, 220, 140);
+    private const double MinimumTitleMatchScore = 0.82;
+    private const int FirstRowOffsetFromTitleBottom = 118;
+    private const int FirstRowHeight = 40;
+    private const int FirstRowWidth = 390;
+    private const int FirstRowMinimumBrightPixelCount = 220;
+    private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
+
+    private readonly Mat m_ItemHangarTemplate = LoadTemplate(Properties.Resources.item_hangar, "item_hangar");
+    private readonly Mat m_MiningHoldTemplate = LoadTemplate(Properties.Resources.mining_hold, "mining_hold");
 
     public DockedScreenAnalysis Analyze(Mat screen)
     {
@@ -19,89 +23,117 @@ internal sealed class MiningHoldDetector
             return DockedScreenAnalysis.NotFound;
         }
 
-        var imageSize = screen.Size();
-        var miningHoldEntryBounds = BuildMiningHoldEntryBounds(imageSize);
-        var itemHangarEntryBounds = BuildItemHangarEntryBounds(imageSize);
-        var miningHoldFocused = HasFocusedEntryHighlight(screen, miningHoldEntryBounds);
-        var itemHangarFocused = HasFocusedEntryHighlight(screen, itemHangarEntryBounds);
-        var miningHoldContent = miningHoldFocused
-            ? DetectMiningHoldContent(screen, BuildMiningHoldContentBounds(imageSize))
-            : MiningHoldContentState.Unknown;
+        var searchBounds = BuildTopLeftSearchBounds(screen.Size());
+        Rect? itemHangarTitleBounds = TryLocateTitle(screen, m_ItemHangarTemplate, searchBounds, out var locatedItemHangarTitleBounds)
+            ? locatedItemHangarTitleBounds
+            : BuildFallbackItemHangarTitleBounds(screen.Size());
+        Rect? miningHoldTitleBounds = TryLocateTitle(screen, m_MiningHoldTemplate, searchBounds, out var locatedMiningHoldTitleBounds)
+            ? locatedMiningHoldTitleBounds
+            : BuildFallbackMiningHoldTitleBounds(screen.Size());
+        var itemHangarFirstRowBounds = itemHangarTitleBounds is null
+            ? (Rect?)null
+            : BuildFirstRowBounds(screen.Size(), itemHangarTitleBounds.Value);
+        var miningHoldFirstRowBounds = miningHoldTitleBounds is null
+            ? (Rect?)null
+            : BuildFirstRowBounds(screen.Size(), miningHoldTitleBounds.Value);
+        var itemHangarFocused = itemHangarFirstRowBounds is not null && RowLooksFocused(screen, itemHangarFirstRowBounds.Value);
+        var miningHoldFocused = miningHoldFirstRowBounds is not null && RowLooksFocused(screen, miningHoldFirstRowBounds.Value);
+        var miningHoldContent = miningHoldFirstRowBounds is null
+            ? MiningHoldContentState.Unknown
+            : (RowLooksPopulated(screen, miningHoldFirstRowBounds.Value)
+                ? MiningHoldContentState.ContainsOre
+                : MiningHoldContentState.Empty);
 
         return new DockedScreenAnalysis(
-            miningHoldEntryBounds,
-            itemHangarEntryBounds,
+            miningHoldTitleBounds,
+            itemHangarTitleBounds,
+            miningHoldFirstRowBounds,
+            itemHangarFirstRowBounds,
             miningHoldFocused,
             itemHangarFocused,
             miningHoldContent);
     }
 
-    private static bool HasFocusedEntryHighlight(Mat screen, Rect entryBounds)
+    private static bool TryLocateTitle(Mat screen, Mat template, Rect searchBounds, out Rect titleBounds)
     {
-        using var entry = new Mat(screen, entryBounds);
-        using var blueMask = BuildBlueUiMask(entry);
-        var bluePixels = Cv2.CountNonZero(blueMask);
-        return bluePixels >= entryBounds.Width * entryBounds.Height * MinimumFocusedEntryBlueRatio;
-    }
-
-    private static MiningHoldContentState DetectMiningHoldContent(Mat screen, Rect contentBounds)
-    {
-        using var content = new Mat(screen, contentBounds);
-        using var gray = new Mat();
-        using var brightMask = new Mat();
-        using var closed = new Mat();
-        using var closeKernel = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(5, 5));
-
-        Cv2.CvtColor(content, gray, ColorConversionCodes.BGR2GRAY);
-        Cv2.Threshold(gray, brightMask, 115, BinaryMaskMaxValue, ThresholdTypes.Binary);
-        Cv2.MorphologyEx(brightMask, closed, MorphTypes.Close, closeKernel);
-        Cv2.FindContours(
-            closed,
-            out var contours,
-            out _,
-            RetrievalModes.External,
-            ContourApproximationModes.ApproxSimple);
-
-        foreach (var contour in contours)
+        titleBounds = default;
+        using var searchRegion = new Mat(screen, searchBounds);
+        TemplateMatch? bestMatch = null;
+        foreach (var scale in TemplateScales)
         {
-            var area = Cv2.ContourArea(contour);
-            if (area < MinimumOreContourArea)
+            using var scaledTemplate = BuildScaledTemplate(template, scale);
+            if (scaledTemplate.Width > searchRegion.Width || scaledTemplate.Height > searchRegion.Height)
             {
                 continue;
             }
 
-            var bounds = Cv2.BoundingRect(contour);
-            if (bounds is { Width: >= MinimumOreContourWidth, Height: >= MinimumOreContourHeight })
+            using var result = new Mat();
+            Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+            Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out var maxLocation);
+            var candidate = new TemplateMatch(
+                new Rect(
+                    searchBounds.X + maxLocation.X,
+                    searchBounds.Y + maxLocation.Y,
+                    scaledTemplate.Width,
+                    scaledTemplate.Height),
+                maxScore);
+            if (bestMatch is null || candidate.Score > bestMatch.Value.Score)
             {
-                return MiningHoldContentState.ContainsOre;
+                bestMatch = candidate;
             }
         }
 
-        return MiningHoldContentState.Empty;
+        if (bestMatch is null || bestMatch.Value.Score < MinimumTitleMatchScore)
+        {
+            return false;
+        }
+
+        titleBounds = bestMatch.Value.Bounds;
+        return true;
     }
 
-    private static Mat BuildBlueUiMask(Mat image)
+    private static Rect BuildTopLeftSearchBounds(Size imageSize)
     {
+        return BuildRelativeBounds(imageSize, 0.01, 0.02, 0.30, 0.45);
+    }
+
+    private static Rect BuildFallbackItemHangarTitleBounds(Size imageSize)
+    {
+        return BuildRelativeBounds(imageSize, 0.025, 0.025, 0.155, 0.030);
+    }
+
+    private static Rect BuildFallbackMiningHoldTitleBounds(Size imageSize)
+    {
+        return BuildRelativeBounds(imageSize, 0.025, 0.142, 0.155, 0.030);
+    }
+
+    private static Rect BuildFirstRowBounds(Size imageSize, Rect titleBounds)
+    {
+        var left = Math.Clamp(titleBounds.X + 4, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(titleBounds.Bottom + FirstRowOffsetFromTitleBottom, 0, Math.Max(0, imageSize.Height - 1));
+        var width = Math.Clamp(FirstRowWidth, 1, imageSize.Width - left);
+        var height = Math.Clamp(FirstRowHeight, 1, imageSize.Height - top);
+        return new Rect(left, top, width, height);
+    }
+
+    private static bool RowLooksFocused(Mat screen, Rect rowBounds)
+    {
+        using var row = new Mat(screen, rowBounds);
         using var hsv = new Mat();
-        var mask = new Mat();
-        Cv2.CvtColor(image, hsv, ColorConversionCodes.BGR2HSV);
-        Cv2.InRange(hsv, BlueUiMinimum, BlueUiMaximum, mask);
-        return mask;
+        using var mask = new Mat();
+        Cv2.CvtColor(row, hsv, ColorConversionCodes.BGR2HSV);
+        Cv2.InRange(hsv, new Scalar(85, 35, 25), new Scalar(110, 220, 140), mask);
+        return Cv2.CountNonZero(mask) >= 120;
     }
 
-    private static Rect BuildMiningHoldEntryBounds(Size imageSize)
+    private static bool RowLooksPopulated(Mat screen, Rect rowBounds)
     {
-        return BuildRelativeBounds(imageSize, 0.025, 0.834, 0.095, 0.026);
-    }
-
-    private static Rect BuildItemHangarEntryBounds(Size imageSize)
-    {
-        return BuildRelativeBounds(imageSize, 0.025, 0.877, 0.095, 0.026);
-    }
-
-    private static Rect BuildMiningHoldContentBounds(Size imageSize)
-    {
-        return BuildRelativeBounds(imageSize, 0.125, 0.805, 0.070, 0.115);
+        using var row = new Mat(screen, rowBounds);
+        using var gray = new Mat();
+        using var mask = new Mat();
+        Cv2.CvtColor(row, gray, ColorConversionCodes.BGR2GRAY);
+        Cv2.InRange(gray, new Scalar(110), new Scalar(255), mask);
+        return Cv2.CountNonZero(mask) >= FirstRowMinimumBrightPixelCount;
     }
 
     private static Rect BuildRelativeBounds(
@@ -122,16 +154,52 @@ internal sealed class MiningHoldDetector
         height = Math.Clamp(height, 1, imageSize.Height - top);
         return new Rect(left, top, width, height);
     }
+
+    private static Mat BuildScaledTemplate(Mat template, double scale)
+    {
+        if (Math.Abs(scale - 1.0) < double.Epsilon)
+        {
+            return template.Clone();
+        }
+
+        var width = Math.Max(1, (int)Math.Round(template.Width * scale));
+        var height = Math.Max(1, (int)Math.Round(template.Height * scale));
+        var scaledTemplate = new Mat();
+        Cv2.Resize(template, scaledTemplate, new Size(width, height));
+        return scaledTemplate;
+    }
+
+    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
+    {
+        using var memoryStream = new MemoryStream();
+        bitmap.Save(memoryStream, ImageFormat.Png);
+        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        if (template.Empty())
+        {
+            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
+        }
+
+        return template;
+    }
+
+    private readonly record struct TemplateMatch(Rect Bounds, double Score);
 }
 
 internal sealed record DockedScreenAnalysis(
-    Rect? MiningHoldEntryBounds,
-    Rect? ItemHangarEntryBounds,
+    Rect? MiningHoldTitleBounds,
+    Rect? ItemHangarTitleBounds,
+    Rect? MiningHoldFirstRowBounds,
+    Rect? ItemHangarFirstRowBounds,
     bool MiningHoldFocused,
     bool ItemHangarFocused,
     MiningHoldContentState MiningHoldContent)
 {
+    public Rect? MiningHoldEntryBounds => MiningHoldTitleBounds;
+    public Rect? ItemHangarEntryBounds => ItemHangarTitleBounds;
+
     public static DockedScreenAnalysis NotFound { get; } = new(
+        null,
+        null,
         null,
         null,
         false,

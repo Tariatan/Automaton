@@ -8,7 +8,7 @@ namespace Automaton;
 internal sealed class ProjectDiscoveryAutomationService
 {
     private const int StartupDelayMilliseconds = 3_000;
-    private const int LauncherStartupDelayMilliseconds = 20_000;
+    private const int LauncherStartupDelayMilliseconds = 30_000;
     private const int MaximumSubmissionsPerWindow = 5;
     private const int SubmissionWindowMilliseconds = 70_000;
     private const int MaximumConsecutivePlayfieldMisses = 5;
@@ -28,6 +28,7 @@ internal sealed class ProjectDiscoveryAutomationService
     private const ushort VirtualKeyL = 0x4C;
     private const ushort VirtualKeyQ = 0x51;
     private const ushort VirtualKeyW = 0x57;
+    private const ushort VirtualKeyF9 = 0x78;
     private const string NoPlayButtonFoundDebugText = "No play button found";
     private const string PilotNotFoundDebugTextTemplate = "Pilot {0} not found";
     private const double DebugOverlayTextScale = 0.8;
@@ -124,6 +125,9 @@ internal sealed class ProjectDiscoveryAutomationService
         m_AutomationInputController.LeftClick(cancellationToken);
         m_AutomationInputController.Delay(LauncherStartupDelayMilliseconds, cancellationToken);
         m_CurrentPilotIndex = initialPilotIndex;
+
+        // Hide GUI
+        m_AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9, cancellationToken);
         m_AutomationInputController.PressKeyChord(VirtualKeyAlt, VirtualKeyL, cancellationToken);
 
         return new StartupAutomationSummary(playButtonCapturePath, true, playButtonLocation.Bounds, pilotSelectionCapturePath, true, pilotLocation.Bounds, true);
@@ -322,7 +326,7 @@ internal sealed class ProjectDiscoveryAutomationService
         // Wait for full logout
         m_AutomationInputController.Delay(PilotLogoutDelayMilliseconds, cancellationToken);
 
-        // Close any windows on login screen
+        // Close any window on login screen
         m_AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyW, cancellationToken);
 
         // Make screenshot of pilots on login screen

@@ -9,6 +9,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     private const ushort VirtualKeyAlt = 0x12;
     private const ushort VirtualKeyControl = 0x11;
     private const ushort VirtualKeyEnter = 0x0D;
+    private const ushort VirtualKeyF9 = 0x78;
     private const ushort VirtualKeyL = 0x4C;
     private const ushort VirtualKeyQ = 0x51;
     private const ushort VirtualKeyShift = 0x10;
@@ -284,12 +285,13 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(3, captureInvocationCount);
         Assert.Equal(summary.ClickedPointCount + 2, automationInputController.ClickCount);
         Assert.Equal(new Point(pilotAvatarLocation.X + 32, pilotAvatarLocation.Y + 32), automationInputController.MoveTargets[^1]);
-        Assert.Equal(5, automationInputController.KeyboardInputs.Count);
+        Assert.Equal(6, automationInputController.KeyboardInputs.Count);
         AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyAlt, VirtualKeyQ);
         AssertKey(automationInputController.KeyboardInputs[1], VirtualKeyEnter);
         AssertKeyChord(automationInputController.KeyboardInputs[2], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[3], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[4], VirtualKeyAlt, VirtualKeyL);
+        AssertKeyChord(automationInputController.KeyboardInputs[3], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
+        AssertKeyChord(automationInputController.KeyboardInputs[4], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputController.KeyboardInputs[5], VirtualKeyAlt, VirtualKeyL);
         Assert.Contains(40_000, automationInputController.Delays);
         Assert.Equal(300, automationInputController.Delays[^1]);
     }
@@ -504,9 +506,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.False(summary.SlowDownPopupDetected);
         Assert.True(slowDownRecoveryObserved);
         Assert.Equal(4, captureInvocationCount);
-        Assert.Equal(2, automationInputController.KeyboardInputs.Count);
+        Assert.Equal(3, automationInputController.KeyboardInputs.Count);
         AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[1], VirtualKeyAlt, VirtualKeyL);
+        AssertKeyChord(automationInputController.KeyboardInputs[1], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
+        AssertKeyChord(automationInputController.KeyboardInputs[2], VirtualKeyAlt, VirtualKeyL);
         Assert.Contains(70_000, automationInputController.Delays);
     }
 

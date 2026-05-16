@@ -26,6 +26,16 @@
                 <MenuItem x:Name="HallmarkMenuItem"
                           Header="Hallmark"
                           Click="HallmarkMenuItem_Click" />
+                <Separator />
+                <MenuItem x:Name="SettingsDiscoveryModeMenuItem"
+                          Header="Discovery"
+                          IsCheckable="True"
+                          IsChecked="True"
+                          Click="SettingsDiscoveryModeMenuItem_Click" />
+                <MenuItem x:Name="SettingsMiningModeMenuItem"
+                          Header="Mining"
+                          IsCheckable="True"
+                          Click="SettingsMiningModeMenuItem_Click" />
             </MenuItem>
             <MenuItem x:Name="DiscoveryMenuItem"
                       Header="Discovery">

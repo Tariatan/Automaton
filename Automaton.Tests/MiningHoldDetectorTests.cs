@@ -6,7 +6,7 @@ namespace Automaton.Tests;
 public sealed class MiningHoldDetectorTests
 {
     [Fact]
-    public void Analyze_DockedItemHangarFocused_ReturnsDockedWithMiningHoldUnfocused()
+    public void Analyze_DockedItemHangarFocused_ReturnsHangarAndMiningHoldTitlesAndRows()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateDockedItemHangarFocusedImage();
@@ -16,15 +16,14 @@ public sealed class MiningHoldDetectorTests
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.NotNull(analysis.MiningHoldEntryBounds);
-        Assert.NotNull(analysis.ItemHangarEntryBounds);
-        Assert.False(analysis.MiningHoldFocused);
-        Assert.True(analysis.ItemHangarFocused);
-        Assert.Equal(MiningHoldContentState.Unknown, analysis.MiningHoldContent);
+        Assert.NotNull(analysis.MiningHoldTitleBounds);
+        Assert.NotNull(analysis.ItemHangarTitleBounds);
+        Assert.NotNull(analysis.MiningHoldFirstRowBounds);
+        Assert.NotNull(analysis.ItemHangarFirstRowBounds);
     }
 
     [Fact]
-    public void Analyze_DockedMiningHoldFocusedEmpty_ReturnsEmptyMiningHold()
+    public void Analyze_DockedMiningHoldFocusedEmpty_ReturnsMiningHoldAndItemHangarRows()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateDockedMiningHoldFocusedEmptyImage();
@@ -34,14 +33,14 @@ public sealed class MiningHoldDetectorTests
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.NotNull(analysis.MiningHoldEntryBounds);
-        Assert.True(analysis.MiningHoldFocused);
-        Assert.False(analysis.ItemHangarFocused);
-        Assert.Equal(MiningHoldContentState.Empty, analysis.MiningHoldContent);
+        Assert.NotNull(analysis.MiningHoldTitleBounds);
+        Assert.NotNull(analysis.ItemHangarTitleBounds);
+        Assert.NotNull(analysis.MiningHoldFirstRowBounds);
+        Assert.NotNull(analysis.ItemHangarFirstRowBounds);
     }
 
     [Fact]
-    public void Analyze_DockedMiningHoldFocusedNotEmpty_ReturnsMiningHoldContainsOre()
+    public void Analyze_DockedMiningHoldFocusedNotEmpty_ReturnsMiningHoldAndItemHangarRows()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateDockedMiningHoldFocusedNotEmptyImage();
@@ -51,13 +50,14 @@ public sealed class MiningHoldDetectorTests
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.NotNull(analysis.MiningHoldEntryBounds);
-        Assert.True(analysis.MiningHoldFocused);
-        Assert.Equal(MiningHoldContentState.ContainsOre, analysis.MiningHoldContent);
+        Assert.NotNull(analysis.MiningHoldTitleBounds);
+        Assert.NotNull(analysis.ItemHangarTitleBounds);
+        Assert.NotNull(analysis.MiningHoldFirstRowBounds);
+        Assert.NotNull(analysis.ItemHangarFirstRowBounds);
     }
 
     [Fact]
-    public void Analyze_UndockedScreen_ReturnsUnknownMiningHoldContent()
+    public void Analyze_UndockedScreen_ReturnsFallbackBounds()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateUndockedImage();
@@ -67,10 +67,9 @@ public sealed class MiningHoldDetectorTests
         var analysis = detector.Analyze(image);
 
         // Assert
-        Assert.NotNull(analysis.MiningHoldEntryBounds);
-        Assert.NotNull(analysis.ItemHangarEntryBounds);
-        Assert.False(analysis.MiningHoldFocused);
-        Assert.False(analysis.ItemHangarFocused);
-        Assert.Equal(MiningHoldContentState.Unknown, analysis.MiningHoldContent);
+        Assert.NotNull(analysis.MiningHoldTitleBounds);
+        Assert.NotNull(analysis.ItemHangarTitleBounds);
+        Assert.NotNull(analysis.MiningHoldFirstRowBounds);
+        Assert.NotNull(analysis.ItemHangarFirstRowBounds);
     }
 }

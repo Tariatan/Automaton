@@ -6,8 +6,8 @@ namespace Automaton.Detectors;
 
 internal sealed class HomeStationDetector
 {
-    private const double MinimumMatchScore = 0.86;
-    private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
+    private const double MinimumMatchScore = 0.76;
+    private static readonly double[] TemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20, 1.30];
 
     private readonly AsteroidBeltOverviewDetector m_AsteroidBeltOverviewDetector;
     private readonly Mat m_HomeStationTemplate = LoadTemplate(Properties.Resources.home_station, "home_station");
@@ -27,20 +27,21 @@ internal sealed class HomeStationDetector
         var overviewAnalysis = m_AsteroidBeltOverviewDetector.Analyze(screen);
         if (!overviewAnalysis.OverviewLocated || overviewAnalysis.OverviewBounds is null)
         {
-            return new HomeStationAnalysis(false, null, overviewAnalysis);
+            return new HomeStationAnalysis(false, null, 0, overviewAnalysis);
         }
 
-        if (!TryMatchHomeStation(screen, overviewAnalysis.OverviewBounds.Value, out var homeStationBounds))
+        if (!TryMatchHomeStation(screen, overviewAnalysis.OverviewBounds.Value, out var homeStationBounds, out var bestScore))
         {
-            return new HomeStationAnalysis(false, null, overviewAnalysis);
+            return new HomeStationAnalysis(false, null, bestScore, overviewAnalysis);
         }
 
-        return new HomeStationAnalysis(true, homeStationBounds, overviewAnalysis);
+        return new HomeStationAnalysis(true, homeStationBounds, bestScore, overviewAnalysis);
     }
 
-    private bool TryMatchHomeStation(Mat screen, Rect overviewBounds, out Rect homeStationBounds)
+    private bool TryMatchHomeStation(Mat screen, Rect overviewBounds, out Rect homeStationBounds, out double bestScore)
     {
         homeStationBounds = default;
+        bestScore = 0;
         var searchBounds = BuildHomeStationSearchBounds(screen.Size(), overviewBounds);
         if (!TryCreateRegion(screen, searchBounds, out var searchRegion))
         {
@@ -72,6 +73,7 @@ internal sealed class HomeStationDetector
                 }
             }
 
+            bestScore = bestLocation?.Score ?? 0;
             if (bestLocation is null || bestLocation.Value.Score < MinimumMatchScore)
             {
                 return false;
@@ -84,10 +86,10 @@ internal sealed class HomeStationDetector
 
     private static Rect BuildHomeStationSearchBounds(Size imageSize, Rect overviewBounds)
     {
-        var left = Math.Clamp(overviewBounds.X + 4, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(overviewBounds.Y + 98, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(overviewBounds.Right - 8, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(overviewBounds.Y + 198, top + 1, imageSize.Height);
+        var left = Math.Clamp(overviewBounds.X + 2, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(overviewBounds.Y + 70, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(overviewBounds.Right - 4, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(overviewBounds.Y + 250, top + 1, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
 
@@ -140,4 +142,5 @@ internal sealed class HomeStationDetector
 internal sealed record HomeStationAnalysis(
     bool HomeStationLocated,
     Rect? HomeStationBounds,
+    double BestMatchScore,
     AsteroidBeltOverviewAnalysis OverviewAnalysis);

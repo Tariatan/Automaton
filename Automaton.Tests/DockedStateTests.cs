@@ -5,8 +5,16 @@ namespace Automaton.Tests;
 
 public sealed class DockedStateTests
 {
+    private const ushort VirtualKeyAlt = 0x12;
+    private const ushort VirtualKeyControl = 0x11;
+    private const ushort VirtualKeyM = 0x4D;
+    private const ushort VirtualKeyG = 0x47;
+    private const ushort VirtualKeyX = 0x58;
+    private const ushort VirtualKeyV = 0x56;
+    private const ushort VirtualKeyC = 0x43;
+
     [Fact]
-    public void Execute_ItemHangarFocused_ClicksMiningHoldAndTransitionsToRecovery()
+    public void Execute_ItemHangarFocused_TransitionsToUndockingWithCommonKeySequence()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -35,19 +43,15 @@ public sealed class DockedStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal(2, automationInputController.MoveTargets.Count);
-        Assert.Equal(1, automationInputController.ClickCount);
-        Assert.Empty(automationInputController.Delays);
-        Assert.NotNull(transition.DockedScreen?.MiningHoldEntryBounds);
-        AssertPointInside(automationInputController.MoveTargets[0], transition.DockedScreen.MiningHoldEntryBounds!.Value);
-        AssertMouseParked(automationInputController.MoveTargets[1]);
-        Assert.Empty(automationInputController.KeyInputs);
+        Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
+        Assert.Contains(1000, automationInputController.Delays);
     }
 
     [Fact]
-    public void Execute_MiningHoldFocusedEmpty_TransitionsToUndockingWithoutClicking()
+    public void Execute_MiningHoldFocusedEmpty_TransitionsToUndockingAndPerformsTransfer()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -78,14 +82,18 @@ public sealed class DockedStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
-        Assert.Empty(automationInputController.MoveTargets);
-        Assert.Equal(0, automationInputController.ClickCount);
-        Assert.Empty(automationInputController.KeyInputs);
-        Assert.Empty(automationInputController.Delays);
+        Assert.True(automationInputController.MoveTargets.Count >= 2);
+        Assert.True(automationInputController.ClickCount >= 2);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyX), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyV), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyC), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
+        Assert.Contains(1000, automationInputController.Delays);
     }
 
     [Fact]
-    public void Execute_MiningHoldFocusedNotEmpty_TransitionsToRecoveryWithoutClicking()
+    public void Execute_MiningHoldFocusedNotEmpty_TransitionsToUndockingAndPerformsTransfer()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -114,24 +122,16 @@ public sealed class DockedStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Empty(automationInputController.MoveTargets);
-        Assert.Equal(0, automationInputController.ClickCount);
-        Assert.Empty(automationInputController.KeyInputs);
-        Assert.Empty(automationInputController.Delays);
-    }
-
-    private static void AssertPointInside(Point point, Rect bounds)
-    {
-        Assert.InRange(point.X, bounds.Left, bounds.Right - 1);
-        Assert.InRange(point.Y, bounds.Top, bounds.Bottom - 1);
-    }
-
-    private static void AssertMouseParked(Point point)
-    {
-        Assert.InRange(point.X, 200, 299);
-        Assert.InRange(point.Y, 200, 299);
+        Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
+        Assert.True(automationInputController.MoveTargets.Count >= 2);
+        Assert.True(automationInputController.ClickCount >= 2);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyX), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyV), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyC), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
+        Assert.Contains(1000, automationInputController.Delays);
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
@@ -170,6 +170,8 @@ public sealed class DockedStateTests
 
         public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            KeyInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey));
         }
 
         public void PressKeyChord(
@@ -191,7 +193,7 @@ public sealed class DockedStateTests
 
     private readonly record struct KeyboardInput(
         ushort FirstModifierVirtualKey,
-        ushort SecondModifierVirtualKey,
+        ushort? SecondModifierVirtualKey,
         ushort VirtualKey);
 
     private sealed class StubAutomationClock : IAutomationClock

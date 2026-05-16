@@ -43,7 +43,11 @@ internal sealed class DockingState : IMiningAutomationState
         var analysis = m_HomeStationDetector.Analyze(screen);
         if (!analysis.HomeStationLocated || analysis.HomeStationBounds is null)
         {
-            m_Logger.Error("Failed to detect home station");
+            m_Logger.Error(
+                "Failed to detect home station. BestMatchScore={BestMatchScore:F3}, OverviewLocated={OverviewLocated}, OverviewBounds={OverviewBounds}",
+                analysis.BestMatchScore,
+                analysis.OverviewAnalysis.OverviewLocated,
+                analysis.OverviewAnalysis.OverviewBounds);
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,

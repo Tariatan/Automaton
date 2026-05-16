@@ -10,6 +10,8 @@ internal sealed class LoginState : IMiningAutomationState
     private const int PilotLoginDelayMilliseconds = 20_000;
     private const ushort VirtualKeyControl = 0x11;
     private const ushort VirtualKeyW = 0x57;
+    private const ushort VirtualKeyShift = 0x10;
+    private const ushort VirtualKeyF9 = 0x78;
     private const string CaptureSuffix = ".mining-login";
 
     private readonly PilotAvatarLocator m_PilotAvatarLocator;
@@ -47,10 +49,23 @@ internal sealed class LoginState : IMiningAutomationState
                 capturePath);
         }
 
+        // Select miner pilot
+        m_Logger.Information("Logging in mining pilot {PilotIndex}...", PilotIndex);
+
         context.AutomationInputController.MoveTo(Center(pilotLocation.Bounds));
         context.AutomationInputController.LeftClick(cancellationToken);
+
+        // Wait for the full login
         context.AutomationInputController.Delay(PilotLoginDelayMilliseconds, cancellationToken);
+
+        // Close any potential spam window
+        m_Logger.Information("Close any potential spam window");
         context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyW, cancellationToken);
+
+        // Hide GUI
+        m_Logger.Information("Hide UI");
+        context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9, cancellationToken);
+
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.UnloadCargo,

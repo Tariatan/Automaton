@@ -11,9 +11,6 @@ internal sealed class UndockingState : IMiningAutomationState
     private const int LocationChangeTimerPollingAttemptCount = 15;
     private const int WindowActivationDelayMilliseconds = 2_000;
     private const string CaptureSuffix = ".mining-undocking";
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyShift = 0x10;
-    private const ushort VirtualKeyF9 = 0x78;
 
     private readonly LocationChangeTimerDetector m_Detector;
     private readonly UndockButtonDetector m_UndockButtonDetector;
@@ -43,9 +40,6 @@ internal sealed class UndockingState : IMiningAutomationState
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         
-        // Hide GUI
-        context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9, cancellationToken);
-
         var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
