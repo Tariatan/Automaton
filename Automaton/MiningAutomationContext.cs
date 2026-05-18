@@ -11,6 +11,10 @@ internal sealed record MiningAutomationContext(
     private const int MouseParkingAreaTop = 200;
     private const int MouseParkingAreaWidth = 100;
     private const int MouseParkingAreaHeight = 100;
+    private const int BeltBoundsTolerance = 8;
+    private readonly List<Rect> m_BlacklistedAsteroidBelts = [];
+
+    public int BlacklistedAsteroidBeltCount => m_BlacklistedAsteroidBelts.Count;
 
     public void ClickUiElement(Point point, CancellationToken cancellationToken)
     {
@@ -19,10 +23,33 @@ internal sealed record MiningAutomationContext(
         AutomationInputController.MoveTo(BuildRandomMouseParkingPoint());
     }
 
+    public void BlacklistAsteroidBelt(Rect beltBounds)
+    {
+        if (m_BlacklistedAsteroidBelts.Any(existingBounds => AreSimilarBounds(existingBounds, beltBounds)))
+        {
+            return;
+        }
+
+        m_BlacklistedAsteroidBelts.Add(beltBounds);
+    }
+
+    public bool IsAsteroidBeltBlacklisted(Rect beltBounds)
+    {
+        return m_BlacklistedAsteroidBelts.Any(existingBounds => AreSimilarBounds(existingBounds, beltBounds));
+    }
+
     private static Point BuildRandomMouseParkingPoint()
     {
         return new Point(
             Random.Shared.Next(MouseParkingAreaLeft, MouseParkingAreaLeft + MouseParkingAreaWidth),
             Random.Shared.Next(MouseParkingAreaTop, MouseParkingAreaTop + MouseParkingAreaHeight));
+    }
+
+    private static bool AreSimilarBounds(Rect first, Rect second)
+    {
+        return Math.Abs(first.X - second.X) <= BeltBoundsTolerance &&
+               Math.Abs(first.Y - second.Y) <= BeltBoundsTolerance &&
+               Math.Abs(first.Width - second.Width) <= BeltBoundsTolerance &&
+               Math.Abs(first.Height - second.Height) <= BeltBoundsTolerance;
     }
 }

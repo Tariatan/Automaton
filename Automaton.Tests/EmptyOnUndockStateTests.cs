@@ -29,7 +29,12 @@ public sealed class EmptyOnUndockStateTests
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var state = new SelectBeltAndWarpState(new AsteroidBeltOverviewDetector(), new AsteroidBeltLandingDetector(), _ => 1);
+        var state = new SelectBeltAndWarpState(
+            new AsteroidBeltOverviewDetector(),
+            new AsteroidBeltLandingDetector(),
+            new MineOverviewDetector(),
+            new NothingFoundDetector(),
+            _ => 1);
         MiningAutomationStateTransition transition;
 
         // Act
@@ -77,7 +82,12 @@ public sealed class EmptyOnUndockStateTests
             new StubScreenCaptureProvider(outputPath => File.Copy(undockedPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var state = new SelectBeltAndWarpState(new AsteroidBeltOverviewDetector(), new AsteroidBeltLandingDetector(), _ => 0);
+        var state = new SelectBeltAndWarpState(
+            new AsteroidBeltOverviewDetector(),
+            new AsteroidBeltLandingDetector(),
+            new MineOverviewDetector(),
+            new NothingFoundDetector(),
+            _ => 0);
         MiningAutomationStateTransition transition;
 
         // Act

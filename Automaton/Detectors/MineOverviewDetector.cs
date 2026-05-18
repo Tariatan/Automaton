@@ -11,18 +11,6 @@ internal sealed class MineOverviewDetector
 
     private readonly Mat m_OverviewMineTemplate = LoadTemplate(Properties.Resources.overview_mine, "overview_mine");
 
-    public bool TryLocate(Mat screen, Rect asteroidBeltLabelBounds, out Rect mineOverviewBounds)
-    {
-        mineOverviewBounds = default;
-        if (screen.Empty())
-        {
-            return false;
-        }
-
-        var searchBounds = BuildLabelAnchoredSearchBounds(screen.Size(), asteroidBeltLabelBounds);
-        return TryLocateByTemplate(screen, searchBounds, out mineOverviewBounds);
-    }
-
     public bool TryLocate(Mat screen, out Rect mineOverviewBounds)
     {
         mineOverviewBounds = default;
@@ -118,15 +106,6 @@ internal sealed class MineOverviewDetector
         }
 
         return template;
-    }
-
-    private static Rect BuildLabelAnchoredSearchBounds(Size imageSize, Rect labelBounds)
-    {
-        var left = Math.Clamp(labelBounds.Right + 20, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(labelBounds.Top - 520, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(imageSize.Width, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(labelBounds.Top + 80, top + 1, imageSize.Height);
-        return new Rect(left, top, right - left, bottom - top);
     }
 
     private static Rect BuildFallbackSearchBounds(Size imageSize)

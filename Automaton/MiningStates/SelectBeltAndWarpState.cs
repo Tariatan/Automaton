@@ -14,22 +14,34 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
 
     private readonly AsteroidBeltOverviewDetector m_BeltOverviewDetector;
     private readonly AsteroidBeltLandingDetector m_LandingDetector;
+    private readonly MineOverviewDetector m_MineOverviewDetector;
+    private readonly NothingFoundDetector m_NothingFoundDetector;
     private readonly Func<int, int> m_NextRandomIndex;
     private readonly ILogger m_Logger;
 
     public SelectBeltAndWarpState()
-        : this(new AsteroidBeltOverviewDetector(), new AsteroidBeltLandingDetector(), Random.Shared.Next, Log.ForContext<SelectBeltAndWarpState>())
+        : this(
+            new AsteroidBeltOverviewDetector(),
+            new AsteroidBeltLandingDetector(),
+            new MineOverviewDetector(),
+            new NothingFoundDetector(),
+            Random.Shared.Next,
+            Log.ForContext<SelectBeltAndWarpState>())
     {
     }
 
     internal SelectBeltAndWarpState(
         AsteroidBeltOverviewDetector beltOverviewDetector,
         AsteroidBeltLandingDetector landingDetector,
+        MineOverviewDetector mineOverviewDetector,
+        NothingFoundDetector nothingFoundDetector,
         Func<int, int> nextRandomIndex,
         ILogger? logger = null)
     {
         m_BeltOverviewDetector = beltOverviewDetector;
         m_LandingDetector = landingDetector;
+        m_MineOverviewDetector = mineOverviewDetector;
+        m_NothingFoundDetector = nothingFoundDetector;
         m_NextRandomIndex = nextRandomIndex;
         m_Logger = logger ?? Log.ForContext<SelectBeltAndWarpState>();
     }
@@ -76,10 +88,22 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             return Recover(capturePath, analysis);
         }
 
-        var requestedAsteroidBeltIndex = m_NextRandomIndex(analysis.AsteroidBelts.Count);
-        var selectedAsteroidBeltIndex = Math.Clamp(requestedAsteroidBeltIndex, 0, analysis.AsteroidBelts.Count - 1);
+        var availableAsteroidBelts = analysis.AsteroidBelts
+            .Where(asteroidBelt => !context.IsAsteroidBeltBlacklisted(asteroidBelt.Bounds))
+            .ToArray();
+        if (availableAsteroidBelts.Length == 0)
+        {
+            m_Logger.Error(
+                "No asteroid belts available after blacklist filtering. TotalBelts={TotalBelts}, BlacklistedBeltCount={BlacklistedBeltCount}",
+                analysis.AsteroidBelts.Count,
+                context.BlacklistedAsteroidBeltCount);
+            return Recover(capturePath, analysis);
+        }
+
+        var requestedAsteroidBeltIndex = m_NextRandomIndex(availableAsteroidBelts.Length);
+        var selectedAsteroidBeltIndex = Math.Clamp(requestedAsteroidBeltIndex, 0, availableAsteroidBelts.Length - 1);
         var selectedAsteroidBeltDisplayIndex = selectedAsteroidBeltIndex + 1;
-        var selectedAsteroidBelt = analysis.AsteroidBelts[selectedAsteroidBeltIndex];
+        var selectedAsteroidBelt = availableAsteroidBelts[selectedAsteroidBeltIndex];
 
         // Select asteroid belt
         context.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
@@ -91,9 +115,9 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             requestedAsteroidBeltIndex,
             selectedAsteroidBeltIndex,
             selectedAsteroidBeltDisplayIndex,
-            analysis.AsteroidBelts.Count,
+            availableAsteroidBelts.Length,
             0,
-            analysis.AsteroidBelts.Count - 1);
+            availableAsteroidBelts.Length - 1);
 
         AsteroidBeltLandingAnalysis? landingAnalysis = null;
 
@@ -109,6 +133,26 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             if (landingAnalysis.LandedOnAsteroidBelt)
             {
                 m_Logger.Information("Landed on asteroid belt");
+
+                var mineOverviewLocated = m_MineOverviewDetector.TryLocate(landingScreen, out var mineOverviewBounds);
+                var nothingFoundDetected = mineOverviewLocated &&
+                                           m_NothingFoundDetector.Detect(landingScreen, mineOverviewBounds);
+                if (nothingFoundDetected)
+                {
+                    context.BlacklistAsteroidBelt(selectedAsteroidBelt.Bounds);
+                    m_Logger.Warning(
+                        "Nothing Found detected in MINE overview. Blacklisting asteroid belt and selecting another. BlacklistedBeltCount={BlacklistedBeltCount}, BlacklistedBeltBounds={BlacklistedBeltBounds}",
+                        context.BlacklistedAsteroidBeltCount,
+                        selectedAsteroidBelt.Bounds);
+                    return new MiningAutomationStateTransition(
+                        Kind,
+                        MiningAutomationStateKind.SelectBeltAndWarp,
+                        MiningAutomationActionKind.WarpToAsteroidField,
+                        capturePath,
+                        AsteroidBeltOverview: analysis,
+                        AsteroidBeltLanding: landingAnalysis);
+                }
+
                 return new MiningAutomationStateTransition(
                     Kind,
                     MiningAutomationStateKind.ApproachingAsteroid,
