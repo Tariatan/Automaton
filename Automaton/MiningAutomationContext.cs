@@ -13,6 +13,7 @@ internal sealed record MiningAutomationContext(
     private const int MouseParkingAreaHeight = 100;
     private const int BeltBoundsTolerance = 8;
     private readonly List<Rect> m_BlacklistedAsteroidBelts = [];
+    private Rect? m_CurrentAsteroidBeltBounds;
 
     public int BlacklistedAsteroidBeltCount => m_BlacklistedAsteroidBelts.Count;
 
@@ -36,6 +37,23 @@ internal sealed record MiningAutomationContext(
     public bool IsAsteroidBeltBlacklisted(Rect beltBounds)
     {
         return m_BlacklistedAsteroidBelts.Any(existingBounds => AreSimilarBounds(existingBounds, beltBounds));
+    }
+
+    public void SetCurrentAsteroidBelt(Rect beltBounds)
+    {
+        m_CurrentAsteroidBeltBounds = beltBounds;
+    }
+
+    public bool TryGetCurrentAsteroidBelt(out Rect beltBounds)
+    {
+        if (m_CurrentAsteroidBeltBounds is null)
+        {
+            beltBounds = default;
+            return false;
+        }
+
+        beltBounds = m_CurrentAsteroidBeltBounds.Value;
+        return true;
     }
 
     private static Point BuildRandomMouseParkingPoint()

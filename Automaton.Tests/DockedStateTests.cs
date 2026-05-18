@@ -9,6 +9,7 @@ public sealed class DockedStateTests
     private const ushort VirtualKeyControl = 0x11;
     private const ushort VirtualKeyM = 0x4D;
     private const ushort VirtualKeyG = 0x47;
+    private const ushort VirtualKeyA = 0x41;
     private const ushort VirtualKeyX = 0x58;
     private const ushort VirtualKeyV = 0x56;
     private const ushort VirtualKeyC = 0x43;
@@ -84,6 +85,7 @@ public sealed class DockedStateTests
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
         Assert.True(automationInputController.MoveTargets.Count >= 2);
         Assert.True(automationInputController.ClickCount >= 2);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyA), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyX), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyV), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyC), automationInputController.KeyInputs);
@@ -126,6 +128,7 @@ public sealed class DockedStateTests
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
         Assert.True(automationInputController.MoveTargets.Count >= 2);
         Assert.True(automationInputController.ClickCount >= 2);
+        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyA), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyX), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyV), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyC), automationInputController.KeyInputs);

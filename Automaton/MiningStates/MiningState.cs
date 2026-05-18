@@ -11,27 +11,39 @@ internal sealed class MiningState : IMiningAutomationState
     private static readonly TimeSpan MiningLoopDuration = TimeSpan.FromMinutes(15);
     private readonly MiningAsteroidDetector m_AsteroidDetector;
     private readonly MiningLaserDetector m_LaserDetector;
+    private readonly WarOverviewDetector m_WarOverviewDetector;
+    private readonly NothingFoundDetector m_NothingFoundDetector;
     private readonly ILogger m_Logger;
 
     private enum DockingReason
     {
         Timeout,
         AsteroidDepleted,
-        CargoFull
+        CargoFull,
+        Gtfo
     }
 
     public MiningState()
-        : this(new MiningAsteroidDetector(), new MiningLaserDetector(), Log.ForContext<MiningState>())
+        : this(
+            new MiningAsteroidDetector(),
+            new MiningLaserDetector(),
+            new WarOverviewDetector(),
+            new NothingFoundDetector(),
+            Log.ForContext<MiningState>())
     {
     }
 
     internal MiningState(
         MiningAsteroidDetector asteroidDetector,
         MiningLaserDetector laserDetector,
+        WarOverviewDetector warOverviewDetector,
+        NothingFoundDetector nothingFoundDetector,
         ILogger? logger = null)
     {
         m_AsteroidDetector = asteroidDetector;
         m_LaserDetector = laserDetector;
+        m_WarOverviewDetector = warOverviewDetector;
+        m_NothingFoundDetector = nothingFoundDetector;
         m_Logger = logger ?? Log.ForContext<MiningState>();
     }
 
@@ -61,6 +73,21 @@ internal sealed class MiningState : IMiningAutomationState
                 return Recover(capturePath);
             }
 
+            if (m_WarOverviewDetector.TryLocate(screen, out var warOverviewBounds))
+            {
+                var warOverviewNothingFound = m_NothingFoundDetector.Detect(screen, warOverviewBounds);
+                if (!warOverviewNothingFound)
+                {
+                    if (context.TryGetCurrentAsteroidBelt(out var currentAsteroidBeltBounds))
+                    {
+                        context.BlacklistAsteroidBelt(currentAsteroidBeltBounds);
+                    }
+
+                    dockingReason = DockingReason.Gtfo;
+                    break;
+                }
+            }
+
             if (!m_AsteroidDetector.TryLocate(screen))
             {
                 dockingReason = DockingReason.AsteroidDepleted;
@@ -84,6 +111,9 @@ internal sealed class MiningState : IMiningAutomationState
                 break;
             case DockingReason.CargoFull:
                 m_Logger.Information("Cargo full => Docking");
+                break;
+            case DockingReason.Gtfo:
+                m_Logger.Error("WAR overview is active and not empty => GTFO docking");
                 break;
         }
 

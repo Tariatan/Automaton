@@ -13,6 +13,7 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
     private const ushort VirtualKeyM = 0x4D;
     private const ushort VirtualKeyG = 0x47;
     private const ushort VirtualKeyX = 0x58;
+    private const ushort VirtualKeyA = 0x41;
     private const ushort VirtualKeyV = 0x56;
     private const ushort VirtualKeyC = 0x43;
 
@@ -82,6 +83,7 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         {
             m_Logger.Information("Transferring ore from Mining Hold to Item Hangar");
             context.ClickUiElement(Center(analysis.MiningHoldFirstRowBounds.Value), cancellationToken);
+            context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyA, cancellationToken);
             context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyX, cancellationToken);
 
             if (analysis.ItemHangarFirstRowBounds is null)

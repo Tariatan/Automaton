@@ -104,6 +104,7 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         var selectedAsteroidBeltIndex = Math.Clamp(requestedAsteroidBeltIndex, 0, availableAsteroidBelts.Length - 1);
         var selectedAsteroidBeltDisplayIndex = selectedAsteroidBeltIndex + 1;
         var selectedAsteroidBelt = availableAsteroidBelts[selectedAsteroidBeltIndex];
+        context.SetCurrentAsteroidBelt(selectedAsteroidBelt.Bounds);
 
         // Select asteroid belt
         context.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
