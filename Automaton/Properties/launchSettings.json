@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Automaton": {
-      "commandName": "Project",
-      "commandLineArgs": "-miner"
+      "commandName": "Project"
     }
   }
 }

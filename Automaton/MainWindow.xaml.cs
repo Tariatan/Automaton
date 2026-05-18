@@ -27,12 +27,17 @@ public partial class MainWindow
     private HwndSource? m_WindowSource;
     private CancellationTokenSource? m_AutomationCancellationSource;
     private bool m_IsAutomationRunning;
+    private long m_CurrentAutomationSessionId;
+    private readonly bool m_AutoStartAutomation;
     private int m_DefaultPilotIndex = 1;
     private MiningAutomationStateKind m_SelectedMiningStartState = MiningAutomationStateKind.StartingGame;
 
-    public MainWindow(ApplicationAutomationMode automationMode = ApplicationAutomationMode.ProjectDiscovery)
+    public MainWindow(
+        ApplicationAutomationMode automationMode = ApplicationAutomationMode.ProjectDiscovery,
+        bool autoStartAutomation = false)
     {
         m_AutomationMode = automationMode;
+        m_AutoStartAutomation = autoStartAutomation;
         InitializeComponent();
         UpdateTelemetryMenuItemHeader();
         UpdateHallmarkMenuItemHeader();
@@ -41,7 +46,10 @@ public partial class MainWindow
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
-        Logger.Information("Main window initialized. AutomationMode={AutomationMode}", m_AutomationMode);
+        Logger.Information(
+            "Main window initialized. AutomationMode={AutomationMode}, AutoStartAutomation={AutoStartAutomation}",
+            m_AutomationMode,
+            m_AutoStartAutomation);
     }
 
     private async void Automate_Click(object sender, RoutedEventArgs e)
@@ -73,6 +81,11 @@ public partial class MainWindow
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= MainWindow_Loaded;
+        if (!m_AutoStartAutomation)
+        {
+            return;
+        }
+
         await TryRunStartupAutomationAsync();
     }
 
@@ -90,11 +103,10 @@ public partial class MainWindow
             return;
         }
 
-        var cancellationSource = new CancellationTokenSource();
-        BeginAutomationSession(cancellationSource);
         var initialPilotIndex = GetPilotIndex();
-        var handedOffToAutomationRun = false;
-
+        var cancellationSource = new CancellationTokenSource();
+        var sessionId = BeginAutomationSession(cancellationSource);
+        var startedDiscoveryLoop = false;
         try
         {
             Logger.Information("Checking launcher startup automation. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
@@ -113,8 +125,8 @@ public partial class MainWindow
                 return;
             }
 
-            await StartProjectDiscoveryAutomationAsync(initialPilotIndex, cancellationSource);
-            handedOffToAutomationRun = true;
+            startedDiscoveryLoop = true;
+            await StartProjectDiscoveryAutomationAsync(initialPilotIndex, cancellationSource, sessionId);
         }
         catch (OperationCanceledException)
         {
@@ -122,17 +134,17 @@ public partial class MainWindow
         }
         finally
         {
-            if (!handedOffToAutomationRun)
+            if (!startedDiscoveryLoop)
             {
-                EndAutomationSession(cancellationSource, disposeCancellationSource: true);
+                EndAutomationSession(cancellationSource, sessionId, disposeCancellationSource: true);
             }
         }
     }
 
-    private async Task StartProjectDiscoveryAutomationAsync(int initialPilotIndex, CancellationTokenSource cancellationSource)
+    private async Task StartProjectDiscoveryAutomationAsync(int initialPilotIndex, CancellationTokenSource cancellationSource, long? sessionId = null)
     {
         ApplyDebugImageRetention();
-        BeginAutomationSession(cancellationSource);
+        var effectiveSessionId = sessionId ?? BeginAutomationSession(cancellationSource);
         var dpi = VisualTreeHelper.GetDpi(this);
         Logger.Information(
             "Automation started. InitialPilotIndex={InitialPilotIndex}, DpiScaleX={DpiScaleX}, DpiScaleY={DpiScaleY}",
@@ -184,13 +196,13 @@ public partial class MainWindow
         }
         finally
         {
-            EndAutomationSession(cancellationSource, disposeCancellationSource: true);
+            EndAutomationSession(cancellationSource, effectiveSessionId, disposeCancellationSource: true);
         }
     }
 
     private async Task StartMiningAutomationAsync(CancellationTokenSource cancellationSource)
     {
-        BeginAutomationSession(cancellationSource);
+        var sessionId = BeginAutomationSession(cancellationSource);
         var dpi = VisualTreeHelper.GetDpi(this);
         Logger.Information(
             "Mining automation started. DpiScaleX={DpiScaleX}, DpiScaleY={DpiScaleY}",
@@ -221,7 +233,7 @@ public partial class MainWindow
         }
         finally
         {
-            EndAutomationSession(cancellationSource, disposeCancellationSource: true);
+            EndAutomationSession(cancellationSource, sessionId, disposeCancellationSource: true);
         }
     }
 
@@ -318,20 +330,27 @@ public partial class MainWindow
         StartButton.Background = isRunning ? StopBrush : StartBrush;
     }
 
-    private void BeginAutomationSession(CancellationTokenSource cancellationSource)
+    private long BeginAutomationSession(CancellationTokenSource cancellationSource)
     {
         ApplyDebugImageRetention();
+        m_CurrentAutomationSessionId++;
         m_IsAutomationRunning = true;
         m_AutomationCancellationSource = cancellationSource;
         SetStartButtonState(isRunning: true);
         SetPilotIndexControlsEnabled(isEnabled: false);
+        return m_CurrentAutomationSessionId;
     }
 
-    private void EndAutomationSession(CancellationTokenSource cancellationSource, bool disposeCancellationSource)
+    private void EndAutomationSession(CancellationTokenSource cancellationSource, long sessionId, bool disposeCancellationSource)
     {
         if (disposeCancellationSource)
         {
             cancellationSource.Dispose();
+        }
+
+        if (sessionId != m_CurrentAutomationSessionId)
+        {
+            return;
         }
 
         if (ReferenceEquals(m_AutomationCancellationSource, cancellationSource))

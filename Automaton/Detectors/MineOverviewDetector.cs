@@ -1,16 +1,15 @@
+using System.Drawing.Imaging;
+using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
 internal sealed class MineOverviewDetector
 {
-    private const int MinimumMinePanelBorderPixelCount = 120;
-    private const int NothingFoundMinimumBrightPixelCount = 180;
-    private const int NothingFoundMinimumGlyphArea = 80;
-    private const int NothingFoundMinimumLineWidth = 48;
-    private const int NothingFoundMinimumLineHeight = 10;
-    private const int NothingFoundMinimumLineCount = 2;
-    private const int NothingFoundWideLineWidth = 80;
+    private const double MinimumHeaderMatchScore = 0.90;
+    private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
+
+    private readonly Mat m_OverviewMineTemplate = LoadTemplate(Properties.Resources.overview_mine, "overview_mine");
 
     public bool TryLocate(Mat screen, Rect asteroidBeltLabelBounds, out Rect mineOverviewBounds)
     {
@@ -21,7 +20,7 @@ internal sealed class MineOverviewDetector
         }
 
         var searchBounds = BuildLabelAnchoredSearchBounds(screen.Size(), asteroidBeltLabelBounds);
-        return TryLocateInSearchBounds(screen, searchBounds, out mineOverviewBounds, bottomLimit: asteroidBeltLabelBounds.Top);
+        return TryLocateByTemplate(screen, searchBounds, out mineOverviewBounds);
     }
 
     public bool TryLocate(Mat screen, out Rect mineOverviewBounds)
@@ -33,148 +32,106 @@ internal sealed class MineOverviewDetector
         }
 
         var searchBounds = BuildFallbackSearchBounds(screen.Size());
-        return TryLocateInSearchBounds(screen, searchBounds, out mineOverviewBounds, bottomLimit: null);
+        return TryLocateByTemplate(screen, searchBounds, out mineOverviewBounds);
     }
 
-    public bool DetectNothingFound(Mat screen, Rect mineOverviewBounds)
-    {
-        if (screen.Empty())
-        {
-            return false;
-        }
-
-        var nothingFoundBounds = BuildNothingFoundSearchBounds(screen.Size(), mineOverviewBounds);
-        using var region = new Mat(screen, nothingFoundBounds);
-        using var gray = new Mat();
-        using var mask = new Mat();
-        Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
-        Cv2.InRange(gray, new Scalar(110), new Scalar(255), mask);
-        if (Cv2.CountNonZero(mask) < NothingFoundMinimumBrightPixelCount)
-        {
-            return false;
-        }
-
-        using var mergedMask = new Mat();
-        using var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(7, 3));
-        Cv2.MorphologyEx(mask, mergedMask, MorphTypes.Close, kernel);
-        Cv2.FindContours(
-            mergedMask,
-            out var contours,
-            out _,
-            RetrievalModes.External,
-            ContourApproximationModes.ApproxSimple);
-
-        var lineBounds = contours
-            .Select(Cv2.BoundingRect)
-            .Where(bounds =>
-                bounds.Width >= NothingFoundMinimumLineWidth &&
-                bounds.Height >= NothingFoundMinimumLineHeight &&
-                bounds.Width * bounds.Height >= NothingFoundMinimumGlyphArea)
-            .ToArray();
-
-        if (lineBounds.Length >= NothingFoundMinimumLineCount)
-        {
-            return true;
-        }
-
-        return lineBounds.Any(bounds => bounds.Width >= NothingFoundWideLineWidth);
-    }
-
-    private static bool TryLocateInSearchBounds(Mat screen, Rect searchBounds, out Rect mineOverviewBounds, int? bottomLimit)
+    private bool TryLocateByTemplate(Mat screen, Rect searchBounds, out Rect mineOverviewBounds)
     {
         mineOverviewBounds = default;
-        using var searchRegion = new Mat(screen, searchBounds);
-        var bestBorder = FindBestMinePanelTopBorder(searchRegion);
-        if (bestBorder is null)
+        if (!TryMatchTemplate(screen, m_OverviewMineTemplate, searchBounds, out var headerLocation))
         {
             return false;
         }
 
-        var left = searchBounds.X + bestBorder.Value.Left;
-        var top = searchBounds.Y + bestBorder.Value.Y;
-        var right = searchBounds.X + bestBorder.Value.Right;
-        var bottom = bottomLimit ?? Math.Min(screen.Height, top + 380);
-        bottom = Math.Clamp(bottom, top + 1, screen.Height);
-        mineOverviewBounds = new Rect(left, top, Math.Max(1, right - left), Math.Max(1, bottom - top));
+        mineOverviewBounds = BuildMineOverviewBounds(screen.Size(), headerLocation.Bounds);
         return true;
     }
 
-    private static BorderLocation? FindBestMinePanelTopBorder(Mat searchRegion)
+    private static bool TryMatchTemplate(Mat screen, Mat template, Rect searchBounds, out TemplateLocation location)
     {
-        BorderLocation? bestBorder = null;
-        for (var y = 0; y < searchRegion.Height; y++)
+        location = default;
+        using var searchRegion = new Mat(screen, searchBounds);
+        TemplateLocation? bestLocation = null;
+        foreach (var scale in TemplateScales)
         {
-            var left = int.MaxValue;
-            var right = int.MinValue;
-            var borderPixelCount = 0;
-
-            for (var x = 0; x < searchRegion.Width; x++)
-            {
-                var pixel = searchRegion.At<Vec3b>(y, x);
-                if (!IsMinePanelBorderPixel(pixel))
-                {
-                    continue;
-                }
-
-                left = Math.Min(left, x);
-                right = Math.Max(right, x + 1);
-                borderPixelCount++;
-            }
-
-            if (borderPixelCount < MinimumMinePanelBorderPixelCount)
+            using var scaledTemplate = BuildScaledTemplate(template, scale);
+            if (scaledTemplate.Width > searchRegion.Width ||
+                scaledTemplate.Height > searchRegion.Height)
             {
                 continue;
             }
 
-            bestBorder ??= new BorderLocation(y, left, right, borderPixelCount);
+            using var result = new Mat();
+            Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+            Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
+            var bounds = new Rect(
+                searchBounds.X + locationPoint.X,
+                searchBounds.Y + locationPoint.Y,
+                scaledTemplate.Width,
+                scaledTemplate.Height);
+            if (bestLocation is null || score > bestLocation.Value.Score)
+            {
+                bestLocation = new TemplateLocation(bounds, score);
+            }
         }
 
-        return bestBorder;
+        if (bestLocation is null || bestLocation.Value.Score < MinimumHeaderMatchScore)
+        {
+            return false;
+        }
+
+        location = bestLocation.Value;
+        return true;
     }
 
-    private static bool IsMinePanelBorderPixel(Vec3b pixel)
+    private static Rect BuildMineOverviewBounds(Size imageSize, Rect overviewMineHeaderBounds)
     {
-        return IsMinePanelAccentBorderPixel(pixel) ||
-               IsMinePanelNeutralBorderPixel(pixel);
+        var left = Math.Clamp(overviewMineHeaderBounds.X - 10, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(overviewMineHeaderBounds.Y - 40, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(left + 180, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(top + 420, top + 1, imageSize.Height);
+        return new Rect(left, top, right - left, bottom - top);
     }
 
-    private static bool IsMinePanelAccentBorderPixel(Vec3b pixel)
+    private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        return pixel.Item0 is >= 70 and <= 150 &&
-               pixel.Item1 is >= 70 and <= 150 &&
-               pixel.Item2 <= 80;
+        if (Math.Abs(scale - 1.0) < double.Epsilon)
+        {
+            return template.Clone();
+        }
+
+        var width = Math.Max(1, (int)Math.Round(template.Width * scale));
+        var height = Math.Max(1, (int)Math.Round(template.Height * scale));
+        var scaledTemplate = new Mat();
+        Cv2.Resize(template, scaledTemplate, new Size(width, height));
+        return scaledTemplate;
     }
 
-    private static bool IsMinePanelNeutralBorderPixel(Vec3b pixel)
+    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
     {
-        var minChannel = Math.Min(pixel.Item0, Math.Min(pixel.Item1, pixel.Item2));
-        var maxChannel = Math.Max(pixel.Item0, Math.Max(pixel.Item1, pixel.Item2));
-        return minChannel >= 25 &&
-               maxChannel <= 60 &&
-               maxChannel - minChannel <= 6;
+        using var memoryStream = new MemoryStream();
+        bitmap.Save(memoryStream, ImageFormat.Png);
+        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        if (template.Empty())
+        {
+            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
+        }
+
+        return template;
     }
 
     private static Rect BuildLabelAnchoredSearchBounds(Size imageSize, Rect labelBounds)
     {
-        var left = Math.Clamp(labelBounds.Right + 80, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(labelBounds.Top - 420, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(labelBounds.Right + 520, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(labelBounds.Top, top + 1, imageSize.Height);
+        var left = Math.Clamp(labelBounds.Right + 20, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(labelBounds.Top - 520, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(imageSize.Width, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(labelBounds.Top + 80, top + 1, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
 
     private static Rect BuildFallbackSearchBounds(Size imageSize)
     {
-        return BuildRelativeBounds(imageSize, 0.58, 0.55, 0.40, 0.43);
-    }
-
-    private static Rect BuildNothingFoundSearchBounds(Size imageSize, Rect mineOverviewBounds)
-    {
-        var left = Math.Clamp(mineOverviewBounds.X + 40, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(mineOverviewBounds.Y + 185, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(mineOverviewBounds.Right - 28, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(mineOverviewBounds.Bottom - 30, top + 1, imageSize.Height);
-        return new Rect(left, top, right - left, bottom - top);
+        return BuildRelativeBounds(imageSize, 0.62, 0.52, 0.35, 0.45);
     }
 
     private static Rect BuildRelativeBounds(
@@ -196,5 +153,5 @@ internal sealed class MineOverviewDetector
         return new Rect(left, top, width, height);
     }
 
-    private readonly record struct BorderLocation(int Y, int Left, int Right, int PixelCount);
+    private readonly record struct TemplateLocation(Rect Bounds, double Score);
 }

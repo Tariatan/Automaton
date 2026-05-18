@@ -7,14 +7,23 @@ namespace Automaton.Detectors;
 internal sealed class AsteroidBeltOverviewDetector
 {
     private const double MinimumButtonMatchScore = 0.90;
-    private const int MinimumAsteroidIconPartArea = 5;
-    private const int MaximumAsteroidIconPartWidth = 20;
-    private const int MaximumAsteroidIconPartHeight = 20;
-    private const int MinimumAsteroidIconPartCount = 2;
+    private const double MinimumHomeStationMatchScore = 0.76;
+    private const int MinimumAsteroidIconPartArea = 3;
+    private const int MaximumAsteroidIconPartWidth = 24;
+    private const int MaximumAsteroidIconPartHeight = 24;
+    private const int MinimumAsteroidIconPartCount = 1;
     private const int AsteroidIconGroupMaximumDistance = 18;
+    private const int MinimumDistanceColumnBrightPixelCount = 10;
+    private const int MaximumBeltListHeightFromHomeStationTop = 960;
+    private const int OverviewRegionLeft = 1960;
+    private const int OverviewRegionTop = 280;
+    private const int OverviewRegionWidth = 580;
+    private const int OverviewRegionHeight = 1330;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
+    private static readonly double[] HomeStationTemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20, 1.30];
 
     private readonly Mat m_OverviewBeltTemplate = LoadTemplate(Properties.Resources.overview_belt, "overview_belt");
+    private readonly Mat m_HomeStationTemplate = LoadTemplate(Properties.Resources.home_station, "home_station");
 
     public AsteroidBeltOverviewAnalysis Analyze(Mat screen)
     {
@@ -29,35 +38,49 @@ internal sealed class AsteroidBeltOverviewDetector
             searchableScreen,
             m_OverviewBeltTemplate,
             overviewSearchBounds,
+            TemplateScales,
+            MinimumButtonMatchScore,
             out var overviewBeltButtonLocation)
             ? overviewBeltButtonLocation.Bounds
             : (Rect?)null;
         Rect? overviewBounds = overviewBeltButtonBounds is null
             ? null
-            : BuildOverviewBounds(searchableScreen.Size(), overviewBeltButtonBounds.Value);
+            : BuildOverviewBounds(searchableScreen.Size());
+        var homeStationBounds = overviewBounds is null || overviewBeltButtonBounds is null
+            ? (Rect?)null
+            : TryLocateTemplate(
+                searchableScreen,
+                m_HomeStationTemplate,
+                BuildHomeStationSearchBounds(searchableScreen.Size(), overviewBounds.Value, overviewBeltButtonBounds.Value),
+                HomeStationTemplateScales,
+                MinimumHomeStationMatchScore,
+                out var homeStationLocation)
+                ? homeStationLocation.Bounds
+                : (Rect?)null;
         var asteroidBelts = overviewBounds is null ||
-                            overviewBeltButtonBounds is null
+                            homeStationBounds is null
             ? []
-            : LocateAsteroidBelts(searchableScreen, overviewBounds.Value, overviewBeltButtonBounds.Value);
+            : LocateAsteroidBelts(searchableScreen, overviewBounds.Value, homeStationBounds.Value);
 
         return new AsteroidBeltOverviewAnalysis(
             overviewBounds is not null,
             overviewBounds,
             overviewBeltButtonBounds,
+            homeStationBounds,
             asteroidBelts);
     }
 
     private static IReadOnlyList<AsteroidBeltOverviewEntry> LocateAsteroidBelts(
         Mat screen,
         Rect overviewBounds,
-        Rect overviewBeltButtonBounds)
+        Rect homeStationBounds)
     {
-        var iconColumnBounds = BuildAsteroidIconColumnBounds(screen.Size(), overviewBounds, overviewBeltButtonBounds);
+        var iconColumnBounds = BuildAsteroidIconColumnBounds(screen.Size(), overviewBounds, homeStationBounds);
         using var iconColumn = new Mat(screen, iconColumnBounds);
         using var gray = new Mat();
         using var mask = new Mat();
         Cv2.CvtColor(iconColumn, gray, ColorConversionCodes.BGR2GRAY);
-        Cv2.InRange(gray, new Scalar(90), new Scalar(180), mask);
+        Cv2.InRange(gray, new Scalar(60), new Scalar(220), mask);
         Cv2.FindContours(
             mask,
             out var contours,
@@ -85,6 +108,7 @@ internal sealed class AsteroidBeltOverviewDetector
             into rowTop
             let rowHeight = Math.Clamp(34, 1, screen.Height - rowTop)
             select new AsteroidBeltOverviewEntry(new Rect(rowLeft, rowTop, rowWidth, rowHeight)))
+            .Where(row => RowLooksSelectable(screen, row.Bounds))
             .ToList();
 
         return rows
@@ -115,12 +139,14 @@ internal sealed class AsteroidBeltOverviewDetector
         Mat screen,
         Mat template,
         Rect searchBounds,
+        IReadOnlyList<double> templateScales,
+        double minimumMatchScore,
         out TemplateLocation location)
     {
         location = default;
         using var searchRegion = new Mat(screen, searchBounds);
         TemplateLocation? bestLocation = null;
-        foreach (var scale in TemplateScales)
+        foreach (var scale in templateScales)
         {
             using var scaledTemplate = BuildScaledTemplate(template, scale);
             if (scaledTemplate.Width > searchRegion.Width ||
@@ -143,7 +169,7 @@ internal sealed class AsteroidBeltOverviewDetector
             }
         }
 
-        if (bestLocation is null || bestLocation.Value.Score < MinimumButtonMatchScore)
+        if (bestLocation is null || bestLocation.Value.Score < minimumMatchScore)
         {
             return false;
         }
@@ -154,35 +180,61 @@ internal sealed class AsteroidBeltOverviewDetector
 
     private static Rect BuildOverviewSearchBounds(Size imageSize)
     {
-        var left = (int)Math.Round(imageSize.Width * 0.70);
-        var top = (int)Math.Round(imageSize.Height * 0.08);
-        return new Rect(
-            left,
-            top,
-            Math.Max(1, imageSize.Width - left),
-            Math.Max(1, (int)Math.Round(imageSize.Height * 0.55)));
+        var left = Math.Clamp(OverviewRegionLeft, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(OverviewRegionTop, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(OverviewRegionLeft + OverviewRegionWidth, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(OverviewRegionTop + OverviewRegionHeight, top + 1, imageSize.Height);
+        return new Rect(left, top, right - left, bottom - top);
     }
 
-    private static Rect BuildOverviewBounds(Size imageSize, Rect overviewBeltButtonBounds)
+    private static Rect BuildOverviewBounds(Size imageSize)
     {
-        var left = Math.Clamp(overviewBeltButtonBounds.X - 300, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(overviewBeltButtonBounds.Y - 72, 0, Math.Max(0, imageSize.Height - 1));
-        var right = imageSize.Width;
-        var bottom = Math.Min(imageSize.Height, top + 900);
-        return new Rect(left, top, Math.Max(1, right - left), Math.Max(1, bottom - top));
+        return BuildOverviewSearchBounds(imageSize);
+    }
+
+    private static Rect BuildHomeStationSearchBounds(
+        Size imageSize,
+        Rect overviewBounds,
+        Rect overviewBeltButtonBounds)
+    {
+        var left = Math.Clamp(overviewBounds.X + 20, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(overviewBeltButtonBounds.Bottom + 40, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(overviewBounds.X + 220, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(overviewBounds.Y + 340, top + 1, imageSize.Height);
+        return new Rect(left, top, right - left, bottom - top);
     }
 
     private static Rect BuildAsteroidIconColumnBounds(
         Size imageSize,
         Rect overviewBounds,
-        Rect overviewBeltButtonBounds)
+        Rect homeStationBounds)
     {
-        var left = Math.Clamp(overviewBounds.X + 28, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(overviewBeltButtonBounds.Bottom + 95, 0, Math.Max(0, imageSize.Height - 1));
-        var bottom = Math.Min(imageSize.Height, overviewBounds.Bottom);
+        var left = Math.Clamp(overviewBounds.X + 15, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(homeStationBounds.Y + 45, 0, Math.Max(0, imageSize.Height - 1));
+        var beltListBottom = Math.Clamp(
+            homeStationBounds.Y + MaximumBeltListHeightFromHomeStationTop,
+            top + 1,
+            imageSize.Height);
+        var bottom = Math.Min(overviewBounds.Bottom, beltListBottom);
         var width = Math.Clamp(60, 1, imageSize.Width - left);
         var height = Math.Clamp(bottom - top, 1, imageSize.Height - top);
         return new Rect(left, top, width, height);
+    }
+
+    private static bool RowLooksSelectable(Mat screen, Rect rowBounds)
+    {
+        var probeLeft = Math.Clamp(rowBounds.Right - 84, 0, Math.Max(0, screen.Width - 1));
+        var probeTop = Math.Clamp(rowBounds.Top + 3, 0, Math.Max(0, screen.Height - 1));
+        var probeRight = Math.Clamp(rowBounds.Right - 6, probeLeft + 1, screen.Width);
+        var probeBottom = Math.Clamp(rowBounds.Bottom - 3, probeTop + 1, screen.Height);
+        var probeBounds = new Rect(probeLeft, probeTop, probeRight - probeLeft, probeBottom - probeTop);
+
+        using var probe = new Mat(screen, probeBounds);
+        using var gray = new Mat();
+        using var mask = new Mat();
+        Cv2.CvtColor(probe, gray, ColorConversionCodes.BGR2GRAY);
+        Cv2.InRange(gray, new Scalar(120), new Scalar(255), mask);
+        return Cv2.CountNonZero(mask) >= MinimumDistanceColumnBrightPixelCount;
     }
 
     private static Mat BuildSearchableScreen(Mat screen)
@@ -231,10 +283,12 @@ internal sealed record AsteroidBeltOverviewAnalysis(
     bool OverviewLocated,
     Rect? OverviewBounds,
     Rect? OverviewBeltButtonBounds,
+    Rect? HomeStationBounds,
     IReadOnlyList<AsteroidBeltOverviewEntry> AsteroidBelts)
 {
     public static AsteroidBeltOverviewAnalysis NotFound { get; } = new(
         false,
+        null,
         null,
         null,
         []);

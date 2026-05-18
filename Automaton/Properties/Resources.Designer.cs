@@ -113,6 +113,16 @@ namespace Automaton.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap distance_m {
+            get {
+                object obj = ResourceManager.GetObject("distance_m", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap home_station {
             get {
                 object obj = ResourceManager.GetObject("home_station", resourceCulture);
@@ -196,6 +206,26 @@ namespace Automaton.Properties {
         internal static System.Drawing.Bitmap overview_belt {
             get {
                 object obj = ResourceManager.GetObject("overview_belt", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap overview_mine {
+            get {
+                object obj = ResourceManager.GetObject("overview_mine", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap overview_war {
+            get {
+                object obj = ResourceManager.GetObject("overview_war", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

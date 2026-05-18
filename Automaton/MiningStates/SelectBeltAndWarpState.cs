@@ -42,6 +42,13 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         cancellationToken.ThrowIfCancellationRequested();
         var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
         var analysis = Analyze(capturePath);
+        m_Logger.Information(
+            "Belt overview analysis (initial). OverviewLocated={OverviewLocated}, OverviewBounds={OverviewBounds}, OverviewBeltButtonBounds={OverviewBeltButtonBounds}, HomeStationBounds={HomeStationBounds}, BeltCount={BeltCount}",
+            analysis.OverviewLocated,
+            analysis.OverviewBounds,
+            analysis.OverviewBeltButtonBounds,
+            analysis.HomeStationBounds,
+            analysis.AsteroidBelts.Count);
         // Failed to detect Belt overview tab
         if (!analysis.OverviewLocated || analysis.OverviewBeltButtonBounds is null)
         {
@@ -54,6 +61,13 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
 
         capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
         analysis = Analyze(capturePath);
+        m_Logger.Information(
+            "Belt overview analysis (after tab click). OverviewLocated={OverviewLocated}, OverviewBounds={OverviewBounds}, OverviewBeltButtonBounds={OverviewBeltButtonBounds}, HomeStationBounds={HomeStationBounds}, BeltCount={BeltCount}",
+            analysis.OverviewLocated,
+            analysis.OverviewBounds,
+            analysis.OverviewBeltButtonBounds,
+            analysis.HomeStationBounds,
+            analysis.AsteroidBelts.Count);
 
         // Failed to detect any belts
         if (analysis.AsteroidBelts.Count == 0)
@@ -62,7 +76,9 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             return Recover(capturePath, analysis);
         }
 
-        var selectedAsteroidBeltIndex = Math.Clamp(m_NextRandomIndex(analysis.AsteroidBelts.Count), 0, analysis.AsteroidBelts.Count - 1);
+        var requestedAsteroidBeltIndex = m_NextRandomIndex(analysis.AsteroidBelts.Count);
+        var selectedAsteroidBeltIndex = Math.Clamp(requestedAsteroidBeltIndex, 0, analysis.AsteroidBelts.Count - 1);
+        var selectedAsteroidBeltDisplayIndex = selectedAsteroidBeltIndex + 1;
         var selectedAsteroidBelt = analysis.AsteroidBelts[selectedAsteroidBeltIndex];
 
         // Select asteroid belt
@@ -70,7 +86,14 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         // Warp to asteroid belt
         context.AutomationInputController.PressKey(VirtualKeyS, cancellationToken);
 
-        m_Logger.Information("Warp to asteroid belt {selectedAsteroidBeltIndex}", selectedAsteroidBeltIndex);
+        m_Logger.Information(
+            "Warp to asteroid belt. RequestedIndexZeroBased={RequestedIndexZeroBased}, SelectedIndexZeroBased={SelectedIndexZeroBased}, SelectedIndexOneBased={SelectedIndexOneBased}, DetectedBeltCount={DetectedBeltCount}, MinIndexZeroBased={MinIndexZeroBased}, MaxIndexZeroBased={MaxIndexZeroBased}",
+            requestedAsteroidBeltIndex,
+            selectedAsteroidBeltIndex,
+            selectedAsteroidBeltDisplayIndex,
+            analysis.AsteroidBelts.Count,
+            0,
+            analysis.AsteroidBelts.Count - 1);
 
         AsteroidBeltLandingAnalysis? landingAnalysis = null;
 

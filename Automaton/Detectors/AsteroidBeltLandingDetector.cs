@@ -10,24 +10,6 @@ internal sealed class AsteroidBeltLandingDetector
     private const int MinimumLabelWidth = 400;
     private const int MinimumLabelHeight = 35;
     private const int MaximumLabelHeight = 110;
-    private readonly MineOverviewDetector m_MineOverviewDetector;
-    private readonly AsteroidRowsDetector m_AsteroidRowsDetector;
-    private readonly FirstAsteroidDistanceUnitDetector m_FirstAsteroidDistanceUnitDetector;
-
-    public AsteroidBeltLandingDetector()
-        : this(new MineOverviewDetector(), new AsteroidRowsDetector(), new FirstAsteroidDistanceUnitDetector())
-    {
-    }
-
-    internal AsteroidBeltLandingDetector(
-        MineOverviewDetector mineOverviewDetector,
-        AsteroidRowsDetector asteroidRowsDetector,
-        FirstAsteroidDistanceUnitDetector firstAsteroidDistanceUnitDetector)
-    {
-        m_MineOverviewDetector = mineOverviewDetector;
-        m_AsteroidRowsDetector = asteroidRowsDetector;
-        m_FirstAsteroidDistanceUnitDetector = firstAsteroidDistanceUnitDetector;
-    }
 
     public AsteroidBeltLandingAnalysis Analyze(Mat screen)
     {
@@ -38,31 +20,7 @@ internal sealed class AsteroidBeltLandingDetector
 
         using var searchableScreen = BuildSearchableScreen(screen);
         var labelBounds = LocateAsteroidBeltLabel(searchableScreen);
-        if (labelBounds is null)
-        {
-            return AsteroidBeltLandingAnalysis.NotFound;
-        }
-
-        Rect? mineOverviewBounds = m_MineOverviewDetector.TryLocate(searchableScreen, labelBounds.Value, out var locatedMineOverviewBounds)
-            ? locatedMineOverviewBounds
-            : null;
-        var asteroidRows = mineOverviewBounds is null
-            ? []
-            : m_AsteroidRowsDetector.Locate(searchableScreen, mineOverviewBounds.Value);
-        var nothingFoundDetected = mineOverviewBounds is not null &&
-                                   asteroidRows.Count == 0 &&
-                                   m_MineOverviewDetector.DetectNothingFound(searchableScreen, mineOverviewBounds.Value);
-        var firstAsteroidDistanceUnit = mineOverviewBounds is not null && asteroidRows.Count > 0
-            ? m_FirstAsteroidDistanceUnitDetector.Detect(searchableScreen, mineOverviewBounds.Value, asteroidRows[0].Bounds)
-            : DistanceUnitKind.Unknown;
-
-        return new AsteroidBeltLandingAnalysis(
-            true,
-            labelBounds,
-            mineOverviewBounds,
-            asteroidRows,
-            nothingFoundDetected,
-            firstAsteroidDistanceUnit);
+        return labelBounds is null ? AsteroidBeltLandingAnalysis.NotFound : new AsteroidBeltLandingAnalysis(true);
     }
 
     private static Rect? LocateAsteroidBeltLabel(Mat screen)
@@ -193,28 +151,9 @@ internal sealed class AsteroidBeltLandingDetector
     }
 }
 
-internal sealed record AsteroidBeltLandingAnalysis(
-    bool LandedOnAsteroidBelt,
-    Rect? AsteroidBeltLabelBounds,
-    Rect? MineOverviewBounds,
-    IReadOnlyList<AsteroidOverviewEntry> Asteroids,
-    bool NothingFoundDetected,
-    DistanceUnitKind FirstAsteroidDistanceUnit)
+internal sealed record AsteroidBeltLandingAnalysis(bool LandedOnAsteroidBelt)
 {
-    public static AsteroidBeltLandingAnalysis NotFound { get; } = new(
-        false,
-        null,
-        null,
-        [],
-        false,
-        DistanceUnitKind.Unknown);
+    public static AsteroidBeltLandingAnalysis NotFound { get; } = new(false);
 }
 
 internal sealed record AsteroidOverviewEntry(Rect Bounds);
-
-internal enum DistanceUnitKind
-{
-    Unknown,
-    Kilometers,
-    Meters
-}

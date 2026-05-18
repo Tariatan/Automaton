@@ -13,6 +13,13 @@ public partial class App
             "Automaton started. LogFilePath={LogFilePath}, Arguments={Arguments}",
             logFilePath,
             e.Args);
+        Log.ForContext<App>().Information(
+            "Storage roots. ConfiguredTelemetryRoot={ConfiguredTelemetryRoot}, ConfiguredHallmarkRoot={ConfiguredHallmarkRoot}, EffectiveCapturesDirectory={EffectiveCapturesDirectory}, EffectiveLogsDirectory={EffectiveLogsDirectory}, EffectiveExpectedDirectory={EffectiveExpectedDirectory}",
+            TelemetryRootDirectory.GetConfiguredRootDirectory(),
+            TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory(),
+            TelemetryRootDirectory.GetCapturesDirectory(),
+            TelemetryRootDirectory.GetLogsDirectory(),
+            TelemetryRootDirectory.GetExpectedDirectory());
 
         try
         {
@@ -24,7 +31,7 @@ public partial class App
                 return;
             }
 
-            var window = new MainWindow(startupOptions.AutomationMode);
+            var window = new MainWindow(startupOptions.AutomationMode, startupOptions.AutoStartAutomation);
             window.Show();
             base.OnStartup(e);
         }
