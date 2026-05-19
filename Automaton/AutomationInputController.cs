@@ -6,9 +6,15 @@ namespace Automaton;
 internal sealed class AutomationInputController : IAutomationInputController
 {
     private const int MouseDownDurationMilliseconds = 300;
+    private const int QuitGameConfirmDelayMilliseconds = 2_000;
+    private const int WindowActivationDelayMilliseconds = 1_000;
     private const uint LeftDownEvent = 0x0002;
     private const uint LeftUpEvent = 0x0004;
     private const uint KeyUpEvent = 0x0002;
+    private const ushort VirtualKeyAlt = 0x12;
+    private const ushort VirtualKeyShift = 0x10;
+    private const ushort VirtualKeyQ = 0x51;
+    private const ushort VirtualKeyEnter = 0x0D;
 
     public void MoveTo(Point point)
     {
@@ -94,6 +100,21 @@ internal sealed class AutomationInputController : IAutomationInputController
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    public void QuitGame(CancellationToken cancellationToken)
+    {
+        PressKeyChord(VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ, cancellationToken);
+        Delay(QuitGameConfirmDelayMilliseconds, cancellationToken);
+        PressKey(VirtualKeyEnter, cancellationToken);
+    }
+
+    public void Logout(CancellationToken cancellationToken)
+    {
+        Delay(WindowActivationDelayMilliseconds, cancellationToken);
+        PressKeyChord(VirtualKeyAlt, VirtualKeyQ, cancellationToken);
+        Delay(WindowActivationDelayMilliseconds, cancellationToken);
+        PressKey(VirtualKeyEnter, cancellationToken);
     }
 
     public void Delay(int milliseconds, CancellationToken cancellationToken)

@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.MiningStates;
 using OpenCvSharp;
 
@@ -137,6 +138,44 @@ public sealed class DockedStateTests
         Assert.Contains(1000, automationInputController.Delays);
     }
 
+    [Fact]
+    public void Execute_DowntimeIsImminent_QuitsGameAndRequestsApplicationExit()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var capturePath = Path.Combine(workspace.Path, "docked-not-empty.png");
+        SyntheticMiningImageFactory.WriteDockedMiningHoldFocusedNotEmptyImage(capturePath);
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
+            new SampleImageProcessor());
+        var automationInputController = new StubAutomationInputController();
+        var state = new UnloadingCargoState(
+            new MiningHoldDetector(),
+            new UndockButtonDetector(),
+            new DowntimeDetector(new TimeOnly(19, 0), TimeSpan.FromMinutes(20)));
+        MiningAutomationStateTransition transition;
+
+        // Act
+        var currentDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(workspace.Path);
+
+        try
+        {
+            transition = state.Execute(
+                new MiningAutomationContext(screenCaptureService, automationInputController, new ImminentDowntimeAutomationClock()),
+                CancellationToken.None);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.QuitGameAndExitApplication, transition.Action);
+        Assert.True(automationInputController.QuitGameCalled);
+    }
+
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
         : ScreenCaptureService.IScreenCaptureProvider
     {
@@ -155,6 +194,8 @@ public sealed class DockedStateTests
         public List<KeyboardInput> KeyInputs { get; } = [];
 
         public int ClickCount { get; private set; }
+
+        public bool QuitGameCalled { get; private set; }
 
         public void MoveTo(Point point)
         {
@@ -187,6 +228,16 @@ public sealed class DockedStateTests
             KeyInputs.Add(new KeyboardInput(firstModifierVirtualKey, secondModifierKey, virtualKey));
         }
 
+        public void QuitGame(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            QuitGameCalled = true;
+        }
+
+        public void Logout(CancellationToken cancellationToken)
+        {
+        }
+
         public void Delay(int milliseconds, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -202,5 +253,10 @@ public sealed class DockedStateTests
     private sealed class StubAutomationClock : IAutomationClock
     {
         public DateTime UtcNow { get; } = new(2026, 5, 2, 12, 0, 0, DateTimeKind.Utc);
+    }
+
+    private sealed class ImminentDowntimeAutomationClock : IAutomationClock
+    {
+        public DateTime UtcNow { get; } = new(2026, 5, 2, 18, 45, 0, DateTimeKind.Utc);
     }
 }

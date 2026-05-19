@@ -204,6 +204,15 @@ public sealed class LoginStateTests
             KeyInputs.Add(new KeyboardInput(firstModifierVirtualKey, secondModifierKey, virtualKey));
         }
 
+        public void QuitGame(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        public void Logout(CancellationToken cancellationToken)
+        {
+        }
+
         public void Delay(int milliseconds, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();

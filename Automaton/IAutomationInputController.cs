@@ -18,5 +18,9 @@ internal interface IAutomationInputController
         ushort virtualKey,
         CancellationToken cancellationToken);
 
+    void QuitGame(CancellationToken cancellationToken);
+
+    void Logout(CancellationToken cancellationToken);
+
     void Delay(int milliseconds, CancellationToken cancellationToken);
 }

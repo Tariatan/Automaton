@@ -154,35 +154,65 @@ public partial class MainWindow
 
         try
         {
-            var automationTask = Task.Run(
-                () => m_ProjectDiscoveryAutomationService.AutomateCurrentScreen(dpi, initialPilotIndex, cancellationSource.Token),
-                cancellationSource.Token);
-            var summary = await automationTask;
-            Logger.Information(
-                "Automation completed. CapturePath={CapturePath}, FocusedCapturePath={FocusedCapturePath}, ClickedPointCount={ClickedPointCount}, MaximumSubmissionsReached={MaximumSubmissionsReached}, SlowDownPopupDetected={SlowDownPopupDetected}, ConnectionLostDetected={ConnectionLostDetected}, PlayfieldMissingLimitReached={PlayfieldMissingLimitReached}, NoFurtherPilotsAvailable={NoFurtherPilotsAvailable}, CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}, PilotSwitchSucceeded={PilotSwitchSucceeded}",
-                summary.CaptureSummary.CapturePath,
-                summary.FocusedCapturePath,
-                summary.ClickedPointCount,
-                summary.MaximumSubmissionsReached,
-                summary.SlowDownPopupDetected,
-                summary.ConnectionLostDetected,
-                summary.PlayfieldMissingLimitReached,
-                summary.NoFurtherPilotsAvailable,
-                summary.CurrentPilotIndex,
-                summary.TargetPilotIndex,
-                summary.PilotSwitchSucceeded);
-            if (summary.ConnectionLostDetected)
+            var pilotIndex = initialPilotIndex;
+            while (!cancellationSource.Token.IsCancellationRequested)
             {
-                Logger.Error("Connection Lost popup detected. Exiting process.");
-                Application.Current.Shutdown();
-                Environment.Exit(0);
-            }
+                var automationTask = Task.Run(
+                    () => m_ProjectDiscoveryAutomationService.AutomateCurrentScreen(dpi, pilotIndex, cancellationSource.Token),
+                    cancellationSource.Token);
+                var summary = await automationTask;
+                Logger.Information(
+                    "Automation completed. CapturePath={CapturePath}, FocusedCapturePath={FocusedCapturePath}, ClickedPointCount={ClickedPointCount}, MaximumSubmissionsReached={MaximumSubmissionsReached}, SlowDownPopupDetected={SlowDownPopupDetected}, ConnectionLostDetected={ConnectionLostDetected}, PlayfieldMissingLimitReached={PlayfieldMissingLimitReached}, RestartFromLauncherRequested={RestartFromLauncherRequested}, NoFurtherPilotsAvailable={NoFurtherPilotsAvailable}, CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}, PilotSwitchSucceeded={PilotSwitchSucceeded}",
+                    summary.CaptureSummary.CapturePath,
+                    summary.FocusedCapturePath,
+                    summary.ClickedPointCount,
+                    summary.MaximumSubmissionsReached,
+                    summary.SlowDownPopupDetected,
+                    summary.ConnectionLostDetected,
+                    summary.PlayfieldMissingLimitReached,
+                    summary.RestartFromLauncherRequested,
+                    summary.NoFurtherPilotsAvailable,
+                    summary.CurrentPilotIndex,
+                    summary.TargetPilotIndex,
+                    summary.PilotSwitchSucceeded);
+                if (summary.ConnectionLostDetected)
+                {
+                    Logger.Error("Connection Lost popup detected. Exiting process.");
+                    Application.Current.Shutdown();
+                    Environment.Exit(0);
+                }
 
-            if (summary.NoFurtherPilotsAvailable)
-            {
-                Logger.Information("No further pilots are available. Exiting process safely.");
-                Application.Current.Shutdown();
-                Environment.Exit(0);
+                if (summary.NoFurtherPilotsAvailable)
+                {
+                    Logger.Information("No further pilots are available. Exiting process safely.");
+                    Application.Current.Shutdown();
+                    Environment.Exit(0);
+                }
+
+                if (!summary.RestartFromLauncherRequested)
+                {
+                    break;
+                }
+
+                pilotIndex = summary.CurrentPilotIndex;
+                Logger.Warning(
+                    "Restarting launcher startup automation after repeated playfield misses. PilotIndex={PilotIndex}",
+                    pilotIndex);
+                var startupSummary = await Task.Run(
+                    () => m_ProjectDiscoveryAutomationService.PrepareAutomationFromLauncherStartup(pilotIndex, cancellationSource.Token),
+                    cancellationSource.Token);
+                Logger.Information(
+                    "Launcher startup automation prepared after restart request. ShouldStartAutomation={ShouldStartAutomation}, PlayButtonFound={PlayButtonFound}, PilotLocated={PilotLocated}, PlayCapturePath={PlayCapturePath}, PilotCapturePath={PilotCapturePath}",
+                    startupSummary.ShouldStartAutomation,
+                    startupSummary.PlayButtonFound,
+                    startupSummary.PilotLocated,
+                    startupSummary.PlayButtonCapturePath,
+                    startupSummary.PilotCapturePath);
+                if (!startupSummary.ShouldStartAutomation)
+                {
+                    Logger.Warning("Launcher startup automation could not continue after restart request.");
+                    break;
+                }
             }
         }
         catch (OperationCanceledException)
@@ -221,6 +251,12 @@ public partial class MainWindow
                 summary.NextState,
                 summary.Action,
                 summary.CapturePath);
+            if (summary.Action == MiningAutomationActionKind.QuitGameAndExitApplication)
+            {
+                Logger.Information("Mining automation requested safe application exit.");
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
         }
         catch (OperationCanceledException)
         {

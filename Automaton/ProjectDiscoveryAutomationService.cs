@@ -15,18 +15,14 @@ internal sealed class ProjectDiscoveryAutomationService
     private const int InitialPilotIndex = 1;
     private const int MinimumClickDelayMilliseconds = 250;
     private const int HoverDelayMilliseconds = 200;
-    private const int WindowActivationDelayMilliseconds = 1_000;
-    private const int PilotSelectionConfirmDelayMilliseconds = 1_000;
     private const int PilotLogoutDelayMilliseconds = 30_000;
     private const int PilotLoginDelayMilliseconds = 40_000;
-    private const int FinalPilotLogoutConfirmDelayMilliseconds = 2_000;
     private const int ConnectionLostExitDelayMilliseconds = 1_000;
     private const ushort VirtualKeyControl = 0x11;
     private const ushort VirtualKeyShift = 0x10;
     private const ushort VirtualKeyAlt = 0x12;
     private const ushort VirtualKeyEnter = 0x0D;
     private const ushort VirtualKeyL = 0x4C;
-    private const ushort VirtualKeyQ = 0x51;
     private const ushort VirtualKeyW = 0x57;
     private const ushort VirtualKeyF9 = 0x78;
     private const string NoPlayButtonFoundDebugText = "No play button found";
@@ -92,7 +88,7 @@ internal sealed class ProjectDiscoveryAutomationService
         if (!m_PlayNowButtonLocator.TryLocate(playButtonScreen, out var playButtonLocation))
         {
             DrawDebugOverlay(playButtonCapturePath, NoPlayButtonFoundDebugText);
-            Logger.Warning("No play button found during startup automation. CapturePath={CapturePath}", playButtonCapturePath);
+            Logger.Error("No play button found during startup automation. CapturePath={CapturePath}", playButtonCapturePath);
             return new StartupAutomationSummary(
                 playButtonCapturePath,
                 false,
@@ -112,7 +108,7 @@ internal sealed class ProjectDiscoveryAutomationService
         if (!m_PilotAvatarLocator.TryLocate(pilotSelectionScreen, initialPilotIndex, out var pilotLocation))
         {
             DrawPilotNotFoundDebugOverlay(pilotSelectionCapturePath, initialPilotIndex);
-            Logger.Warning("Pilot was not found during startup automation. PilotIndex={PilotIndex}, CapturePath={CapturePath}", initialPilotIndex, pilotSelectionCapturePath);
+            Logger.Error("Pilot was not found during startup automation. PilotIndex={PilotIndex}, CapturePath={CapturePath}", initialPilotIndex, pilotSelectionCapturePath);
             return new StartupAutomationSummary(
                 playButtonCapturePath,
                 true,
@@ -202,18 +198,21 @@ internal sealed class ProjectDiscoveryAutomationService
 
                     if (consecutivePlayfieldMisses >= MaximumConsecutivePlayfieldMisses)
                     {
-                        lastSummary = new AutomationSummary(
+                        Logger.Error(
+                            "Automation loop requested launcher restart because the playfield was not found repeatedly. CapturePath={CapturePath}, ConsecutivePlayfieldMisses={ConsecutivePlayfieldMisses}, CurrentPilotIndex={CurrentPilotIndex}",
+                            captureSummary.CapturePath,
+                            consecutivePlayfieldMisses,
+                            m_CurrentPilotIndex);
+
+                        m_AutomationInputController.QuitGame(cancellationToken);
+                        return new AutomationSummary(
                             captureSummary,
                             0,
                             null,
                             string.Empty,
                             CurrentPilotIndex: m_CurrentPilotIndex,
-                            PlayfieldMissingLimitReached: true);
-                        Logger.Error(
-                            "Automation loop stopped because the playfield was not found repeatedly. CapturePath={CapturePath}, ConsecutivePlayfieldMisses={ConsecutivePlayfieldMisses}",
-                            captureSummary.CapturePath,
-                            consecutivePlayfieldMisses);
-                        return lastSummary;
+                            PlayfieldMissingLimitReached: true,
+                            RestartFromLauncherRequested: true);
                     }
                 }
 
@@ -309,19 +308,12 @@ internal sealed class ProjectDiscoveryAutomationService
         {
             Logger.Warning("No next pilot is configured => Quit Game. CurrentPilotIndex={CurrentPilotIndex}", m_CurrentPilotIndex);
             // Quit Game
-            m_AutomationInputController.PressKeyChord(VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ, cancellationToken);
-            m_AutomationInputController.Delay(FinalPilotLogoutConfirmDelayMilliseconds, cancellationToken);
-            m_AutomationInputController.PressKey(VirtualKeyEnter, cancellationToken);
+            m_AutomationInputController.QuitGame(cancellationToken);
             return new PilotSwitchResult(m_CurrentPilotIndex, Succeeded: false, null);
         }
 
         Logger.Information("Switching pilot. CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}", m_CurrentPilotIndex, nextPilotIndex);
-        // Activate pilot logout window
-        m_AutomationInputController.Delay(WindowActivationDelayMilliseconds, cancellationToken);
-        m_AutomationInputController.PressKeyChord(VirtualKeyAlt, VirtualKeyQ, cancellationToken);
-        // Confirm pilot logout window
-        m_AutomationInputController.Delay(PilotSelectionConfirmDelayMilliseconds, cancellationToken);
-        m_AutomationInputController.PressKey(VirtualKeyEnter, cancellationToken);
+        m_AutomationInputController.Logout(cancellationToken);
 
         // Wait for full logout
         m_AutomationInputController.Delay(PilotLogoutDelayMilliseconds, cancellationToken);
@@ -692,6 +684,7 @@ internal sealed record AutomationSummary(
     string? PilotSwitchCapturePath = null,
     bool NoFurtherPilotsAvailable = false,
     bool PlayfieldMissingLimitReached = false,
+    bool RestartFromLauncherRequested = false,
     bool SlowDownPopupDetected = false,
     bool ConnectionLostDetected = false,
     bool PopupDetectionAmbiguous = false);

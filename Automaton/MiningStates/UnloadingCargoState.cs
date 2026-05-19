@@ -19,20 +19,23 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
 
     private readonly MiningHoldDetector m_MiningHoldDetector;
     private readonly UndockButtonDetector m_UndockButtonDetector;
+    private readonly DowntimeDetector m_DowntimeDetector;
     private readonly ILogger m_Logger;
 
     public UnloadingCargoState()
-        : this(new MiningHoldDetector(), new UndockButtonDetector(), Log.ForContext<UnloadingCargoState>())
+        : this(new MiningHoldDetector(), new UndockButtonDetector(), new DowntimeDetector(), Log.ForContext<UnloadingCargoState>())
     {
     }
 
     internal UnloadingCargoState(
         MiningHoldDetector miningHoldDetector,
         UndockButtonDetector undockButtonDetector,
+        DowntimeDetector downtimeDetector,
         ILogger? logger = null)
     {
         m_MiningHoldDetector = miningHoldDetector;
         m_UndockButtonDetector = undockButtonDetector;
+        m_DowntimeDetector = downtimeDetector;
         m_Logger = logger ?? Log.ForContext<UnloadingCargoState>();
     }
 
@@ -106,6 +109,18 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         // Close inventory windows
         context.AutomationInputController.PressKeyChord(VirtualKeyAlt, VirtualKeyM, cancellationToken);
         context.AutomationInputController.PressKeyChord(VirtualKeyAlt, VirtualKeyG, cancellationToken);
+
+        if (m_DowntimeDetector.IsDowntimeImminent(context.AutomationClock.UtcNow))
+        {
+            m_Logger.Warning("Downtime imminent => quit game and exit application. Now={Now}", context.AutomationClock.UtcNow);
+            context.AutomationInputController.QuitGame(cancellationToken);
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Recovery,
+                MiningAutomationActionKind.QuitGameAndExitApplication,
+                capturePath,
+                analysis);
+        }
 
         return new MiningAutomationStateTransition(
             Kind,

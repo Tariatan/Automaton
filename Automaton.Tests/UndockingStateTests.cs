@@ -138,6 +138,14 @@ public sealed class UndockingStateTests
         {
         }
 
+        public void QuitGame(CancellationToken cancellationToken)
+        {
+        }
+
+        public void Logout(CancellationToken cancellationToken)
+        {
+        }
+
         public void Delay(int milliseconds, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();

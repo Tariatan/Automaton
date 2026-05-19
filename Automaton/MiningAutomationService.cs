@@ -43,6 +43,16 @@ internal sealed class MiningAutomationService
             while (!cancellationToken.IsCancellationRequested)
             {
                 lastSummary = ExecuteSingleStep(cancellationToken);
+                if (lastSummary.Action == MiningAutomationActionKind.QuitGameAndExitApplication)
+                {
+                    Logger.Information(
+                        "Mining automation requested application exit. State={State}, NextState={NextState}, CapturePath={CapturePath}",
+                        lastSummary.State,
+                        lastSummary.NextState,
+                        lastSummary.CapturePath);
+                    return lastSummary;
+                }
+
                 m_Context.AutomationInputController.Delay(StepDelayMilliseconds, cancellationToken);
             }
         }
@@ -137,5 +147,6 @@ internal enum MiningAutomationActionKind
     ApproachAsteroid,
     ActivateMiningLasers,
     UnloadCargo,
+    QuitGameAndExitApplication,
     Recover
 }

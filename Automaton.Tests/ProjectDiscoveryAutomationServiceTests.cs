@@ -1118,9 +1118,13 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(0, summary.ClickedPointCount);
         Assert.Null(summary.ControlButtonBounds);
         Assert.Equal(string.Empty, summary.FocusedCapturePath);
+        Assert.True(summary.RestartFromLauncherRequested);
+        Assert.Equal(1, summary.CurrentPilotIndex);
         Assert.Equal(9, captureInvocationCount);
-        Assert.Equal(4, automationInputController.Delays.Count(milliseconds => milliseconds == 4_000));
-        Assert.Empty(automationInputController.KeyboardInputs);
+        Assert.Contains(2_000, automationInputController.Delays);
+        Assert.Equal(2, automationInputController.KeyboardInputs.Count);
+        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyQ);
+        AssertKey(automationInputController.KeyboardInputs[1], VirtualKeyEnter);
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
@@ -1180,6 +1184,15 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             KeyboardInputs.Add(new KeyboardInput(firstModifierVirtualKey, secondModifierVirtualKey, virtualKey));
+        }
+
+        public void QuitGame(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        public void Logout(CancellationToken cancellationToken)
+        {
         }
 
         public void Delay(int milliseconds, CancellationToken cancellationToken)

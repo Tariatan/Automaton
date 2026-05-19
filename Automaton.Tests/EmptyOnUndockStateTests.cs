@@ -161,6 +161,15 @@ public sealed class EmptyOnUndockStateTests
         {
         }
 
+        public void QuitGame(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        public void Logout(CancellationToken cancellationToken)
+        {
+        }
+
         public void Delay(int milliseconds, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
