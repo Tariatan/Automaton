@@ -5,7 +5,7 @@
 Mining automation: the EVE mining workflow run by `Automaton.exe -miner`.
 Mining cycle: one full loop from docked station state through undock, warp, mining, return, unload, and repeat.
 Docked: station screen is visible and the `Undock` button can be detected.
-Mining Hold: ship cargo hold used for ore. Empty hold means the pilot can undock; non-empty hold means unload first.
+Mining Hold: ship cargo hold used for ore.
 Item Hangar: station inventory destination for unloading ore.
 Undocking: transitional state after clicking `Undock`.
 Location change timer: the stable upper-left UI marker that confirms undock completion.
@@ -33,26 +33,13 @@ Recovery: a safe non-progress state used when expected screen evidence is missin
 
 ## Current Implementation
 
-- `ApplicationStartupOptions` selects Mining mode with `-miner` or `--miner`; default mode remains Project Discovery.
+- `ApplicationStartupOptions` selects Mining mode with `-miner` or `--miner`; selects Project Discovery mode with '-discovery' or '--discovery'; default mode starts with no automation.
 - `MainWindow` starts `MiningAutomationService` in Mining mode, changes the title to `Automaton - Miner`, and disables Project Discovery-only pilot/sample controls.
 - `MiningAutomationService` owns the loop, startup delay, step delay, state factory, and state transition logging.
-- `DockedState` captures `.mining-docked`, uses `DockedScreenDetector`, focuses Mining Hold if needed, sends `Undock` when the hold is empty, and transitions to `UnloadCargo` when ore is present.
 - `UndockingState` waits 15 seconds, then polls once per second for 15 attempts for the resource-backed `location_change_timer` template in the fixed upper-left ROI.
-- `EmptyOnUndockState` locates the Overview BELT tab with the resource-backed `overview_belt` template, chooses a random detected belt row, clicks it, then presses `S` to warp.
-- `LandedOnAsteroidBeltState` polls once per second for the lower-center asteroid belt label, locates the MINE overview to its right, clicks the first asteroid row, and presses `A`.
-- `Mining`, `UnloadCargo`, and `Recovery` are currently pending states.
+- `SelectAsteroidBeltAndWarp` locates the Overview BELT tab with the resource-backed `overview_belt` template, chooses a random detected belt row, clicks it, then presses `S` to warp.
+- `LandedOnAsteroidBeltState` polls once per second for the lower-center asteroid belt label, locates the MINE overview to its right, clicks the first asteroid row, and presses `A` to approach it.
 - `ScreenCaptureService` normalizes mining and discovery detectors to the left `2560x2160` game viewport at `(0,0)`. This is an intentional current constraint for the target setup.
-
-## What Worked Well
-
-- Extracting `AutomationInputController`, `IAutomationInputController`, `IAutomationClock`, and `SystemAutomationClock` before Mining reduced coupling and kept Project Discovery behavior intact.
-- Renaming the app to `Automaton` while preserving `ProjectDiscovery...` domain names clarified the broader purpose without erasing the mini-game concept.
-- A dedicated `MiningAutomationService` and `MiningStates` folder made the implementation easy to track and extend.
-- Small, stable templates work well as resources when searched inside tight ROIs. This is true for `location_change_timer` and `overview_belt`.
-- Color/shape detection is better for broad UI regions like the docked inventory and `Undock` button, where a template would be unnecessarily brittle.
-- Generated mining fixtures are fast and durable enough for detector and state contracts.
-- Real screenshot smoke checks are useful during calibration, then should be removed once synthetic characterization exists.
-- Centralizing the 300 ms pre-click delay made later states safer without repeating timing code.
 
 ## Rejected Or Avoided
 
@@ -60,29 +47,13 @@ Recovery: a safe non-progress state used when expected screen evidence is missin
 - Do not keep `warp_to_button` detection. Pressing `S` after selecting a belt is simpler and removes a fragile template dependency.
 - Do not scan the full virtual desktop for mining UI. The current design assumes the game viewport is captured at `(0,0,2560,2160)`.
 - Do not add broad multi-monitor support until the fixed viewport assumption stops being true in production.
-- Do not use resource templates for every UI element by default. Use templates for tiny stable glyphs; use detector logic or shortcuts for dynamic panels.
 - Do not write permanent tests against local runtime screenshots, downloaded images, or files under `bin`.
 - Do not implement future states as a large monolithic mining method. The workflow will become too complex to review or recover safely.
 
-## Known Pain Points
+a## Known Pain Points
 
 - Recovery is only a placeholder. The next real recovery design should distinguish retryable screen drift, bad overview tab state, lost focus, and hard-stop conditions.
-- `UnloadCargo` is pending even though `DockedState` can identify ore in the Mining Hold.
-- Pilot login and pilot selection for Mining are not wired yet. `PilotAvatarLocator` can be reused, but the Mining startup/login flow still needs its own state design.
-- Warping completion is implemented as `LandedOnAsteroidBeltState`, but it has only the first approach action after landing.
-- The landing signal does not depend on broad OCR or a new resource. It uses bright label detection in the lower-center ROI.
-- The MINE overview is detected from its cyan top border to the right of the belt label, then asteroid rows are inferred from the row icons.
-- Full cargo detection, mining laser activation, return-to-station, docking completion, and unloading are still open design areas.
 - The fixed capture viewport is practical now but is a known environmental assumption.
-
-## Recommended Next Curve
-
-1. Add the first `Mining` state as the next narrow slice.
-2. Decide whether approaching alone is enough or whether the next action should lock the asteroid, activate mining, or both.
-3. Add cargo-full detection before designing return-to-station behavior.
-4. Keep using generated fixtures plus one temporary real-screenshot smoke pass during calibration.
-5. Promote the next enum/action values only when the state has tests and a real transition.
-6. Design `Recovery` before adding long unattended loops. Recovery should be conservative, logged, and easy to stop.
 
 ## Detector Guidance
 
@@ -95,29 +66,23 @@ Recovery: a safe non-progress state used when expected screen evidence is missin
 
 ## State Transition Target
 
-Docked:
-focus Mining Hold, unload if full, otherwise undock.
-
 Undocking:
 wait fixed undock delay, then poll for location change timer.
 
-EmptyOnUndock:
+SelectAsteroidBeltAndWarp:
 open/select BELT overview, choose random asteroid belt, press `S`.
 
-WarpingToAsteroidField:
-currently bypassed by `LandedOnAsteroidBelt`; keep or remove once the final naming settles.
-
 LandedOnAsteroidBelt:
-poll for lower-center asteroid belt arrival signal, locate MINE overview, select first asteroid, press `A`.
+poll for lower-center asteroid belt arrival signal, locate MINE overview, select first asteroid, press `A` to approach.
 
 Mining:
 lock or activate mining once in range, monitor cargo fullness.
 
-ReturningToStation:
-warp or dock back to station using the safest available shortcut or overview entry.
+Dock:
+warp to home station using.
 
 UnloadCargo:
-move ore from Mining Hold to Item Hangar, then return to Docked.
+move ore from Mining Hold to Item Hangar, then undock.
 
 Recovery:
 stop or perform a bounded, logged retry depending on the failure type.
