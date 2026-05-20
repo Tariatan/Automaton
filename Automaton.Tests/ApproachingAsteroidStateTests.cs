@@ -61,7 +61,7 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(1_000, automationInputControllerMock.Delays[^1]);
         Assert.Equal(
             new[] { VirtualKeyF4, VirtualKeyA, VirtualKeyControl, VirtualKeyF1, VirtualKeyF2 },
-            automationInputControllerMock.KeyInputs);
+            automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class ApproachingAsteroidStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal(new[] { VirtualKeyF4 }, automationInputControllerMock.KeyInputs);
+        Assert.Equal(new[] { VirtualKeyF4 }, automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
     }
@@ -107,61 +107,6 @@ public sealed class ApproachingAsteroidStateTests
         public void CaptureToFile(string outputPath)
         {
             captureAction(outputPath);
-        }
-    }
-
-    private sealed class StubAutomationInputController : IAutomationInputController
-    {
-        public List<Point> MoveTargets { get; } = [];
-
-        public List<int> Delays { get; } = [];
-
-        public List<ushort> KeyInputs { get; } = [];
-
-        public int ClickCount { get; private set; }
-
-        public void MoveTo(Point point)
-        {
-            MoveTargets.Add(point);
-        }
-
-        public void LeftClick(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ClickCount++;
-        }
-
-        public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            KeyInputs.Add(virtualKey);
-        }
-
-        public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKeyChord(
-            ushort firstModifierVirtualKey,
-            ushort secondModifierKey,
-            ushort virtualKey,
-            CancellationToken cancellationToken)
-        {
-        }
-
-        public void QuitGame(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        public void Logout(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Delay(int milliseconds, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Delays.Add(milliseconds);
         }
     }
 

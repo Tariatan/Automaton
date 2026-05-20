@@ -62,7 +62,7 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Equal(2, automationInputController.ClickCount);
         Assert.Equal(new[] { 300, 300, 1_000 }, automationInputController.Delays);
         Assert.Equal(4, automationInputController.MoveTargets.Count);
-        Assert.Equal(new[] { VirtualKeyS }, automationInputController.KeyInputs);
+        Assert.Equal(new[] { VirtualKeyS }, automationInputController.KeyInputs.Select(k => k.VirtualKey));
         Assert.InRange(automationInputController.MoveTargets[0].X, 2270, 2315);
         Assert.InRange(automationInputController.MoveTargets[0].Y, 330, 365);
         AssertMouseParked(automationInputController.MoveTargets[1]);
@@ -119,61 +119,6 @@ public sealed class SelectBeltAndWarpStateTests
         public void CaptureToFile(string outputPath)
         {
             captureAction(outputPath);
-        }
-    }
-
-    private sealed class StubAutomationInputController : IAutomationInputController
-    {
-        public List<Point> MoveTargets { get; } = [];
-
-        public List<int> Delays { get; } = [];
-
-        public List<ushort> KeyInputs { get; } = [];
-
-        public int ClickCount { get; private set; }
-
-        public void MoveTo(Point point)
-        {
-            MoveTargets.Add(point);
-        }
-
-        public void LeftClick(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ClickCount++;
-        }
-
-        public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            KeyInputs.Add(virtualKey);
-        }
-
-        public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKeyChord(
-            ushort firstModifierVirtualKey,
-            ushort secondModifierKey,
-            ushort virtualKey,
-            CancellationToken cancellationToken)
-        {
-        }
-
-        public void QuitGame(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        public void Logout(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Delay(int milliseconds, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Delays.Add(milliseconds);
         }
     }
 

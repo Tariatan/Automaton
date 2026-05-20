@@ -30,9 +30,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var shortDelaysAfterSubmit = 0;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
+
                 if (milliseconds == 4_000)
                 {
                     sawAfterSubmitDelay = true;
@@ -170,9 +171,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var shortDelaysAfterSubmit = 0;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
+
                 if (milliseconds == 4_000)
                 {
                     sawAfterSubmitDelay = true;
@@ -243,9 +245,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var pilotUnlockPressed = false;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
+
                 if (pilotUnlockPressed && milliseconds == 300)
                 {
                     cancellationTokenSource.Cancel();
@@ -284,13 +287,13 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(3, captureInvocationCount);
         Assert.Equal(summary.ClickedPointCount + 2, automationInputController.ClickCount);
         Assert.Equal(new Point(pilotAvatarLocation.X + 32, pilotAvatarLocation.Y + 32), automationInputController.MoveTargets[^1]);
-        Assert.Equal(6, automationInputController.KeyboardInputs.Count);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyAlt, VirtualKeyQ);
-        AssertKey(automationInputController.KeyboardInputs[1], VirtualKeyEnter);
-        AssertKeyChord(automationInputController.KeyboardInputs[2], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[3], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
-        AssertKeyChord(automationInputController.KeyboardInputs[4], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[5], VirtualKeyAlt, VirtualKeyL);
+        Assert.Equal(6, automationInputController.KeyInputs.Count);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyAlt, VirtualKeyQ);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
+        AssertKeyChord(automationInputController.KeyInputs[2], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputController.KeyInputs[3], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
+        AssertKeyChord(automationInputController.KeyInputs[4], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputController.KeyInputs[5], VirtualKeyAlt, VirtualKeyL);
         Assert.Contains(40_000, automationInputController.Delays);
         Assert.Equal(300, automationInputController.Delays[^1]);
     }
@@ -326,7 +329,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var cancellationTokenSource = new CancellationTokenSource();
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds)
+            OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
         var dpi = new System.Windows.DpiScale(1.0, 1.0);
@@ -354,9 +357,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Null(summary.PilotSwitchCapturePath);
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(summary.ClickedPointCount + 1, automationInputController.ClickCount);
-        Assert.Equal(2, automationInputController.KeyboardInputs.Count);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ);
-        AssertKey(automationInputController.KeyboardInputs[1], VirtualKeyEnter);
+        Assert.Equal(2, automationInputController.KeyInputs.Count);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
         Assert.Equal(2_000, automationInputController.Delays[^1]);
     }
 
@@ -385,9 +388,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var shortDelaysAfterSubmit = 0;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
+
                 if (milliseconds == 4_000)
                 {
                     sawAfterSubmitDelay = true;
@@ -425,7 +429,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(summary.MaximumSubmissionsReached);
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(summary.ClickedPointCount + 1, automationInputController.ClickCount);
-        Assert.NotEmpty(automationInputController.KeyboardInputs);
+        Assert.NotEmpty(automationInputController.KeyInputs);
     }
 
     [Fact]
@@ -453,9 +457,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var shortDelaysAfterSubmit = 0;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
+
                 if (milliseconds == 70_000)
                 {
                     slowDownRecoveryObserved = true;
@@ -505,10 +510,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.False(summary.SlowDownPopupDetected);
         Assert.True(slowDownRecoveryObserved);
         Assert.Equal(4, captureInvocationCount);
-        Assert.Equal(3, automationInputController.KeyboardInputs.Count);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[1], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
-        AssertKeyChord(automationInputController.KeyboardInputs[2], VirtualKeyAlt, VirtualKeyL);
+        Assert.Equal(3, automationInputController.KeyInputs.Count);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
+        AssertKeyChord(automationInputController.KeyInputs[2], VirtualKeyAlt, VirtualKeyL);
         Assert.Contains(70_000, automationInputController.Delays);
     }
 
@@ -533,9 +538,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var slowDownRecoveryObserved = false;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
+
                 if (milliseconds == 70_000)
                 {
                     slowDownRecoveryObserved = true;
@@ -571,9 +577,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(0, summary.ClickedPointCount);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Equal(1, captureInvocationCount);
-        Assert.Equal(2, automationInputController.KeyboardInputs.Count);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[1], VirtualKeyAlt, VirtualKeyL);
+        Assert.Equal(2, automationInputController.KeyInputs.Count);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeyAlt, VirtualKeyL);
         Assert.Contains(70_000, automationInputController.Delays);
     }
 
@@ -600,9 +606,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var delayCount = 0;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
-            OnDelay = _ =>
+            OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
                 delayCount++;
                 if (delayCount > 200)
                 {
@@ -633,8 +639,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.False(summary.SlowDownPopupDetected);
         Assert.True(captureInvocationCount >= 2);
         Assert.True(automationInputController.ClickCount >= summary.ClickedPointCount + 1);
-        Assert.Single(automationInputController.KeyboardInputs);
-        AssertKey(automationInputController.KeyboardInputs[0], VirtualKeyEnter);
+        Assert.Single(automationInputController.KeyInputs);
+        AssertKey(automationInputController.KeyInputs[0], VirtualKeyEnter);
         Assert.Contains(1_000, automationInputController.Delays);
     }
 
@@ -686,9 +692,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(File.Exists(Path.Combine(workspace.Path, summary.FocusedCapturePath)));
         Assert.True(CountMaximumSubmissionsDebugOverlayPixels(Path.Combine(workspace.Path, summary.FocusedCapturePath)) > 0);
         Assert.Null(summary.PilotSwitchCapturePath);
-        Assert.Equal(2, automationInputController.KeyboardInputs.Count);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ);
-        AssertKey(automationInputController.KeyboardInputs[1], VirtualKeyEnter);
+        Assert.Equal(2, automationInputController.KeyInputs.Count);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
         Assert.Equal(2_000, automationInputController.Delays[^1]);
     }
 
@@ -745,7 +751,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(1, captureInvocationCount);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Equal(0, automationInputController.ClickCount);
-        Assert.Empty(automationInputController.KeyboardInputs);
+        Assert.Empty(automationInputController.KeyInputs);
         Assert.True(File.Exists(Path.Combine(workspace.Path, summary.PlayButtonCapturePath)));
         Assert.True(CountDebugOverlayPixels(Path.Combine(workspace.Path, summary.PlayButtonCapturePath)) > 0);
     }
@@ -832,9 +838,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
         Assert.Equal(new[] { 20_000, 20_000 }, automationInputController.Delays);
-        Assert.Equal(2, automationInputController.KeyboardInputs.Count);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyboardInputs[1], VirtualKeyAlt, VirtualKeyL);
+        Assert.Equal(2, automationInputController.KeyInputs.Count);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeyAlt, VirtualKeyL);
         Assert.Equal(new Point(pilotAvatarLocation.X + 32, pilotAvatarLocation.Y + 32), automationInputController.MoveTargets[^1]);
         Assert.InRange(automationInputController.MoveTargets[0].X, playButtonLocation.X, playButtonLocation.X + 257);
         Assert.InRange(automationInputController.MoveTargets[0].Y, playButtonLocation.Y, playButtonLocation.Y + 69);
@@ -882,8 +888,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(1, automationInputController.ClickCount);
         Assert.Equal(new[] { 20_000 }, automationInputController.Delays);
-        Assert.Single(automationInputController.KeyboardInputs);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyW);
+        Assert.Single(automationInputController.KeyInputs);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
         Assert.NotNull(summary.PilotCapturePath);
         Assert.True(CountPilotNotFoundDebugOverlayPixels(Path.Combine(workspace.Path, summary.PilotCapturePath)) > 0);
     }
@@ -899,7 +905,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var automationClock = new StubAutomationClock();
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds)
+            OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
         var dpi = new System.Windows.DpiScale(1.0, 1.0);
@@ -945,9 +951,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var observedLongRateLimitDelay = false;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds),
             OnDelay = milliseconds =>
             {
+                automationClock.AdvanceBy(milliseconds);
+
                 if (milliseconds > 4_000)
                 {
                     observedLongRateLimitDelay = true;
@@ -1022,17 +1029,13 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var pilotSwitchCompleted = false;
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds =>
-            {
-                if (milliseconds == 300 || milliseconds is >= 301 and <= 800)
-                {
-                    return;
-                }
-
-                automationClock.AdvanceBy(milliseconds);
-            },
             OnDelay = milliseconds =>
             {
+                if (milliseconds != 300 && milliseconds is not (>= 301 and <= 800))
+                {
+                    automationClock.AdvanceBy(milliseconds);
+                }
+
                 if (milliseconds == 4_000)
                 {
                     submitTimes.Add(automationClock.UtcNow.AddMilliseconds(-milliseconds));
@@ -1091,7 +1094,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var automationClock = new StubAutomationClock();
         var automationInputController = new StubAutomationInputController
         {
-            OnDelayAdvanceClock = milliseconds => automationClock.AdvanceBy(milliseconds)
+            OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
         var dpi = new System.Windows.DpiScale(1.0, 1.0);
@@ -1121,9 +1124,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(1, summary.CurrentPilotIndex);
         Assert.Equal(9, captureInvocationCount);
         Assert.Contains(2_000, automationInputController.Delays);
-        Assert.Equal(2, automationInputController.KeyboardInputs.Count);
-        AssertKeyChord(automationInputController.KeyboardInputs[0], VirtualKeyControl, VirtualKeyQ);
-        AssertKey(automationInputController.KeyboardInputs[1], VirtualKeyEnter);
+        Assert.Equal(2, automationInputController.KeyInputs.Count);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyQ);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
@@ -1134,80 +1137,6 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             captureAction(outputPath);
         }
     }
-
-    private sealed class StubAutomationInputController : IAutomationInputController
-    {
-        public List<Point> MoveTargets { get; } = [];
-
-        public List<int> Delays { get; } = [];
-
-        public List<KeyboardInput> KeyboardInputs { get; } = [];
-
-        public int ClickCount { get; private set; }
-
-        public Action<int>? OnDelay { get; init; }
-
-        public Action<int>? OnDelayAdvanceClock { get; init; }
-
-        public Action<ushort, ushort>? OnPressKeyChord { get; init; }
-
-        public void MoveTo(Point point)
-        {
-            MoveTargets.Add(point);
-        }
-
-        public void LeftClick(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ClickCount++;
-        }
-
-        public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            KeyboardInputs.Add(new KeyboardInput(null, null, virtualKey));
-        }
-
-        public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            KeyboardInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey));
-            OnPressKeyChord?.Invoke(modifierVirtualKey, virtualKey);
-        }
-
-        public void PressKeyChord(
-            ushort firstModifierVirtualKey,
-            ushort secondModifierVirtualKey,
-            ushort virtualKey,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            KeyboardInputs.Add(new KeyboardInput(firstModifierVirtualKey, secondModifierVirtualKey, virtualKey));
-        }
-
-        public void QuitGame(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        public void Logout(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Delay(int milliseconds, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Delays.Add(milliseconds);
-            OnDelayAdvanceClock?.Invoke(milliseconds);
-            OnDelay?.Invoke(milliseconds);
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-    }
-
-    private readonly record struct KeyboardInput(
-        ushort? ModifierVirtualKey,
-        ushort? SecondModifierVirtualKey,
-        ushort VirtualKey);
 
     private sealed class StubAutomationClock : IAutomationClock
     {

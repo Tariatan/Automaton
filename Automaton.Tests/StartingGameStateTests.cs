@@ -124,68 +124,6 @@ public sealed class StartingGameStateTests
         }
     }
 
-    private sealed class StubAutomationInputController : IAutomationInputController
-    {
-        public List<Point> MoveTargets { get; } = [];
-
-        public List<int> Delays { get; } = [];
-
-        public List<KeyboardInput> KeyInputs { get; } = [];
-
-        public int ClickCount { get; private set; }
-
-        public void MoveTo(Point point)
-        {
-            MoveTargets.Add(point);
-        }
-
-        public void LeftClick(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ClickCount++;
-        }
-
-        public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            KeyInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey));
-        }
-
-        public void PressKeyChord(
-            ushort firstModifierVirtualKey,
-            ushort secondModifierKey,
-            ushort virtualKey,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            KeyInputs.Add(new KeyboardInput(firstModifierVirtualKey, secondModifierKey, virtualKey));
-        }
-
-        public void QuitGame(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        public void Logout(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Delay(int milliseconds, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Delays.Add(milliseconds);
-        }
-    }
-
-    private readonly record struct KeyboardInput(
-        ushort? ModifierVirtualKey,
-        ushort? SecondModifierVirtualKey,
-        ushort VirtualKey);
-
     private sealed class StubAutomationClock : IAutomationClock
     {
         public DateTime UtcNow { get; } = new(2026, 5, 10, 12, 0, 0, DateTimeKind.Utc);

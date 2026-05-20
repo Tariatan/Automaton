@@ -110,49 +110,6 @@ public sealed class UndockingStateTests
         }
     }
 
-    private sealed class StubAutomationInputController : IAutomationInputController
-    {
-        public List<int> Delays { get; } = [];
-
-        public void MoveTo(OpenCvSharp.Point point)
-        {
-        }
-
-        public void LeftClick(CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKeyChord(
-            ushort firstModifierVirtualKey,
-            ushort secondModifierKey,
-            ushort virtualKey,
-            CancellationToken cancellationToken)
-        {
-        }
-
-        public void QuitGame(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Logout(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Delay(int milliseconds, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Delays.Add(milliseconds);
-        }
-    }
-
     private sealed class StubAutomationClock : IAutomationClock
     {
         public DateTime UtcNow { get; } = new(2026, 5, 3, 12, 0, 0, DateTimeKind.Utc);
