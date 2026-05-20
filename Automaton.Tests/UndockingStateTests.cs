@@ -97,7 +97,7 @@ public sealed class UndockingStateTests
 
     private static void WriteUndockedImage(string outputPath)
     {
-        using var image = SyntheticMiningImageFactory.CreateUndockedImage();
+        using var image = SyntheticMiningImageFactory.CreateUndockedWithoutLocationChangeTimerImage();
         OpenCvSharp.Cv2.ImWrite(outputPath, image);
     }
 

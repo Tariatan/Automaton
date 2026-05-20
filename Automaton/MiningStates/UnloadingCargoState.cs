@@ -59,7 +59,7 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         using var screen = Cv2.ImRead(capturePath);
 
         // TryLocate Undock button
-        if (!m_UndockButtonDetector.TryLocate(screen, out var _))
+        if (!m_UndockButtonDetector.TryLocate(screen, out _))
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort unloading");
@@ -71,6 +71,11 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         }
 
         var analysis = m_MiningHoldDetector.Analyze(screen);
+        AnnotateHoldTransferCapture(
+            capturePath,
+            screen,
+            analysis.MiningHoldFirstRowBounds,
+            analysis.ItemHangarFirstRowBounds);
         if (analysis.MiningHoldTitleBounds is null || analysis.ItemHangarTitleBounds is null)
         {
             m_Logger.Error("Failed to detect Item Hangar and/or Mining Hold");
@@ -128,6 +133,26 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
             MiningAutomationActionKind.Undock,
             capturePath,
             analysis);
+    }
+
+    private static void AnnotateHoldTransferCapture(
+        string capturePath,
+        Mat screen,
+        Rect? miningHoldFirstRowBounds,
+        Rect? itemHangarFirstRowBounds)
+    {
+        using var annotated = screen.Clone();
+        if (miningHoldFirstRowBounds.HasValue)
+        {
+            Cv2.Rectangle(annotated, miningHoldFirstRowBounds.Value, new Scalar(0, 255, 0), 2);
+        }
+
+        if (itemHangarFirstRowBounds.HasValue)
+        {
+            Cv2.Rectangle(annotated, itemHangarFirstRowBounds.Value, new Scalar(0, 255, 255), 2);
+        }
+
+        Cv2.ImWrite(capturePath, annotated);
     }
 
     private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);

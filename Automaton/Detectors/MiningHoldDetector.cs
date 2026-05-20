@@ -5,9 +5,8 @@ namespace Automaton.Detectors;
 internal sealed class MiningHoldDetector
 {
     private const double MinimumTitleMatchScore = 0.82;
-    private const int FirstRowOffsetFromTitleBottom = 118;
-    private const int FirstRowHeight = 40;
-    private const int FirstRowWidth = 390;
+    private static readonly Rect ItemHangarFirstRowBounds = new(75, 205, 300, 30);
+    private static readonly Rect MiningHoldFirstRowBounds = new(75, 495, 300, 30);
     private const int FirstRowMinimumBrightPixelCount = 220;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
@@ -28,12 +27,8 @@ internal sealed class MiningHoldDetector
         Rect? miningHoldTitleBounds = TryLocateTitle(screen, m_MiningHoldTemplate, searchBounds, out var locatedMiningHoldTitleBounds)
             ? locatedMiningHoldTitleBounds
             : BuildFallbackMiningHoldTitleBounds(screen.Size());
-        var itemHangarFirstRowBounds = itemHangarTitleBounds is null
-            ? (Rect?)null
-            : BuildFirstRowBounds(screen.Size(), itemHangarTitleBounds.Value);
-        var miningHoldFirstRowBounds = miningHoldTitleBounds is null
-            ? (Rect?)null
-            : BuildFirstRowBounds(screen.Size(), miningHoldTitleBounds.Value);
+        Rect? itemHangarFirstRowBounds = ItemHangarFirstRowBounds;
+        Rect? miningHoldFirstRowBounds = MiningHoldFirstRowBounds;
         var itemHangarFocused = itemHangarFirstRowBounds is not null && RowLooksFocused(screen, itemHangarFirstRowBounds.Value);
         var miningHoldFocused = miningHoldFirstRowBounds is not null && RowLooksFocused(screen, miningHoldFirstRowBounds.Value);
         var miningHoldContent = miningHoldFirstRowBounds is null
@@ -103,15 +98,6 @@ internal sealed class MiningHoldDetector
     private static Rect BuildFallbackMiningHoldTitleBounds(Size imageSize)
     {
         return BuildRelativeBounds(imageSize, 0.025, 0.142, 0.155, 0.030);
-    }
-
-    private static Rect BuildFirstRowBounds(Size imageSize, Rect titleBounds)
-    {
-        var left = Math.Clamp(titleBounds.X + 4, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(titleBounds.Bottom + FirstRowOffsetFromTitleBottom, 0, Math.Max(0, imageSize.Height - 1));
-        var width = Math.Clamp(FirstRowWidth, 1, imageSize.Width - left);
-        var height = Math.Clamp(FirstRowHeight, 1, imageSize.Height - top);
-        return new Rect(left, top, width, height);
     }
 
     private static bool RowLooksFocused(Mat screen, Rect rowBounds)

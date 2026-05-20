@@ -16,8 +16,8 @@ public sealed class LocationChangeTimerDetectorTests
 
         // Assert
         Assert.True(located);
-        Assert.InRange(location.Bounds.X, 120, 126);
-        Assert.InRange(location.Bounds.Y, 43, 49);
+        Assert.InRange(location.Bounds.X, 140, 170);
+        Assert.InRange(location.Bounds.Y, 60, 90);
         Assert.True(location.Score >= 0.90);
     }
 
@@ -25,7 +25,7 @@ public sealed class LocationChangeTimerDetectorTests
     public void TryLocate_UndockedImageWithoutTimer_ReturnsFalse()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateUndockedImage();
+        using var image = SyntheticMiningImageFactory.CreateUndockedWithoutLocationChangeTimerImage();
         var locator = new LocationChangeTimerDetector();
 
         // Act

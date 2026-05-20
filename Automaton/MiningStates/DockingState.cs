@@ -10,6 +10,7 @@ internal sealed class DockingState : IMiningAutomationState
     private const string DockedCaptureSuffix = ".mining-docked-polling";
     private const int BeforeDockDelayMilliseconds = 1_000;
     private const int DockedPollingDelayMilliseconds = 5_000;
+    private const int DockedBounceDelayMilliseconds = 15_000;
     private const ushort VirtualKeyD = 0x44;
 
     private readonly HomeStationDetector m_HomeStationDetector;
@@ -83,6 +84,8 @@ internal sealed class DockingState : IMiningAutomationState
                 break;
             }
         }
+
+        context.AutomationInputController.Delay(DockedBounceDelayMilliseconds, cancellationToken);
 
         return new MiningAutomationStateTransition(
             Kind,

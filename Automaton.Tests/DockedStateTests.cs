@@ -16,12 +16,12 @@ public sealed class DockedStateTests
     private const ushort VirtualKeyC = 0x43;
 
     [Fact]
-    public void Execute_ItemHangarFocused_TransitionsToUndockingWithCommonKeySequence()
+    public void Execute_Docked_PerformsTransferAndTransitionsToUndocking()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var capturePath = Path.Combine(workspace.Path, "docked-item-hangar.png");
-        SyntheticMiningImageFactory.WriteDockedItemHangarFocusedImage(capturePath);
+        var capturePath = Path.Combine(workspace.Path, "docked.png");
+        SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(capturePath);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
@@ -45,97 +45,18 @@ public sealed class DockedStateTests
         }
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
-        Assert.Contains(1000, automationInputController.Delays);
-    }
-
-    [Fact]
-    public void Execute_MiningHoldFocusedEmpty_TransitionsToUndockingAndPerformsTransfer()
-    {
-        // Arrange
-        using var workspace = new TemporaryDirectory();
-        var capturePath = Path.Combine(workspace.Path, "docked-empty.png");
-        SyntheticMiningImageFactory.WriteDockedMiningHoldFocusedEmptyImage(capturePath);
-        var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
-            new SampleImageProcessor());
-        var automationInputController = new StubAutomationInputController();
-        var state = new UnloadingCargoState();
-        MiningAutomationStateTransition transition;
-
-        // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
-
-        // Assert
-        Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
         Assert.True(automationInputController.MoveTargets.Count >= 2);
         Assert.True(automationInputController.ClickCount >= 2);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyA), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyX), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyV), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyC), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
         Assert.Contains(1000, automationInputController.Delays);
-    }
 
-    [Fact]
-    public void Execute_MiningHoldFocusedNotEmpty_TransitionsToUndockingAndPerformsTransfer()
-    {
-        // Arrange
-        using var workspace = new TemporaryDirectory();
-        var capturePath = Path.Combine(workspace.Path, "docked-not-empty.png");
-        SyntheticMiningImageFactory.WriteDockedMiningHoldFocusedNotEmptyImage(capturePath);
-        var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
-            new SampleImageProcessor());
-        var automationInputController = new StubAutomationInputController();
-        var state = new UnloadingCargoState();
-        MiningAutomationStateTransition transition;
-
-        // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
-
-        // Assert
         Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
-        Assert.True(automationInputController.MoveTargets.Count >= 2);
-        Assert.True(automationInputController.ClickCount >= 2);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyA), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyX), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyV), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyC), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
-        Assert.Contains(1000, automationInputController.Delays);
     }
 
     [Fact]
@@ -143,8 +64,8 @@ public sealed class DockedStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var capturePath = Path.Combine(workspace.Path, "docked-not-empty.png");
-        SyntheticMiningImageFactory.WriteDockedMiningHoldFocusedNotEmptyImage(capturePath);
+        var capturePath = Path.Combine(workspace.Path, "docked.png");
+        SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(capturePath);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());

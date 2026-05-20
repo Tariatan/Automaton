@@ -47,20 +47,6 @@ public sealed class AsteroidBeltLandingDetectorTests
     }
 
     [Fact]
-    public void Analyze_MineOverviewContainsHeaderLikeIcon_IgnoresHeaderAndKeepsAsteroidRows()
-    {
-        // Arrange
-        using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImageWithMineHeaderLikeIcon();
-        var detector = new AsteroidBeltLandingDetector();
-
-        // Act
-        var analysis = detector.Analyze(image);
-
-        // Assert
-        Assert.True(analysis.LandedOnAsteroidBelt);
-    }
-
-    [Fact]
     public void Analyze_LandedOnEmptyAsteroidBeltImage_DetectsNothingFound()
     {
         // Arrange

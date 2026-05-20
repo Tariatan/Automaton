@@ -105,6 +105,7 @@ internal sealed class MiningAutomationService
             MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(),
             MiningAutomationStateKind.Mining => new MiningState(),
+            MiningAutomationStateKind.Recovery => new RecoveryState(),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }
