@@ -23,11 +23,9 @@ Gold-standard sample: a scored training/check sample depicting the expected clus
 - Use consistent, tight bounding boxes and keep your methodology simple to ensure high-accuracy submissions.
 - Focus on Density: Identify high-density cell clusters and draw polygons tightly around them.
 - The "Comet" Method: Treat the clusters like comets, separating the dense "head" from the scattered "tail".
-- Handle Redundant Data: If a cluster seems obvious but the expected example says otherwise, tighten your box or focus on separating the dense core.
 - Avoid Overlap: Ensure your drawn areas for identifying multiple clusters do not overlap.
 - Draw Roughly: A simple box covering the clusters is often enough to maintain 99% accuracy.
 - Prefer separation over over-grouping: if two dense populations are clearly distinct, they should usually stay as two polygons rather than one broad combined balloon.
-- Be careful with broad polygon growth: aggressive dilation, balloon expansion, or eager sibling merging can easily collapse separate clusters into one oversized polygon.
 
 ## Handling Smears and Clusters
 
@@ -86,13 +84,9 @@ Gold-standard sample: a scored training/check sample depicting the expected clus
 - Only run maximum-submissions popup detection after a focused screenshot fails playfield detection. Running it while the normal playfield is visible produced false positives on ordinary Project Discovery panels.
 - Analyze focused screenshots without writing `*.focused.annotated.png`; they are state probes after Submit focus, not normal detector debug artifacts. Only the max-submissions popup detector should draw into the focused screenshot, and only when the popup is actually detected.
 - Stop automation after five consecutive main captures fail playfield detection. Occasional misses can still use fallback polygons, but repeated misses are treated as a bad screen state before another Submit is sent.
-- Popup detection should require the whole popup signature: title-line evidence, body text bands, information icon shape, and button evidence. Single-feature detection is too prone to false positives.
-- Distinguish `Slow Down` from `Maximum Number of Submissions Reached` by title geometry, not OCR: Slow Down has one large title band, while MaxSubmissions has two. On Slow Down, close with `Ctrl+W`, wait 60 seconds, press `Alt+L`, and continue automation without switching pilots.
 - Check for known error popups immediately after the main capture when playfield detection fails. Do not click fallback polygons into a visible Slow Down popup; recover first, then resume from a fresh capture.
-- Keep the popup information-icon evidence round-ish. A wide contour can be produced by inventory item art and cyan item frames, which caused a focused post-submit screenshot to be misclassified as the max-submissions popup.
 - When a max-submissions popup is detected, draw debug text into the focused screenshot. When pilot selection fails, draw `Pilot <index> not found` into the pilot-selection screenshot.
-- Connection Lost is now a hard-stop popup: detect it with its yellow `here` marker plus surrounding white sentence context in the lower center popup band, treat it as distinct from Slow Down and Max Submissions, stop automation, and terminate the process.
-- For Connection Lost detection, do not hard-depend on a full-popup template image resource; popup text antialiasing and minor UI presentation differences make strict template matching brittle. Keep the signal feature-based and localized.
+- Connection Lost is now a hard-stop popup, stop automation, and terminate the process.
 - Popup handling is now a strict state gate that runs before any playfield/fallback behavior. If a known popup is detected, polygon clicking and fallback are skipped for that cycle.
 - Maximum-submissions detection must preempt normal playfield logic even when a playfield is still visible in the same frame (for example when overlays and transient states coexist).
 - When popup classifiers are too close to separate safely, mark the state as ambiguous and stop automation rather than continuing with fallback clicks.
@@ -100,7 +94,6 @@ Gold-standard sample: a scored training/check sample depicting the expected clus
 - Popup template loading now uses strongly-typed `Properties.Resources` bitmap assets directly (no assembly manifest stream path dependency), so detector behavior stays consistent across runtime paths and publish layouts.
 - Sample analysis (`ProcessSamples` / `AnalyzeImageFile`) now applies popup detection before playfield/fallback processing. When a popup is detected, it short-circuits polygon generation and writes popup-focused annotations instead of misleading fallback/byexample overlays.
 - Popup handling in automation is now centralized in one shared state handler used by both main-capture and post-submit focused-capture paths. This removes duplicated branching and keeps recovery/stop behavior consistent between both stages.
-- Removed an unused focused-screen `AnalyzeImageFile` call in `AutomateSingleCycle`; popup-state detection works directly on the focused capture and no longer pays for an ignored analysis result.
 - Pilot switching should scan the relative `pilot` folder and advance through available numeric avatars instead of blindly incrementing forever. Do not wrap after the highest configured pilot; if max submissions is detected on the last pilot, press `Alt+Shift+Q`, wait 2 seconds, press `Enter`, then stop automation.
 - When max submissions is reached and there is no further pilot index available, mark the summary as `NoFurtherPilotsAvailable` and let the UI layer terminate the application process safely (`Shutdown` then `Environment.Exit(0)`), instead of idling at a stopped automation state.
 
