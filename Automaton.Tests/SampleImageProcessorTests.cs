@@ -1343,10 +1343,7 @@ public sealed class SampleImageProcessorTests
 
     private static Mat LoadMarkerImage()
     {
-        using var bitmap = Properties.Resources.marker;
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        return EmbeddedResourceLoader.LoadMat("marker.png");
     }
 
     private static void PasteMarker(Mat image, Mat marker, Point location)

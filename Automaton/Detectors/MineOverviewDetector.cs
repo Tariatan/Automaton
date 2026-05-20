@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -9,7 +7,7 @@ internal sealed class MineOverviewDetector
     private const double MinimumHeaderMatchScore = 0.90;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_OverviewMineTemplate = LoadTemplate(Properties.Resources.overview_mine, "overview_mine");
+    private readonly Mat m_OverviewMineTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_mine.png");
 
     public bool TryLocate(Mat screen, out Rect mineOverviewBounds)
     {
@@ -93,19 +91,6 @@ internal sealed class MineOverviewDetector
         var scaledTemplate = new Mat();
         Cv2.Resize(template, scaledTemplate, new Size(width, height));
         return scaledTemplate;
-    }
-
-    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
-    {
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
-        if (template.Empty())
-        {
-            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
-        }
-
-        return template;
     }
 
     private static Rect BuildFallbackSearchBounds(Size imageSize)

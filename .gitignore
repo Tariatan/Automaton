@@ -1,5 +1,7 @@
 .vs
 .dotnet/
+.idea/
+.claude/
 Automaton/bin/
 Automaton/obj/
 Automaton/Hallmark
@@ -10,5 +12,7 @@ Automaton.Tuning/obj/
 packages
 samples
 captures
-Automaton/Automaton.csproj.user
-Automaton/Properties/PublishProfiles/FolderProfile.pubxml.user
+
+*.csproj.user
+*.pubxml.user
+*.DotSettings.user

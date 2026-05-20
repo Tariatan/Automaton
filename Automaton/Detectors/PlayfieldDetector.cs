@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -46,7 +44,7 @@ internal sealed class PlayfieldDetector
         m_TemplateGray = LoadMarkerFromResources();
         if (m_TemplateGray.Empty())
         {
-            throw new InvalidOperationException("Could not load playfield marker template from Properties.Resources.marker.");
+            throw new InvalidOperationException("Could not load playfield marker template.");
         }
 
         m_TemplateEqualized = new Mat();
@@ -384,15 +382,7 @@ internal sealed class PlayfieldDetector
 
     private static Mat LoadMarkerFromResources()
     {
-        using var bitmap = Properties.Resources.marker;
-        if (bitmap is null)
-        {
-            throw new InvalidOperationException("Properties.Resources.marker returned null.");
-        }
-
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Grayscale);
+        return EmbeddedResourceLoader.LoadMat("marker.png", ImreadModes.Grayscale);
     }
 
     private static Mat BuildEdgeMap(Mat input)

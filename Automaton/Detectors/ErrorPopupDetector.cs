@@ -1,6 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
-using Automaton.Properties;
 using OpenCvSharp;
 using Serilog;
 
@@ -482,16 +479,16 @@ internal sealed class ErrorPopupDetector
         public static PopupTemplates Load()
         {
             return new PopupTemplates(
-                LoadGrayTemplate(Resources.button_ok),
-                LoadGrayTemplate(Resources.button_quit),
-                LoadGrayTemplate(Resources.icon_info),
-                LoadGrayTemplate(Resources.icon_warning),
-                LoadGrayTemplate(Resources.title_connection_lost),
-                LoadGrayTemplate(Resources.title_slow_down),
-                LoadGrayTemplate(Resources.title_max_submissions),
-                LoadBinaryTemplate(Resources.title_connection_lost),
-                LoadBinaryTemplate(Resources.title_slow_down),
-                LoadBinaryTemplate(Resources.title_max_submissions));
+                LoadGrayTemplate("popups.button_ok.png"),
+                LoadGrayTemplate("popups.button_quit.png"),
+                LoadGrayTemplate("popups.icon_info.png"),
+                LoadGrayTemplate("popups.icon_warning.png"),
+                LoadGrayTemplate("popups.title_connection_lost.png"),
+                LoadGrayTemplate("popups.title_slow_down.png"),
+                LoadGrayTemplate("popups.title_max_submissions.png"),
+                LoadBinaryTemplate("popups.title_connection_lost.png"),
+                LoadBinaryTemplate("popups.title_slow_down.png"),
+                LoadBinaryTemplate("popups.title_max_submissions.png"));
         }
 
         public void Dispose()
@@ -508,11 +505,9 @@ internal sealed class ErrorPopupDetector
             TitleMaxSubmissionsBinary.Dispose();
         }
 
-        private static Mat LoadGrayTemplate(System.Drawing.Bitmap bitmap)
+        private static Mat LoadGrayTemplate(string resourceFile)
         {
-            using var memory = new MemoryStream();
-            bitmap.Save(memory, ImageFormat.Png);
-            using var template = Cv2.ImDecode(memory.ToArray(), ImreadModes.Color);
+            using var template = EmbeddedResourceLoader.LoadMat(resourceFile);
             if (template.Empty())
             {
                 throw new InvalidOperationException("Popup template resource could not be decoded.");
@@ -523,9 +518,9 @@ internal sealed class ErrorPopupDetector
             return gray;
         }
 
-        private static Mat LoadBinaryTemplate(System.Drawing.Bitmap bitmap)
+        private static Mat LoadBinaryTemplate(string resourceFile)
         {
-            using var gray = LoadGrayTemplate(bitmap);
+            using var gray = LoadGrayTemplate(resourceFile);
             return ToBinaryMask(gray);
         }
     }

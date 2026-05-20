@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -16,7 +14,7 @@ internal sealed class PlayNowButtonLocator
         m_Template = LoadPlayButtonFromResources();
         if (m_Template.Empty())
         {
-            throw new InvalidOperationException("Could not load PLAY NOW template from Properties.Resources.play.");
+            throw new InvalidOperationException("Could not load PLAY NOW template.");
         }
     }
 
@@ -85,15 +83,7 @@ internal sealed class PlayNowButtonLocator
 
     private static Mat LoadPlayButtonFromResources()
     {
-        using var bitmap = Properties.Resources.play;
-        if (bitmap is null)
-        {
-            throw new InvalidOperationException("Properties.Resources.play returned null.");
-        }
-
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        return EmbeddedResourceLoader.LoadMat("play.png");
     }
 }
 

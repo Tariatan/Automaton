@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -11,7 +9,7 @@ internal sealed class MiningLaserDetector
     // One combined region in top-right selected-item panel: any laser match counts as active.
     private static readonly Rect LaserSearchBounds = new(1740, 170, 250, 160);
 
-    private readonly Mat m_MiningLaserTemplate = LoadTemplate(Properties.Resources.mining_laser, "mining_laser");
+    private readonly Mat m_MiningLaserTemplate = EmbeddedResourceLoader.LoadMat("mining.mining_laser.png");
 
     public bool TryLocate(Mat screen)
     {
@@ -64,18 +62,6 @@ internal sealed class MiningLaserDetector
         return true;
     }
 
-    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
-    {
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
-        if (template.Empty())
-        {
-            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
-        }
-
-        return template;
-    }
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {

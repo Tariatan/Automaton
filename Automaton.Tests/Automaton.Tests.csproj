@@ -6,11 +6,26 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsPublishable>false</IsPublishable>
+    <UseWPF>false</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
   </PropertyGroup>
+
+  <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <KnownFrameworkReference Remove="Microsoft.WindowsDesktop.App" />
+  </ItemGroup>
+
+  <Target Name="PatchForLinux" AfterTargets="GenerateBuildRuntimeConfigurationFiles"
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Command="jq '.runtimeOptions.frameworks |= map(select(.name != &quot;Microsoft.WindowsDesktop.App&quot;))' '$(OutputPath)$(AssemblyName).runtimeconfig.json' > '$(OutputPath)$(AssemblyName).runtimeconfig.json.tmp' &amp;&amp; mv '$(OutputPath)$(AssemblyName).runtimeconfig.json.tmp' '$(OutputPath)$(AssemblyName).runtimeconfig.json'" />
+    <Exec Command="cp '$([System.IO.Path]::GetFullPath($(NuGetPackageRoot)))system.drawing.common/9.0.4/lib/net9.0/System.Drawing.Common.dll' '$([System.IO.Path]::GetFullPath($(NuGetPackageRoot)))system.drawing.common/9.0.4/lib/net9.0/System.Private.Windows.Core.dll' '$([System.IO.Path]::GetFullPath($(NuGetPackageRoot)))system.resources.extensions/9.0.4/lib/net9.0/System.Resources.Extensions.dll' '$([System.IO.Path]::GetFullPath($(NuGetPackageRoot)))system.configuration.configurationmanager/9.0.4/lib/net9.0/System.Configuration.ConfigurationManager.dll' '$(OutputPath)'" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.4" />
+    <PackageReference Include="OpenCvSharp4.runtime.linux-x64" Version="4.10.0.20240717" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <PackageReference Include="System.Resources.Extensions" Version="9.0.4" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.4" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

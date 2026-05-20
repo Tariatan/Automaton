@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -102,15 +100,7 @@ internal sealed class LocationChangeTimerDetector
 
     private static Mat LoadLocationChangeTimerFromResources()
     {
-        using var bitmap = Properties.Resources.location_change_timer;
-        if (bitmap is null)
-        {
-            throw new InvalidOperationException("Properties.Resources.location_change_timer returned null.");
-        }
-
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        return EmbeddedResourceLoader.LoadMat("location_change_timer.png");
     }
 }
 

@@ -32,13 +32,20 @@ internal static class TelemetryRootDirectory
 
     public static string? GetConfiguredRootDirectory()
     {
-        var configuredRootDirectory = Settings.Default.TelemetryRootDirectory;
-        if (string.IsNullOrWhiteSpace(configuredRootDirectory))
+        try
+        {
+            var configuredRootDirectory = Settings.Default.TelemetryRootDirectory;
+            if (string.IsNullOrWhiteSpace(configuredRootDirectory))
+            {
+                return null;
+            }
+
+            return configuredRootDirectory;
+        }
+        catch (Exception) when (!OperatingSystem.IsWindows())
         {
             return null;
         }
-
-        return configuredRootDirectory;
     }
 
     public static void SetConfiguredRootDirectory(string rootDirectory)
@@ -50,13 +57,20 @@ internal static class TelemetryRootDirectory
 
     public static string? GetConfiguredHallmarkRootDirectory()
     {
-        var configuredRootDirectory = Settings.Default.HallmarkRootDirectory;
-        if (string.IsNullOrWhiteSpace(configuredRootDirectory))
+        try
+        {
+            var configuredRootDirectory = Settings.Default.HallmarkRootDirectory;
+            if (string.IsNullOrWhiteSpace(configuredRootDirectory))
+            {
+                return null;
+            }
+
+            return configuredRootDirectory;
+        }
+        catch (Exception) when (!OperatingSystem.IsWindows())
         {
             return null;
         }
-
-        return configuredRootDirectory;
     }
 
     public static void SetConfiguredHallmarkRootDirectory(string rootDirectory)

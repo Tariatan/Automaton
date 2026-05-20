@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -10,7 +8,7 @@ internal sealed class HomeStationDetector
     private static readonly double[] TemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20, 1.30];
 
     private readonly AsteroidBeltOverviewDetector m_AsteroidBeltOverviewDetector;
-    private readonly Mat m_HomeStationTemplate = LoadTemplate(Properties.Resources.home_station, "home_station");
+    private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
 
     public HomeStationDetector()
         : this(new AsteroidBeltOverviewDetector())
@@ -121,19 +119,6 @@ internal sealed class HomeStationDetector
         var scaledTemplate = new Mat();
         Cv2.Resize(template, scaledTemplate, new Size(width, height));
         return scaledTemplate;
-    }
-
-    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
-    {
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
-        if (template.Empty())
-        {
-            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
-        }
-
-        return template;
     }
 
     private readonly record struct TemplateLocation(Rect Bounds, double Score);

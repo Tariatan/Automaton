@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -13,8 +11,8 @@ internal sealed class MiningHoldDetector
     private const int FirstRowMinimumBrightPixelCount = 220;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_ItemHangarTemplate = LoadTemplate(Properties.Resources.item_hangar, "item_hangar");
-    private readonly Mat m_MiningHoldTemplate = LoadTemplate(Properties.Resources.mining_hold, "mining_hold");
+    private readonly Mat m_ItemHangarTemplate = EmbeddedResourceLoader.LoadMat("mining.item_hangar.png");
+    private readonly Mat m_MiningHoldTemplate = EmbeddedResourceLoader.LoadMat("mining.mining_hold.png");
 
     public DockedScreenAnalysis Analyze(Mat screen)
     {
@@ -167,19 +165,6 @@ internal sealed class MiningHoldDetector
         var scaledTemplate = new Mat();
         Cv2.Resize(template, scaledTemplate, new Size(width, height));
         return scaledTemplate;
-    }
-
-    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
-    {
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
-        if (template.Empty())
-        {
-            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
-        }
-
-        return template;
     }
 
     private readonly record struct TemplateMatch(Rect Bounds, double Score);

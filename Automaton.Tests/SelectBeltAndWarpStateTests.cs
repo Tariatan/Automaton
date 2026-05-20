@@ -4,7 +4,7 @@ using OpenCvSharp;
 
 namespace Automaton.Tests;
 
-public sealed class EmptyOnUndockStateTests
+public sealed class SelectBeltAndWarpStateTests
 {
     private const ushort VirtualKeyS = 0x53;
 

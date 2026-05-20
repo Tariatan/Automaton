@@ -1,4 +1,3 @@
-using System.Drawing.Imaging;
 using Automaton.Detectors;
 using OpenCvSharp;
 
@@ -1272,10 +1271,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
     private static Mat LoadPlayButtonImage()
     {
-        using var bitmap = Properties.Resources.play;
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        return EmbeddedResourceLoader.LoadMat("play.png");
     }
 
     private static void WritePilotAvatarTemplates(string pilotDirectory, int pilotIndex)

@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -8,7 +6,7 @@ internal sealed class FirstAsteroidWithinReachDetector
 {
     private const double MinimumMetersTemplateMatchScore = 0.27;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
-    private readonly Mat m_DistanceMetersTemplate = LoadTemplate(Properties.Resources.distance_m, "distance_m");
+    private readonly Mat m_DistanceMetersTemplate = EmbeddedResourceLoader.LoadMat("overview.distance_m.png");
 
     public bool Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds)
     {
@@ -142,19 +140,6 @@ internal sealed class FirstAsteroidWithinReachDetector
         var scaledTemplate = new Mat();
         Cv2.Resize(template, scaledTemplate, new Size(width, height));
         return scaledTemplate;
-    }
-
-    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
-    {
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
-        if (template.Empty())
-        {
-            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
-        }
-
-        return template;
     }
 
 }

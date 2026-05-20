@@ -1,5 +1,4 @@
 using OpenCvSharp;
-using System.Drawing.Imaging;
 using Automaton.Detectors;
 
 namespace Automaton.Tests;
@@ -458,19 +457,19 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         switch (popupState)
         {
             case ErrorPopupDetector.PopupState.ConnectionLost:
-                PastePopupTemplate(image, popup, Properties.Resources.icon_warning, 0.06, 0.05);
-                PastePopupTemplate(image, popup, Properties.Resources.title_connection_lost, 0.20, 0.06);
-                PastePopupTemplate(image, popup, Properties.Resources.button_quit, 0.04, 0.84);
+                PastePopupTemplate(image, popup, "popups.icon_warning.png", 0.06, 0.05);
+                PastePopupTemplate(image, popup, "popups.title_connection_lost.png", 0.20, 0.06);
+                PastePopupTemplate(image, popup, "popups.button_quit.png", 0.04, 0.84);
                 break;
             case ErrorPopupDetector.PopupState.SlowDown:
-                PastePopupTemplate(image, popup, Properties.Resources.icon_info, 0.06, 0.06);
-                PastePopupTemplate(image, popup, Properties.Resources.title_slow_down, 0.20, 0.06);
-                PastePopupTemplate(image, popup, Properties.Resources.button_ok, 0.04, 0.80);
+                PastePopupTemplate(image, popup, "popups.icon_info.png", 0.06, 0.06);
+                PastePopupTemplate(image, popup, "popups.title_slow_down.png", 0.20, 0.06);
+                PastePopupTemplate(image, popup, "popups.button_ok.png", 0.04, 0.80);
                 break;
             case ErrorPopupDetector.PopupState.MaximumSubmissions:
-                PastePopupTemplate(image, popup, Properties.Resources.icon_info, 0.06, 0.06);
-                PastePopupTemplate(image, popup, Properties.Resources.title_max_submissions, 0.20, 0.05);
-                PastePopupTemplate(image, popup, Properties.Resources.button_ok, 0.04, 0.80);
+                PastePopupTemplate(image, popup, "popups.icon_info.png", 0.06, 0.06);
+                PastePopupTemplate(image, popup, "popups.title_max_submissions.png", 0.20, 0.05);
+                PastePopupTemplate(image, popup, "popups.button_ok.png", 0.04, 0.80);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(popupState), popupState, null);
@@ -479,9 +478,9 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         return image;
     }
 
-    private static void PastePopupTemplate(Mat image, Rect popup, System.Drawing.Bitmap bitmap, double leftRatio, double topRatio)
+    private static void PastePopupTemplate(Mat image, Rect popup, string resourceFile, double leftRatio, double topRatio)
     {
-        using var template = LoadTemplateImage(bitmap);
+        using var template = EmbeddedResourceLoader.LoadMat(resourceFile);
         var left = popup.X + (int)Math.Round(popup.Width * leftRatio);
         var top = popup.Y + (int)Math.Round(popup.Height * topRatio);
         var width = Math.Min(template.Width, image.Width - left);
@@ -491,18 +490,8 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         source.CopyTo(roi);
     }
 
-    private static Mat LoadTemplateImage(System.Drawing.Bitmap bitmap)
-    {
-        using var stream = new MemoryStream();
-        bitmap.Save(stream, ImageFormat.Png);
-        return Cv2.ImDecode(stream.ToArray(), ImreadModes.Color);
-    }
-
     private static Mat LoadPlayButtonImage()
     {
-        using var bitmap = Properties.Resources.play;
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        return EmbeddedResourceLoader.LoadMat("play.png");
     }
 }

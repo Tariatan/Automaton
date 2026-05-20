@@ -1,5 +1,4 @@
 using OpenCvSharp;
-using System.Drawing.Imaging;
 
 namespace Automaton.Tests;
 
@@ -407,10 +406,7 @@ internal static class SyntheticMiningImageFactory
 
     private static Mat LoadLocationChangeTimer()
     {
-        using var bitmap = Automaton.Properties.Resources.location_change_timer;
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        return EmbeddedResourceLoader.LoadMat("location_change_timer.png");
     }
 
     private static void PasteTemplate(Mat image, Mat template, Point location)
@@ -421,10 +417,7 @@ internal static class SyntheticMiningImageFactory
 
     private static Mat LoadOverviewBelt()
     {
-        using var bitmap = Automaton.Properties.Resources.overview_belt;
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        return Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
+        return EmbeddedResourceLoader.LoadMat("overview.overview_belt.png");
     }
 
 }

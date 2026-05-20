@@ -1,5 +1,3 @@
-using System.Drawing.Imaging;
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -12,9 +10,9 @@ internal sealed class MiningAsteroidDetector
 
     private readonly Mat[] m_AsteroidTemplates =
     [
-        LoadTemplate(Properties.Resources.asteroid_pyroxeres, "asteroid_pyroxeres"),
-        LoadTemplate(Properties.Resources.asteroid_scordite, "asteroid_scordite"),
-        LoadTemplate(Properties.Resources.asteroid_veldspar, "asteroid_veldspar")
+        EmbeddedResourceLoader.LoadMat("mining.asteroid_pyroxeres.png"),
+        EmbeddedResourceLoader.LoadMat("mining.asteroid_scordite.png"),
+        EmbeddedResourceLoader.LoadMat("mining.asteroid_veldspar.png")
     ];
 
     public bool TryLocate(Mat screen)
@@ -98,16 +96,4 @@ internal sealed class MiningAsteroidDetector
         return scaledTemplate;
     }
 
-    private static Mat LoadTemplate(System.Drawing.Bitmap bitmap, string resourceName)
-    {
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Png);
-        var template = Cv2.ImDecode(memoryStream.ToArray(), ImreadModes.Color);
-        if (template.Empty())
-        {
-            throw new InvalidOperationException($"Could not load {resourceName} template from resources.");
-        }
-
-        return template;
-    }
 }
