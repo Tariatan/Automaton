@@ -161,8 +161,8 @@ internal sealed partial class ScreenCaptureService
                 Math.Max(MinimumCaptureDimension, GetSystemMetrics(VirtualScreenHeightMetric)));
         }
 
-        [LibraryImport("user32.dll", EntryPoint = "GetSystemMetricsA")]
-        private static partial int GetSystemMetrics(int nIndex);
+        [DllImport("user32.dll", EntryPoint = "GetSystemMetrics")]
+        private static extern int GetSystemMetrics(int nIndex);
     }
 }
 

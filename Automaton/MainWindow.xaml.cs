@@ -184,9 +184,12 @@ public partial class MainWindow
 
                 if (summary.NoFurtherPilotsAvailable)
                 {
-                    Logger.Information("No further pilots are available. Exiting process safely.");
-                    Application.Current.Shutdown();
-                    Environment.Exit(0);
+                    Logger.Information("No further pilots are available. Switching to mining automation from Login state.");
+                    m_AutomationMode = ApplicationAutomationMode.Mining;
+                    SetMiningStartState(MiningAutomationStateKind.Login);
+                    ApplyAutomationMode();
+                    await StartMiningAutomationAsync(new CancellationTokenSource());
+                    return;
                 }
 
                 if (!summary.RestartFromLauncherRequested)
