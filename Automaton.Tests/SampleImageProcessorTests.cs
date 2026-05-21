@@ -73,7 +73,7 @@ public sealed class SampleImageProcessorTests
 
         Directory.CreateDirectory(Path.Combine(workspace.Path, "samples"));
         CreateDefaultFallbackExample(workspace.Path);
-        SyntheticDiscoveryImageFactory.WriteTwoClusterImage(Path.Combine(workspace.Path, "samples", "05.sample.png"));
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), Path.Combine(workspace.Path, "samples", "05.sample.png"));
         CreateSolidImage(Path.Combine(workspace.Path, "samples", "99.png"), 900, 900);
 
         // Act
@@ -179,7 +179,7 @@ public sealed class SampleImageProcessorTests
         var samplePath = Path.Combine(workspace.Path, "expected", "01.sample.png");
         var expectedPath = Path.Combine(workspace.Path, "expected", "01.sample.expected.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
-        SyntheticDiscoveryImageFactory.WriteTwoClusterImage(samplePath);
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         File.Copy(samplePath, capturePath);
 
         var templatePolygons = new[]
@@ -241,7 +241,7 @@ public sealed class SampleImageProcessorTests
         var samplePath = Path.Combine(workspace.Path, "expected", "02.sample.png");
         var expectedPath = Path.Combine(workspace.Path, "expected", "02.sample.expected.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
-        SyntheticDiscoveryImageFactory.WriteTwoClusterImage(samplePath);
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         File.Copy(samplePath, capturePath);
 
         var templatePolygons = new[]
@@ -303,7 +303,7 @@ public sealed class SampleImageProcessorTests
         var expectedPath = Path.Combine(workspace.Path, "expected", "02.sample.expected.png");
         var maskedExpectedPath = Path.Combine(workspace.Path, "expected", "02.sample.expected.masked.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
-        SyntheticDiscoveryImageFactory.WriteTwoClusterImage(samplePath);
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         File.Copy(samplePath, capturePath);
 
         var templatePolygons = new[]
@@ -366,7 +366,7 @@ public sealed class SampleImageProcessorTests
         var expectedPath = Path.Combine(workspace.Path, "expected", "15.sample.expected.png");
         var maskedExpectedPath = Path.Combine(workspace.Path, "expected", "15.sample.expected.masked.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
-        SyntheticDiscoveryImageFactory.WriteTwoClusterImage(samplePath);
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         File.Copy(samplePath, capturePath);
 
         var templatePolygons = new[]

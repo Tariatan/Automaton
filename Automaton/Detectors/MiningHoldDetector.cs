@@ -1,4 +1,5 @@
 using Automaton.Infrastructure;
+using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -6,8 +7,6 @@ namespace Automaton.Detectors;
 internal sealed class MiningHoldDetector
 {
     private const double MinimumTitleMatchScore = 0.82;
-    private static readonly Rect ItemHangarFirstRowBounds = new(75, 205, 300, 30);
-    private static readonly Rect MiningHoldFirstRowBounds = new(75, 495, 300, 30);
     private const int FirstRowMinimumBrightPixelCount = 220;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
@@ -28,8 +27,8 @@ internal sealed class MiningHoldDetector
         Rect? miningHoldTitleBounds = TryLocateTitle(screen, m_MiningHoldTemplate, searchBounds, out var locatedMiningHoldTitleBounds)
             ? locatedMiningHoldTitleBounds
             : BuildFallbackMiningHoldTitleBounds(screen.Size());
-        Rect? itemHangarFirstRowBounds = ItemHangarFirstRowBounds;
-        Rect? miningHoldFirstRowBounds = MiningHoldFirstRowBounds;
+        Rect? itemHangarFirstRowBounds = Settings.ItemHangarFirstRowBounds;
+        Rect? miningHoldFirstRowBounds = Settings.MiningHoldFirstRowBounds;
         var itemHangarFocused = itemHangarFirstRowBounds is not null && RowLooksFocused(screen, itemHangarFirstRowBounds.Value);
         var miningHoldFocused = miningHoldFirstRowBounds is not null && RowLooksFocused(screen, miningHoldFirstRowBounds.Value);
         var miningHoldContent = miningHoldFirstRowBounds is null

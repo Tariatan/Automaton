@@ -5,7 +5,7 @@ using Automaton.Primitives;
 
 namespace Automaton.Tests;
 
-public sealed class DockedStateTests
+public sealed class UnloadingCargoStateTests
 {
 
     [Fact]
@@ -13,10 +13,9 @@ public sealed class DockedStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var capturePath = Path.Combine(workspace.Path, "docked.png");
-        SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(capturePath);
-        var screenCaptureService = new Helpers.ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
+        var sourcePath = SyntheticMiningImageFactory.GetDockedItemHangarAndMiningHoldVisibleImagePath();
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
         var state = new UnloadingCargoState();
@@ -46,7 +45,8 @@ public sealed class DockedStateTests
         Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.X), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.V), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.C), automationInputController.KeyInputs);
-        Assert.Contains(1000, automationInputController.Delays);
+        Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.V), automationInputController.KeyInputs);
+        Assert.Contains(Delays.OpenHoldMs, automationInputController.Delays);
 
         Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
@@ -57,10 +57,9 @@ public sealed class DockedStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var capturePath = Path.Combine(workspace.Path, "docked.png");
-        SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(capturePath);
-        var screenCaptureService = new Helpers.ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
+        var sourcePath = SyntheticMiningImageFactory.GetDockedItemHangarAndMiningHoldVisibleImagePath();
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
         var state = new UnloadingCargoState(
@@ -90,7 +89,7 @@ public sealed class DockedStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : Helpers.ScreenCaptureService.IScreenCaptureProvider
+        : ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

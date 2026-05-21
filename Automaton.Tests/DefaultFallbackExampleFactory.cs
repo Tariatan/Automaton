@@ -12,7 +12,7 @@ internal static class DefaultFallbackExampleFactory
 
         var samplePath = Path.Combine(expectedDirectory, "05.sample.png");
         var expectedPath = Path.Combine(expectedDirectory, "05.sample.expected.png");
-        SyntheticDiscoveryImageFactory.WriteTwoClusterImage(samplePath);
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         WriteExpectedOverlay(
             samplePath,
             expectedPath,

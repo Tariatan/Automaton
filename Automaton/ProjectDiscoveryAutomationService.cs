@@ -25,7 +25,7 @@ internal sealed class ProjectDiscoveryAutomationService
     private static readonly Scalar DebugOverlayTextColor = new(80, 120, 255);
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
 
-    private readonly Helpers.ScreenCaptureService m_ScreenCaptureService;
+    private readonly ScreenCaptureService m_ScreenCaptureService;
     private readonly IAutomationInputController m_AutomationInputController;
     private readonly IAutomationClock m_AutomationClock;
     private readonly ErrorPopupDetector m_ErrorPopupDetector;
@@ -37,17 +37,17 @@ internal sealed class ProjectDiscoveryAutomationService
     internal bool KeepDebugImages { get; set; } = true;
 
     public ProjectDiscoveryAutomationService()
-        : this(new Helpers.ScreenCaptureService(), new Helpers.AutomationInputController(), new SystemAutomationClock())
+        : this(new ScreenCaptureService(), new AutomationInputController(), new SystemAutomationClock())
     {
     }
 
-    internal ProjectDiscoveryAutomationService(Helpers.ScreenCaptureService screenCaptureService, IAutomationInputController automationInputController)
+    internal ProjectDiscoveryAutomationService(ScreenCaptureService screenCaptureService, IAutomationInputController automationInputController)
         : this(screenCaptureService, automationInputController, new SystemAutomationClock())
     {
     }
 
     internal ProjectDiscoveryAutomationService(
-        Helpers.ScreenCaptureService screenCaptureService,
+        ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
         IAutomationClock automationClock)
     {
@@ -127,7 +127,7 @@ internal sealed class ProjectDiscoveryAutomationService
         CancellationToken cancellationToken)
     {
         Logger.Information("Automation loop starting. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
-        m_AutomationInputController.Delay(Delays.StartupMs, cancellationToken);
+        m_AutomationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         AutomationSummary? lastSummary = null;

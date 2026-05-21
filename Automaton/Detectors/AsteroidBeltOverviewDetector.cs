@@ -69,7 +69,7 @@ internal sealed class AsteroidBeltOverviewDetector
             asteroidBelts);
     }
 
-    private static IReadOnlyList<AsteroidBeltOverviewEntry> LocateAsteroidBelts(
+    private static List<AsteroidBeltOverviewEntry> LocateAsteroidBelts(
         Mat screen,
         Rect overviewBounds,
         Rect homeStationBounds)
@@ -112,10 +112,10 @@ internal sealed class AsteroidBeltOverviewDetector
 
         return rows
             .OrderBy(row => row.Bounds.Y)
-            .ToArray();
+            .ToList();
     }
 
-    private static IReadOnlyList<IReadOnlyList<int>> GroupIconPartCenters(IReadOnlyList<int> iconPartCenters)
+    private static List<List<int>> GroupIconPartCenters(IReadOnlyList<int> iconPartCenters)
     {
         var groups = new List<List<int>>();
         foreach (var center in iconPartCenters.Order())

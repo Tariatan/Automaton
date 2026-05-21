@@ -11,10 +11,9 @@ public sealed class RecoveryStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var dockedPath = Path.Combine(workspace.Path, "docked.png");
-        SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(dockedPath);
-        var screenCaptureService = new Helpers.ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(dockedPath, outputPath, overwrite: true)),
+        var sourcePath = SyntheticMiningImageFactory.GetDockedItemHangarAndMiningHoldVisibleImagePath();
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
         var state = new RecoveryState();
@@ -46,11 +45,9 @@ public sealed class RecoveryStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var undockedPath = Path.Combine(workspace.Path, "undocked.png");
-        using var image = SyntheticMiningImageFactory.CreateUndockedWithoutLocationChangeTimerImage();
-        Cv2.ImWrite(undockedPath, image);
-        var screenCaptureService = new Helpers.ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(undockedPath, outputPath, overwrite: true)),
+        var sourcePath = SyntheticMiningImageFactory.GetUndockedWithoutLocationChangeTimerImagePath();
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
         var state = new RecoveryState();
@@ -78,7 +75,7 @@ public sealed class RecoveryStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : Helpers.ScreenCaptureService.IScreenCaptureProvider
+        : ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

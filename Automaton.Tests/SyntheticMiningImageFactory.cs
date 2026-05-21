@@ -28,21 +28,24 @@ internal static class SyntheticMiningImageFactory
     public static Mat CreateLandedOnAsteroidBeltImageWithMetersDistance()
         => ScreenshotLoader.LoadOrSkip("Mining/landed_on_asteroid_belt_meters_distance.png");
 
-    public static void WriteDockedItemHangarAndMiningHoldVisibleImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Mining/docked_item_hangar_and_mining_hold_visible.png", outputPath);
+    public static string GetDockedItemHangarAndMiningHoldVisibleImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Mining/docked_item_hangar_and_mining_hold_visible.png");
 
-    public static void WriteUndockedCompleteImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Mining/undocked_with_location_change_timer.png", outputPath);
+    public static string GetUndockedWithoutLocationChangeTimerImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Mining/undocked_without_location_change_timer.png");
 
-    public static void WriteWarpToAsteroidFieldImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Mining/warp_to_asteroid_field_overview_visible.png", outputPath);
+    public static string GetUndockedCompleteImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Mining/undocked_with_location_change_timer.png");
 
-    public static void WriteLandedOnAsteroidBeltImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Mining/landed_on_asteroid_belt.png", outputPath);
+    public static string GetWarpToAsteroidFieldImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Mining/warp_to_asteroid_field_overview_visible.png");
 
-    public static void WriteLandedOnEmptyAsteroidBeltImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Mining/landed_on_empty_asteroid_belt.png", outputPath);
+    public static string GetLandedOnAsteroidBeltImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Mining/landed_on_asteroid_belt.png");
 
-    public static void WriteLandedOnAsteroidBeltImageWithMetersDistance(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Mining/landed_on_asteroid_belt_meters_distance.png", outputPath);
+    public static string GetLandedOnEmptyAsteroidBeltImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Mining/landed_on_empty_asteroid_belt.png");
+
+    public static string GetLandedOnAsteroidBeltImageWithMetersDistancePath()
+        => ScreenshotLoader.GetPathOrSkip("Mining/landed_on_asteroid_belt_meters_distance.png");
 }

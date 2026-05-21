@@ -15,12 +15,10 @@ public sealed class SelectBeltAndWarpStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var overviewPath = Path.Combine(workspace.Path, "overview.png");
-        var landedPath = Path.Combine(workspace.Path, "landed.png");
-        SyntheticMiningImageFactory.WriteWarpToAsteroidFieldImage(overviewPath);
-        SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImage(landedPath);
+        var overviewPath = SyntheticMiningImageFactory.GetWarpToAsteroidFieldImagePath();
+        var landedPath = SyntheticMiningImageFactory.GetLandedOnAsteroidBeltImagePath();
         var captureInvocationCount = 0;
-        var screenCaptureService = new Helpers.ScreenCaptureService(
+        var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -73,10 +71,9 @@ public sealed class SelectBeltAndWarpStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var undockedPath = Path.Combine(workspace.Path, "undocked.png");
-        SyntheticMiningImageFactory.WriteUndockedCompleteImage(undockedPath);
-        var screenCaptureService = new Helpers.ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(undockedPath, outputPath, overwrite: true)),
+        var sourcePath = SyntheticMiningImageFactory.GetUndockedCompleteImagePath();
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
@@ -109,7 +106,7 @@ public sealed class SelectBeltAndWarpStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : Helpers.ScreenCaptureService.IScreenCaptureProvider
+        : ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

@@ -4,7 +4,7 @@ using OpenCvSharp;
 namespace Automaton.MiningStates;
 
 internal sealed record MiningAutomationContext(
-    Helpers.ScreenCaptureService ScreenCaptureService,
+    ScreenCaptureService ScreenCaptureService,
     IAutomationInputController AutomationInputController,
     IAutomationClock AutomationClock)
 {
@@ -15,6 +15,8 @@ internal sealed record MiningAutomationContext(
     private const int BeltBoundsTolerance = 8;
     private readonly List<Rect> m_BlacklistedAsteroidBelts = [];
     private Rect? m_CurrentAsteroidBeltBounds;
+
+    public MiningAutomationActionKind LastAction { get; set; }
 
     public int BlacklistedAsteroidBeltCount => m_BlacklistedAsteroidBelts.Count;
 

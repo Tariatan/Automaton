@@ -12,12 +12,10 @@ public sealed class ApproachingAsteroidStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var landedKilometersPath = Path.Combine(workspace.Path, "landed-km.png");
-        var landedMetersPath = Path.Combine(workspace.Path, "landed-m.png");
-        SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImage(landedKilometersPath);
-        SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImageWithMetersDistance(landedMetersPath);
+        var landedKilometersPath = SyntheticMiningImageFactory.GetLandedOnAsteroidBeltImagePath();
+        var landedMetersPath = SyntheticMiningImageFactory.GetLandedOnAsteroidBeltImageWithMetersDistancePath();
         var captureInvocationCount = 0;
-        var screenCaptureService = new Helpers.ScreenCaptureService(
+        var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -64,10 +62,9 @@ public sealed class ApproachingAsteroidStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var landedEmptyPath = Path.Combine(workspace.Path, "landed-empty.png");
-        SyntheticMiningImageFactory.WriteLandedOnEmptyAsteroidBeltImage(landedEmptyPath);
-        var screenCaptureService = new Helpers.ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(landedEmptyPath, outputPath, overwrite: true)),
+        var sourcePath = SyntheticMiningImageFactory.GetLandedOnEmptyAsteroidBeltImagePath();
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new ApproachingAsteroidState();
@@ -97,7 +94,7 @@ public sealed class ApproachingAsteroidStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : Helpers.ScreenCaptureService.IScreenCaptureProvider
+        : ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

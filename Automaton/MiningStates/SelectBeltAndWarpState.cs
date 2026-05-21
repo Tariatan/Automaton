@@ -59,6 +59,14 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             return Recover(capturePath);
         }
 
+        // Failed to detect Home Station in the Belt overview
+        if (analysis.HomeStationBounds is null)
+        {
+            m_Logger.Error("Failed to detect Home Station in the Belt overview");
+            context.AutomationInputController.QuitGame(cancellationToken);
+            return Recover(capturePath);
+        }
+
         // Select Belt overview tab
         context.ClickUiElement(Center(analysis.OverviewBeltButtonBounds.Value), cancellationToken);
 
@@ -169,7 +177,7 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.Recover,
+            MiningAutomationActionKind.QuitGameFromSpace,
             capturePath);
     }
 

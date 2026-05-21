@@ -1,6 +1,5 @@
 using Automaton.Helpers;
 using Automaton.MiningStates;
-using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -13,12 +12,10 @@ public sealed class UndockingStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var undockedPath = Path.Combine(workspace.Path, "undocked.png");
-        var undockedCompletePath = Path.Combine(workspace.Path, "undocked-complete.png");
-        WriteUndockedImage(undockedPath);
-        SyntheticMiningImageFactory.WriteUndockedCompleteImage(undockedCompletePath);
+        var undockedPath = SyntheticMiningImageFactory.GetUndockedWithoutLocationChangeTimerImagePath();
+        var undockedCompletePath = SyntheticMiningImageFactory.GetUndockedCompleteImagePath();
         var captureInvocationCount = 0;
-        var screenCaptureService = new Helpers.ScreenCaptureService(
+        var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -59,14 +56,13 @@ public sealed class UndockingStateTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var undockedPath = Path.Combine(workspace.Path, "undocked.png");
-        WriteUndockedImage(undockedPath);
+        var sourcePath = SyntheticMiningImageFactory.GetUndockedWithoutLocationChangeTimerImagePath();
         var captureInvocationCount = 0;
-        var screenCaptureService = new Helpers.ScreenCaptureService(
+        var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
-                File.Copy(undockedPath, outputPath, overwrite: true);
+                File.Copy(sourcePath, outputPath, overwrite: true);
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -97,14 +93,8 @@ public sealed class UndockingStateTests
         Assert.All(automationInputController.Delays.Skip(1), delay => Assert.Equal(1_000, delay));
     }
 
-    private static void WriteUndockedImage(string outputPath)
-    {
-        using var image = SyntheticMiningImageFactory.CreateUndockedWithoutLocationChangeTimerImage();
-        Cv2.ImWrite(outputPath, image);
-    }
-
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : Helpers.ScreenCaptureService.IScreenCaptureProvider
+        : ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

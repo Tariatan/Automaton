@@ -8,8 +8,8 @@ internal static class Delays
     public const int HoverMs = 200;
 
     // General automation
-    public const int StartupMs = 3_000;
-    public const int StepMs = 500;
+    public const int AutomationStartupDelayMs = 3_000;
+    public const int StateMachineNextStepDelayMs = 500;
 
     // Quit game / window control
     public const int QuitGameConfirmMs = 2_000;
@@ -51,5 +51,5 @@ internal static class Delays
     public const int RecoveryMs = 60_000;
 
     // Mining: unloading cargo
-    public const int OpenHoldMs = 2_000;
+    public const int OpenHoldMs = 3_000;
 }

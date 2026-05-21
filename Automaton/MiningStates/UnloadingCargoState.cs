@@ -7,8 +7,6 @@ namespace Automaton.MiningStates;
 
 internal sealed class UnloadingCargoState : IMiningAutomationState
 {
-    private const string CaptureSuffix = ".mining-docked";
-
     private readonly MiningHoldDetector m_MiningHoldDetector;
     private readonly DowntimeDetector m_DowntimeDetector;
     private readonly ILogger m_Logger;
@@ -39,10 +37,10 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
 
         // Open inventory windows
         context.AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
-        context.AutomationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
         context.AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
+        context.AutomationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
 
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
+        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(Settings.UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var screen = Cv2.ImRead(capturePath);
@@ -55,7 +53,7 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
+                MiningAutomationActionKind.QuitGameFromDock,
                 capturePath);
         }
 

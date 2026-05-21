@@ -18,6 +18,7 @@ public sealed class AsteroidBeltOverviewDetectorTests
         Assert.True(analysis.OverviewLocated);
         Assert.NotNull(analysis.OverviewBounds);
         Assert.NotNull(analysis.OverviewBeltButtonBounds);
+        Assert.NotNull(analysis.HomeStationBounds);
         Assert.Equal(18, analysis.AsteroidBelts.Count);
     }
 }

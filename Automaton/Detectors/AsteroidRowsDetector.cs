@@ -102,3 +102,5 @@ internal static class AsteroidRowsDetector
         return Cv2.CountNonZero(mask) >= MinimumDistanceColumnBrightPixelCount;
     }
 }
+
+internal sealed record AsteroidOverviewEntry(Rect Bounds);

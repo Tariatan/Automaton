@@ -18,8 +18,7 @@ internal static class AsteroidBeltLandingDetector
             return AsteroidBeltLandingAnalysis.NotFound;
         }
 
-        using var searchableScreen = BuildSearchableScreen(screen);
-        var labelBounds = LocateAsteroidBeltLabel(searchableScreen);
+        var labelBounds = LocateAsteroidBeltLabel(screen);
         return labelBounds is null ? AsteroidBeltLandingAnalysis.NotFound : new AsteroidBeltLandingAnalysis(true);
     }
 
@@ -30,7 +29,15 @@ internal static class AsteroidBeltLandingDetector
         using var gray = new Mat();
         using var brightMask = new Mat();
 
-        Cv2.CvtColor(searchRegion, gray, ColorConversionCodes.BGR2GRAY);
+        if (searchRegion.Channels() == 1)
+        {
+            searchRegion.CopyTo(gray);
+        }
+        else
+        {
+            Cv2.CvtColor(searchRegion, gray, ColorConversionCodes.BGR2GRAY);
+        }
+
         Cv2.Threshold(gray, brightMask, 180, BinaryMaskMaxValue, ThresholdTypes.Binary);
 
         var brightPixelCount = Cv2.CountNonZero(brightMask);
@@ -41,13 +48,6 @@ internal static class AsteroidBeltLandingDetector
 
         var localBounds = FindAsteroidBeltLabelBand(brightMask);
         if (localBounds is null)
-        {
-            return null;
-        }
-
-        if (localBounds.Value.Width < MinimumLabelWidth ||
-            localBounds.Value.Height < MinimumLabelHeight ||
-            localBounds.Value.Height > MaximumLabelHeight)
         {
             return null;
         }
@@ -116,38 +116,11 @@ internal static class AsteroidBeltLandingDetector
 
     private static Rect BuildLabelSearchBounds(Size imageSize)
     {
-        return BuildRelativeBounds(imageSize, 0.36, 0.72, 0.32, 0.12);
-    }
-
-    private static Rect BuildRelativeBounds(
-        Size imageSize,
-        double leftRatio,
-        double topRatio,
-        double widthRatio,
-        double heightRatio)
-    {
-        var left = (int)Math.Round(imageSize.Width * leftRatio);
-        var top = (int)Math.Round(imageSize.Height * topRatio);
-        var width = (int)Math.Round(imageSize.Width * widthRatio);
-        var height = (int)Math.Round(imageSize.Height * heightRatio);
-
-        left = Math.Clamp(left, 0, Math.Max(0, imageSize.Width - 1));
-        top = Math.Clamp(top, 0, Math.Max(0, imageSize.Height - 1));
-        width = Math.Clamp(width, 1, imageSize.Width - left);
-        height = Math.Clamp(height, 1, imageSize.Height - top);
+        var left = (int)Math.Round(imageSize.Width * 0.36);
+        var top = (int)Math.Round(imageSize.Height * 0.72);
+        var width = (int)Math.Round(imageSize.Width * 0.32);
+        var height = (int)Math.Round(imageSize.Height * 0.12);
         return new Rect(left, top, width, height);
-    }
-
-    private static Mat BuildSearchableScreen(Mat screen)
-    {
-        if (screen.Channels() == 3)
-        {
-            return screen.Clone();
-        }
-
-        var colorScreen = new Mat();
-        Cv2.CvtColor(screen, colorScreen, ColorConversionCodes.GRAY2BGR);
-        return colorScreen;
     }
 }
 
@@ -155,5 +128,3 @@ internal sealed record AsteroidBeltLandingAnalysis(bool LandedOnAsteroidBelt)
 {
     public static AsteroidBeltLandingAnalysis NotFound { get; } = new(false);
 }
-
-internal sealed record AsteroidOverviewEntry(Rect Bounds);

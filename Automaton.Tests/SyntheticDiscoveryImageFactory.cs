@@ -34,30 +34,21 @@ internal static class SyntheticDiscoveryImageFactory
     public static Mat CreateWideScreenMaximumSubmissionsPopupImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/wide_screen_maximum_submissions_popup.png");
 
-    public static void WriteSingleClusterImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/active_playfield_single_cluster.png", outputPath);
+    public static string GetSingleClusterImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_single_cluster.png");
 
-    public static void WriteTwoClusterImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/active_playfield_two_clusters.png", outputPath);
+    public static string GetTwoClusterImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_two_clusters.png");
 
-    public static void WriteFourClusterImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/active_playfield_four_clusters.png", outputPath);
+    public static string GetMaximumSubmissionsPopupImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Discovery/maximum_submissions_popup.png");
 
-    public static void WriteSparseLowerClusterImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/active_playfield_sparse_lower_cluster.png", outputPath);
+    public static string GetMaximumSubmissionsPopupImageWithPlayfieldPath()
+        => ScreenshotLoader.GetPathOrSkip("Discovery/maximum_submissions_popup_with_playfield.png");
 
-    public static void WriteMultiSizeClusterImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/active_playfield_multi_size_clusters.png", outputPath);
+    public static string GetSlowDownPopupImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Discovery/slow_down_popup.png");
 
-    public static void WriteMaximumSubmissionsPopupImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/maximum_submissions_popup.png", outputPath);
-
-    public static void WriteMaximumSubmissionsPopupImageWithPlayfield(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/maximum_submissions_popup_with_playfield.png", outputPath);
-
-    public static void WriteSlowDownPopupImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/slow_down_popup.png", outputPath);
-
-    public static void WriteConnectionLostPopupImage(string outputPath)
-        => ScreenshotLoader.CopyOrSkip("Discovery/connection_lost_popup.png", outputPath);
+    public static string GetConnectionLostPopupImagePath()
+        => ScreenshotLoader.GetPathOrSkip("Discovery/connection_lost_popup.png");
 }

@@ -13,12 +13,12 @@ internal sealed class MiningAutomationService
     private IMiningAutomationState m_CurrentState;
 
     public MiningAutomationService()
-        : this(new Helpers.ScreenCaptureService(), new Helpers.AutomationInputController(), new SystemAutomationClock())
+        : this(new ScreenCaptureService(), new AutomationInputController(), new SystemAutomationClock())
     {
     }
 
     private MiningAutomationService(
-        Helpers.ScreenCaptureService screenCaptureService,
+        ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
         IAutomationClock automationClock)
     {
@@ -32,7 +32,7 @@ internal sealed class MiningAutomationService
     {
         m_CurrentState = CreateState(startingState);
         Logger.Information("Mining automation loop starting. StartingState={StartingState}", startingState);
-        m_Context.AutomationInputController.Delay(Delays.StartupMs, cancellationToken);
+        m_Context.AutomationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         MiningAutomationStepSummary? lastSummary = null;
@@ -52,7 +52,7 @@ internal sealed class MiningAutomationService
                     return lastSummary;
                 }
 
-                m_Context.AutomationInputController.Delay(Delays.StepMs, cancellationToken);
+                m_Context.AutomationInputController.Delay(Delays.StateMachineNextStepDelayMs, cancellationToken);
             }
         }
         catch (OperationCanceledException) when (lastSummary is not null)
@@ -79,6 +79,7 @@ internal sealed class MiningAutomationService
             transition.NextState,
             transition.Action,
             transition.CapturePath);
+        m_Context.LastAction = transition.Action;
         m_CurrentState = CreateState(transition.NextState);
 
         return new MiningAutomationStepSummary(
@@ -114,6 +115,7 @@ internal sealed record MiningAutomationStepSummary(
 
 internal enum MiningAutomationStateKind
 {
+    None,
     StartingGame,
     Login,
     Dock,
@@ -123,7 +125,7 @@ internal enum MiningAutomationStateKind
     ApproachingAsteroid,
     Mining,
     UnloadCargo,
-    Recovery
+    Recovery,
 }
 
 internal enum MiningAutomationActionKind
@@ -139,6 +141,8 @@ internal enum MiningAutomationActionKind
     ApproachAsteroid,
     ActivateMiningLasers,
     UnloadCargo,
+    QuitGameFromSpace,
+    QuitGameFromDock,
     QuitGameAndExitApplication,
     Recover
 }
