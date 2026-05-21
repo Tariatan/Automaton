@@ -1,11 +1,10 @@
 using System.IO;
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Automaton.Properties;
-using Automaton.MiningStates;
+using Microsoft.Win32;
 using Serilog;
 
 namespace Automaton;
@@ -300,7 +299,7 @@ public partial class MainWindow
         Settings.Default.FormLocation = new Point(Left, Top);
         Settings.Default.Save();
         var windowInteropHelper = new WindowInteropHelper(this);
-        UnregisterHotKey(windowInteropHelper.Handle, HotKeyId);
+        _ = UnregisterHotKey(windowInteropHelper.Handle, HotKeyId);
         m_WindowSource?.RemoveHook(WindowMessageHook);
         m_WindowSource = null;
     }
@@ -329,11 +328,13 @@ public partial class MainWindow
         return IntPtr.Zero;
     }
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+    [LibraryImport("user32.dll", EntryPoint = "RegisterHotKeyA", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    [LibraryImport("user32.dll", EntryPoint = "UnregisterHotKeyA", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool UnregisterHotKey(IntPtr hWnd, int id);
 
     private static bool IsWindowPositionVisible(Point position)
     {
@@ -541,11 +542,6 @@ public partial class MainWindow
     private void MiningLoginMenuItem_Click(object sender, RoutedEventArgs e)
     {
         SetMiningStartState(MiningAutomationStateKind.Login);
-    }
-
-    private void MiningDockedMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.UnloadCargo);
     }
 
     private void MiningDockMenuItem_Click(object sender, RoutedEventArgs e)

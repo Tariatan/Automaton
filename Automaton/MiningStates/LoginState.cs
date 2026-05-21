@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Utilities;
 using OpenCvSharp;
 using Serilog;
 
@@ -7,24 +8,17 @@ namespace Automaton.MiningStates;
 internal sealed class LoginState : IMiningAutomationState
 {
     private const int PilotIndex = 2;
-    private const int PilotLoginDelayMilliseconds = 20_000;
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyW = 0x57;
-    private const ushort VirtualKeyShift = 0x10;
-    private const ushort VirtualKeyF9 = 0x78;
     private const string CaptureSuffix = ".mining-login";
 
-    private readonly PilotAvatarLocator m_PilotAvatarLocator;
     private readonly ILogger m_Logger;
 
     public LoginState()
-        : this(new PilotAvatarLocator(), Log.ForContext<LoginState>())
+        : this(Log.ForContext<LoginState>())
     {
     }
 
-    internal LoginState(PilotAvatarLocator pilotAvatarLocator, ILogger? logger = null)
+    private LoginState(ILogger? logger = null)
     {
-        m_PilotAvatarLocator = pilotAvatarLocator;
         m_Logger = logger ?? Log.ForContext<LoginState>();
     }
 
@@ -40,7 +34,7 @@ internal sealed class LoginState : IMiningAutomationState
         cancellationToken.ThrowIfCancellationRequested();
 
         using var screen = Cv2.ImRead(capturePath);
-        if (!m_PilotAvatarLocator.TryLocate(screen, PilotIndex, out var pilotLocation))
+        if (!PilotAvatarLocator.TryLocate(screen, PilotIndex, out var pilotLocation))
         {
             return new MiningAutomationStateTransition(
                 Kind,
@@ -56,15 +50,15 @@ internal sealed class LoginState : IMiningAutomationState
         context.AutomationInputController.LeftClick(cancellationToken);
 
         // Wait for the full login
-        context.AutomationInputController.Delay(PilotLoginDelayMilliseconds, cancellationToken);
+        context.AutomationInputController.Delay(Delays.MiningPilotLoginMs, cancellationToken);
 
         // Close any potential spam window
         m_Logger.Information("Close any potential spam window");
-        context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyW, cancellationToken);
+        context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
 
         // Hide GUI
         m_Logger.Information("Hide UI");
-        context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyShift, VirtualKeyF9, cancellationToken);
+        context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
 
         return new MiningAutomationStateTransition(
             Kind,

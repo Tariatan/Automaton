@@ -1,13 +1,11 @@
-using Automaton.Detectors;
 using Automaton.MiningStates;
+using Automaton.Utilities;
 using Serilog;
 
 namespace Automaton;
 
 internal sealed class MiningAutomationService
 {
-    private const int StartupDelayMilliseconds = 3_000;
-    private const int StepDelayMilliseconds = 500;
     private static readonly ILogger Logger = Log.ForContext<MiningAutomationService>();
 
     private readonly MiningAutomationContext m_Context;
@@ -18,7 +16,7 @@ internal sealed class MiningAutomationService
     {
     }
 
-    internal MiningAutomationService(
+    private MiningAutomationService(
         ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
         IAutomationClock automationClock)
@@ -33,7 +31,7 @@ internal sealed class MiningAutomationService
     {
         m_CurrentState = CreateState(startingState);
         Logger.Information("Mining automation loop starting. StartingState={StartingState}", startingState);
-        m_Context.AutomationInputController.Delay(StartupDelayMilliseconds, cancellationToken);
+        m_Context.AutomationInputController.Delay(Delays.StartupMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         MiningAutomationStepSummary? lastSummary = null;
@@ -53,7 +51,7 @@ internal sealed class MiningAutomationService
                     return lastSummary;
                 }
 
-                m_Context.AutomationInputController.Delay(StepDelayMilliseconds, cancellationToken);
+                m_Context.AutomationInputController.Delay(Delays.StepMs, cancellationToken);
             }
         }
         catch (OperationCanceledException) when (lastSummary is not null)
@@ -70,7 +68,7 @@ internal sealed class MiningAutomationService
         return lastSummary ?? throw new OperationCanceledException(cancellationToken);
     }
 
-    public MiningAutomationStepSummary ExecuteSingleStep(CancellationToken cancellationToken)
+    private MiningAutomationStepSummary ExecuteSingleStep(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var transition = m_CurrentState.Execute(m_Context, cancellationToken);
@@ -86,11 +84,7 @@ internal sealed class MiningAutomationService
             transition.State,
             transition.NextState,
             transition.Action,
-            transition.CapturePath,
-            transition.DockedScreen,
-            transition.LocationChangeTimer,
-            transition.AsteroidBeltOverview,
-            transition.AsteroidBeltLanding);
+            transition.CapturePath);
     }
 
     private static IMiningAutomationState CreateState(MiningAutomationStateKind stateKind)
@@ -115,11 +109,7 @@ internal sealed record MiningAutomationStepSummary(
     MiningAutomationStateKind State,
     MiningAutomationStateKind NextState,
     MiningAutomationActionKind Action,
-    string? CapturePath,
-    DockedScreenAnalysis? DockedScreen,
-    LocationChangeTimerLocation? LocationChangeTimer = null,
-    AsteroidBeltOverviewAnalysis? AsteroidBeltOverview = null,
-    AsteroidBeltLandingAnalysis? AsteroidBeltLanding = null);
+    string? CapturePath);
 
 internal enum MiningAutomationStateKind
 {

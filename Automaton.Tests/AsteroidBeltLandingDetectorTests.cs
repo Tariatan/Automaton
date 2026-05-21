@@ -9,10 +9,9 @@ public sealed class AsteroidBeltLandingDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImage();
-        var detector = new AsteroidBeltLandingDetector();
 
         // Act
-        var analysis = detector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Analyze(image);
 
         // Assert
         Assert.True(analysis.LandedOnAsteroidBelt);
@@ -23,10 +22,9 @@ public sealed class AsteroidBeltLandingDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateWarpToAsteroidFieldImage();
-        var detector = new AsteroidBeltLandingDetector();
 
         // Act
-        var analysis = detector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Analyze(image);
 
         // Assert
         Assert.False(analysis.LandedOnAsteroidBelt);
@@ -37,10 +35,9 @@ public sealed class AsteroidBeltLandingDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateWarpDriveActiveImage();
-        var detector = new AsteroidBeltLandingDetector();
 
         // Act
-        var analysis = detector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Analyze(image);
 
         // Assert
         Assert.False(analysis.LandedOnAsteroidBelt);
@@ -51,10 +48,9 @@ public sealed class AsteroidBeltLandingDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateLandedOnEmptyAsteroidBeltImage();
-        var detector = new AsteroidBeltLandingDetector();
 
         // Act
-        var analysis = detector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Analyze(image);
 
         // Assert
         Assert.True(analysis.LandedOnAsteroidBelt);
@@ -65,10 +61,9 @@ public sealed class AsteroidBeltLandingDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImageWithMetersDistance();
-        var detector = new AsteroidBeltLandingDetector();
 
         // Act
-        var analysis = detector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Analyze(image);
 
         // Assert
         Assert.True(analysis.LandedOnAsteroidBelt);

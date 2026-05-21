@@ -1,12 +1,12 @@
 using Automaton.MiningStates;
+using Automaton.Utilities;
 using OpenCvSharp;
 
 namespace Automaton.Tests;
 
 public sealed class LoginStateTests
 {
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyW = 0x57;
+    private static readonly int[] Expected = [20_000];
 
     [Fact]
     public void Execute_PilotTwoFound_LogsInPilotAndTransitionsToDocked()
@@ -45,9 +45,9 @@ public sealed class LoginStateTests
         Assert.Single(automationInputControllerMock.MoveTargets);
         Assert.Equal(new Point(272, 212), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal(new[] { 20_000 }, automationInputControllerMock.Delays);
+        Assert.Equal(Expected, automationInputControllerMock.Delays);
         Assert.Single(automationInputControllerMock.KeyInputs);
-        AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
     }
 
     [Fact]

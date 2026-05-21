@@ -415,7 +415,7 @@ internal sealed class PlayfieldDetector
 
 internal sealed record PlayfieldDetectionResult(Rect Bounds, IReadOnlyList<Rect> MarkerBounds)
 {
-    public static PlayfieldDetectionResult NotFound { get; } = new(new Rect(), Array.Empty<Rect>());
+    public static PlayfieldDetectionResult NotFound { get; } = new(new Rect(), []);
 
     public bool IsFound => Bounds is { Width: > 0, Height: > 0 };
 }

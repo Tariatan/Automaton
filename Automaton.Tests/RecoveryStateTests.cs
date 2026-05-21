@@ -1,4 +1,5 @@
 using Automaton.MiningStates;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -46,7 +47,7 @@ public sealed class RecoveryStateTests
         using var workspace = new TemporaryDirectory();
         var undockedPath = Path.Combine(workspace.Path, "undocked.png");
         using var image = SyntheticMiningImageFactory.CreateUndockedWithoutLocationChangeTimerImage();
-        OpenCvSharp.Cv2.ImWrite(undockedPath, image);
+        Cv2.ImWrite(undockedPath, image);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(undockedPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
@@ -88,7 +89,7 @@ public sealed class RecoveryStateTests
     {
         public List<int> Delays { get; } = [];
 
-        public void MoveTo(OpenCvSharp.Point point)
+        public void MoveTo(Point point)
         {
         }
 

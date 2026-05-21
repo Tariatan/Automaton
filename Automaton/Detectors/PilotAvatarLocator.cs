@@ -9,7 +9,7 @@ internal sealed class PilotAvatarLocator
     private const double MinimumMatchScore = 0.90;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10];
 
-    public bool TryGetNextPilotIndex(int currentPilotIndex, out int nextPilotIndex)
+    public static bool TryGetNextPilotIndex(int currentPilotIndex, out int nextPilotIndex)
     {
         var availablePilotIndices = GetAvailablePilotIndices();
         foreach (var pilotIndex in availablePilotIndices)
@@ -25,7 +25,7 @@ internal sealed class PilotAvatarLocator
         return false;
     }
 
-    public bool TryLocate(Mat screen, int pilotIndex, out PilotAvatarLocation location)
+    public static bool TryLocate(Mat screen, int pilotIndex, out PilotAvatarLocation location)
     {
         location = default;
         if (screen.Empty() || !Directory.Exists(PilotFolderName))
@@ -61,11 +61,11 @@ internal sealed class PilotAvatarLocator
         return true;
     }
 
-    private static IReadOnlyList<int> GetAvailablePilotIndices()
+    private static int [] GetAvailablePilotIndices()
     {
         if (!Directory.Exists(PilotFolderName))
         {
-            return Array.Empty<int>();
+            return [];
         }
 
         return Directory
@@ -132,7 +132,7 @@ internal sealed class PilotAvatarLocator
             var bounds = new Rect(locationPoint.X, locationPoint.Y, scaledTemplate.Width, scaledTemplate.Height);
             if (bestLocation is null || score > bestLocation.Value.Score)
             {
-                bestLocation = new PilotAvatarLocation(bounds, candidate.Path, score);
+                bestLocation = new PilotAvatarLocation(bounds, score);
             }
         }
 
@@ -188,5 +188,4 @@ internal sealed class PilotAvatarLocator
 
 internal readonly record struct PilotAvatarLocation(
     Rect Bounds,
-    string TemplatePath,
     double Score);

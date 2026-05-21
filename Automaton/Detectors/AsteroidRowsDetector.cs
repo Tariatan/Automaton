@@ -2,7 +2,7 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class AsteroidRowsDetector
+internal static class AsteroidRowsDetector
 {
     private const int MinimumAsteroidIconArea = 2;
     private const int MaximumAsteroidIconWidth = 20;
@@ -11,7 +11,7 @@ internal sealed class AsteroidRowsDetector
     private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 110;
     private const int MinimumDistanceColumnBrightPixelCount = 10;
 
-    public IReadOnlyList<AsteroidOverviewEntry> Locate(Mat screen, Rect mineOverviewBounds)
+    public static IReadOnlyList<AsteroidOverviewEntry> Locate(Mat screen, Rect mineOverviewBounds)
     {
         if (screen.Empty())
         {

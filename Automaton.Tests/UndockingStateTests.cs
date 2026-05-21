@@ -1,9 +1,12 @@
 using Automaton.MiningStates;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
 public sealed class UndockingStateTests
 {
+    private static readonly int[] Expected = [15_000, 1_000, 1_000];
+
     [Fact]
     public void Execute_LocationChangeTimerAppears_TransitionsToEmptyOnUndock()
     {
@@ -46,9 +49,8 @@ public sealed class UndockingStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.CompleteUndock, transition.Action);
-        Assert.NotNull(transition.LocationChangeTimer);
         Assert.Equal(3, captureInvocationCount);
-        Assert.Equal(new[] { 15_000, 1_000, 1_000 }, automationInputController.Delays);
+        Assert.Equal(Expected, automationInputController.Delays);
     }
 
     [Fact]
@@ -88,7 +90,6 @@ public sealed class UndockingStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Null(transition.LocationChangeTimer);
         Assert.Equal(15, captureInvocationCount);
         Assert.Equal(16, automationInputController.Delays.Count);
         Assert.Equal(15_000, automationInputController.Delays[0]);
@@ -98,7 +99,7 @@ public sealed class UndockingStateTests
     private static void WriteUndockedImage(string outputPath)
     {
         using var image = SyntheticMiningImageFactory.CreateUndockedWithoutLocationChangeTimerImage();
-        OpenCvSharp.Cv2.ImWrite(outputPath, image);
+        Cv2.ImWrite(outputPath, image);
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)

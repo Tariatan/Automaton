@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Utilities;
 using OpenCvSharp;
 using Serilog;
 
@@ -6,9 +7,6 @@ namespace Automaton.MiningStates;
 
 internal sealed class StartingGameState : IMiningAutomationState
 {
-    private const int LauncherStartupDelayMilliseconds = 20_000;
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyW = 0x57;
     private const string CaptureSuffix = ".mining-starting-game";
 
     private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
@@ -19,7 +17,7 @@ internal sealed class StartingGameState : IMiningAutomationState
     {
     }
 
-    internal StartingGameState(PlayNowButtonLocator playNowButtonLocator, ILogger? logger = null)
+    private StartingGameState(PlayNowButtonLocator playNowButtonLocator, ILogger? logger = null)
     {
         m_PlayNowButtonLocator = playNowButtonLocator;
         m_Logger = logger ?? Log.ForContext<StartingGameState>();
@@ -48,8 +46,8 @@ internal sealed class StartingGameState : IMiningAutomationState
 
         context.AutomationInputController.MoveTo(Center(playButtonLocation.Bounds));
         context.AutomationInputController.LeftClick(cancellationToken);
-        context.AutomationInputController.Delay(LauncherStartupDelayMilliseconds, cancellationToken);
-        context.AutomationInputController.PressKeyChord(VirtualKeyControl, VirtualKeyW, cancellationToken);
+        context.AutomationInputController.Delay(Delays.MiningLauncherStartupMs, cancellationToken);
+        context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Login,

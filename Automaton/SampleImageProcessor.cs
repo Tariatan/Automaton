@@ -95,7 +95,6 @@ internal sealed class SampleImageProcessor
     private static readonly ILogger Logger = Log.ForContext<SampleImageProcessor>();
 
     private readonly PlayfieldDetector m_PlayfieldDetector = new();
-    private readonly ErrorPopupDetector m_ErrorPopupDetector = new();
     private readonly PlayNowButtonLocator m_PlayNowButtonLocator = new();
     private readonly KnownSampleMatcher m_KnownSampleMatcher;
 
@@ -155,17 +154,12 @@ internal sealed class SampleImageProcessor
         return new SampleProcessingSummary(samplesDirectory, results);
     }
 
-    public SampleProcessingResult ProcessImageFile(string imagePath)
+    private SampleProcessingResult ProcessImageFile(string imagePath)
     {
         return AnalyzeImageFile(imagePath, writeAnnotatedOutput: true).Result;
     }
 
-    internal SampleImageAnalysisResult AnalyzeImageFile(string imagePath)
-    {
-        return AnalyzeImageFile(imagePath, writeAnnotatedOutput: true);
-    }
-
-    internal SampleImageAnalysisResult AnalyzeImageFile(string imagePath, bool writeAnnotatedOutput)
+    internal SampleImageAnalysisResult AnalyzeImageFile(string imagePath, bool writeAnnotatedOutput = true)
     {
         using var image = Cv2.ImRead(imagePath);
         if (image.Empty())
@@ -179,12 +173,12 @@ internal sealed class SampleImageProcessor
         var usedKnownSampleTemplate = false;
         string? matchedSampleFileName = null;
         var popupDetection = m_PlayNowButtonLocator.TryLocate(image, out _)
-            ? new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect(), false)
-            : m_ErrorPopupDetector.DetectPopup(image);
+            ? new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect())
+            : ErrorPopupDetector.DetectPopup(image);
 
         if (popupDetection.State != ErrorPopupDetector.PopupState.None)
         {
-            polygons = Array.Empty<Point[]>();
+            polygons = [];
             playfieldDetection = PlayfieldDetectionResult.NotFound;
         }
         else if (playfieldDetection.IsFound)
@@ -372,7 +366,7 @@ internal sealed class SampleImageProcessor
                 continue;
             }
 
-            IReadOnlyList<Point[]> localPolygons = Array.Empty<Point[]>();
+            IReadOnlyList<Point[]> localPolygons = [];
             if (ShouldAttemptMultiPolygonSplit(area))
             {
                 localPolygons = TryBuildCandidateComponentPolygons(contour, candidateMask, clusterMask.Size());
@@ -427,7 +421,7 @@ internal sealed class SampleImageProcessor
             .ToList();
     }
 
-    internal static void TryRecoverSparseLowerCluster(Mat candidateMask, Size bounds, IList<Point[]> polygons)
+    private static void TryRecoverSparseLowerCluster(Mat candidateMask, Size bounds, IList<Point[]> polygons)
     {
         if (polygons.Count != 1)
         {
@@ -617,7 +611,7 @@ internal sealed class SampleImageProcessor
         var contourBounds = Cv2.BoundingRect(contour);
         if (!ShouldAttemptSideBySideSplit(contourBounds))
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
@@ -671,7 +665,7 @@ internal sealed class SampleImageProcessor
         if (contourBounds.Height < MinimumSplitSegmentHeight * 2 ||
             contourBounds.Height < contourBounds.Width * MinimumSplitAspectRatio)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
@@ -695,28 +689,28 @@ internal sealed class SampleImageProcessor
         }
         if (candidatePoints is null || candidatePoints.Length < MinimumSplitPointCount)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var splitRow = TryFindVerticalSplitRow(maskedDensity, contourBounds.Height) ??
                        TryFindVerticalSplitRow(candidatePoints, contourBounds.Height);
         if (splitRow is null)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var topPoints = candidatePoints.Where(point => point.Y <= splitRow.Value).ToArray();
         var bottomPoints = candidatePoints.Where(point => point.Y > splitRow.Value).ToArray();
         if (topPoints.Length < MinimumSplitPointCount || bottomPoints.Length < MinimumSplitPointCount)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var topHeight = topPoints.Max(point => point.Y) - topPoints.Min(point => point.Y) + 1;
         var bottomHeight = bottomPoints.Max(point => point.Y) - bottomPoints.Min(point => point.Y) + 1;
         if (topHeight < MinimumSplitSegmentHeight || bottomHeight < MinimumSplitSegmentHeight)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var splitY = contourBounds.Y + splitRow.Value;
@@ -728,7 +722,7 @@ internal sealed class SampleImageProcessor
             splitY + SplitPolygonSeparationPixels);
         if (topPolygon.Length < 3 || bottomPolygon.Length < 3)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         return [topPolygon, bottomPolygon];
@@ -762,14 +756,14 @@ internal sealed class SampleImageProcessor
 
         if (candidatePoints is null || candidatePoints.Length < MinimumSplitPointCount * 2)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         Cv2.GaussianBlur(maskedDensity, blurred, new Size(0, 0), DensitySeedBlurSigma, DensitySeedBlurSigma);
         Cv2.MinMaxLoc(blurred, out double _, out var maxValue);
         if (maxValue <= double.Epsilon)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var thresholdValue = Math.Max(1.0, maxValue * DensitySeedThresholdRatio);
@@ -791,13 +785,13 @@ internal sealed class SampleImageProcessor
 
         if (seedCenters.Count < 2)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         seedCenters = ReduceSeedCenters(seedCenters);
         if (seedCenters.Count < 2 || seedCenters.Count > MaximumDensitySeedCount)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var groupedPoints = new List<Point>[seedCenters.Count];
@@ -843,7 +837,7 @@ internal sealed class SampleImageProcessor
         var candidatePoints = TryGetContourCandidatePoints(contour, contourBounds, candidateMask);
         if (candidatePoints.Length < MinimumSplitPointCount * 2)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         List<Point[]> bestPolygons = [];
@@ -873,7 +867,7 @@ internal sealed class SampleImageProcessor
         if (contourBounds.Width < MinimumSplitSegmentWidth * 2 ||
             !ShouldAttemptSideBySideSplit(contourBounds))
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
@@ -898,28 +892,28 @@ internal sealed class SampleImageProcessor
 
         if (candidatePoints is null || candidatePoints.Length < MinimumSplitPointCount)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var splitColumn = TryFindHorizontalSplitColumn(maskedDensity, contourBounds.Width) ??
                           TryFindHorizontalSplitColumn(candidatePoints, contourBounds.Width);
         if (splitColumn is null)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var leftPoints = candidatePoints.Where(point => point.X <= splitColumn.Value).ToArray();
         var rightPoints = candidatePoints.Where(point => point.X > splitColumn.Value).ToArray();
         if (leftPoints.Length < MinimumSplitPointCount || rightPoints.Length < MinimumSplitPointCount)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var leftWidth = leftPoints.Max(point => point.X) - leftPoints.Min(point => point.X) + 1;
         var rightWidth = rightPoints.Max(point => point.X) - rightPoints.Min(point => point.X) + 1;
         if (leftWidth < MinimumSplitSegmentWidth || rightWidth < MinimumSplitSegmentWidth)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var splitX = contourBounds.X + splitColumn.Value;
@@ -931,7 +925,7 @@ internal sealed class SampleImageProcessor
             splitX + SplitPolygonSeparationPixels);
         if (leftPolygon.Length < 3 || rightPolygon.Length < 3)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         return [leftPolygon, rightPolygon];
@@ -978,7 +972,7 @@ internal sealed class SampleImageProcessor
             : null;
     }
 
-    internal static int? TryFindVerticalSplitRow(Mat weightedDensityMask, int height)
+    private static int? TryFindVerticalSplitRow(Mat weightedDensityMask, int height)
     {
         if (height < MinimumSplitSegmentHeight * 2)
         {
@@ -1035,7 +1029,7 @@ internal sealed class SampleImageProcessor
             : null;
     }
 
-    internal static int? TryFindHorizontalSplitColumn(Mat weightedDensityMask, int width)
+    private static int? TryFindHorizontalSplitColumn(Mat weightedDensityMask, int width)
     {
         if (width < MinimumSplitSegmentWidth * 2)
         {
@@ -1316,7 +1310,7 @@ internal sealed class SampleImageProcessor
     {
         if (Cv2.CountNonZero(mask) == 0)
         {
-            return Array.Empty<Point>();
+            return [];
         }
 
         using var paddedMask = new Mat();
@@ -1344,7 +1338,7 @@ internal sealed class SampleImageProcessor
             .FirstOrDefault();
         if (expandedContour is null || expandedContour.Length < 3)
         {
-            return Array.Empty<Point>();
+            return [];
         }
 
         var balloonContour = BalloonizePolygon(expandedContour, bounds);
@@ -2311,7 +2305,7 @@ internal sealed class SampleImageProcessor
             sourcePlayfieldSize.Width <= 0 ||
             sourcePlayfieldSize.Height <= 0)
         {
-            return Array.Empty<Point[]>();
+            return [];
         }
 
         var scaleX = targetPlayfield.Width / (double)sourcePlayfieldSize.Width;
@@ -2329,7 +2323,7 @@ internal sealed class SampleImageProcessor
     {
         return m_KnownSampleMatcher.TryLoadDefaultFallbackScreenPolygons(out var fallbackPolygons)
             ? fallbackPolygons
-            : Array.Empty<Point[]>();
+            : [];
     }
 
     private static void DrawDebugOverlay(Mat annotated, PlayfieldDetectionResult playfieldDetection, IReadOnlyList<Point[]> polygons)
@@ -2385,7 +2379,7 @@ internal sealed class SampleImageProcessor
             _ => "Popup detected"
         };
 
-        if (popupDetection.Bounds.Width > 0 && popupDetection.Bounds.Height > 0)
+        if (popupDetection.Bounds is { Width: > 0, Height: > 0 })
         {
             Cv2.Rectangle(annotated, popupDetection.Bounds, new Scalar(70, 150, 255), OverlayStrokeThickness);
         }

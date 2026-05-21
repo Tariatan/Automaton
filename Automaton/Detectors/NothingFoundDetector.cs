@@ -2,7 +2,7 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class NothingFoundDetector
+internal static class NothingFoundDetector
 {
     private const int MinimumBrightPixelCount = 180;
     private const int MinimumGlyphArea = 80;
@@ -11,7 +11,7 @@ internal sealed class NothingFoundDetector
     private const int MinimumLineCount = 2;
     private const int WideLineWidth = 80;
 
-    public bool Detect(Mat screen, Rect mineOverviewBounds)
+    public static bool Detect(Mat screen, Rect mineOverviewBounds)
     {
         if (screen.Empty())
         {
@@ -42,17 +42,11 @@ internal sealed class NothingFoundDetector
         var lineBounds = contours
             .Select(Cv2.BoundingRect)
             .Where(bounds =>
-                bounds.Width >= MinimumLineWidth &&
-                bounds.Height >= MinimumLineHeight &&
+                bounds is { Width: >= MinimumLineWidth, Height: >= MinimumLineHeight } &&
                 bounds.Width * bounds.Height >= MinimumGlyphArea)
             .ToArray();
 
-        if (lineBounds.Length >= MinimumLineCount)
-        {
-            return true;
-        }
-
-        return lineBounds.Any(bounds => bounds.Width >= WideLineWidth);
+        return lineBounds.Length >= MinimumLineCount || lineBounds.Any(bounds => bounds.Width >= WideLineWidth);
     }
 
     private static Rect BuildNothingFoundSearchBounds(Size imageSize, Rect mineOverviewBounds)

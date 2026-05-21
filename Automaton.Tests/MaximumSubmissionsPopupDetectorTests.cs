@@ -1,5 +1,5 @@
-using OpenCvSharp;
 using Automaton.Detectors;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -234,7 +234,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         var detector = new ErrorPopupDetector();
 
         // Act
-        var popupState = detector.DetectPopupState(image);
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
 
         // Assert
         Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);

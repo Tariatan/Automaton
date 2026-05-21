@@ -15,7 +15,7 @@ internal sealed class HomeStationDetector
     {
     }
 
-    internal HomeStationDetector(AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
+    private HomeStationDetector(AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
     {
         m_AsteroidBeltOverviewDetector = asteroidBeltOverviewDetector;
     }

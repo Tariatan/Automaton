@@ -1,18 +1,15 @@
+using System.Windows;
 using Automaton.Detectors;
+using Automaton.Utilities;
 using OpenCvSharp;
+using Point = OpenCvSharp.Point;
+using Rect = OpenCvSharp.Rect;
+using Size = OpenCvSharp.Size;
 
 namespace Automaton.Tests;
 
 public sealed class ProjectDiscoveryAutomationServiceTests
 {
-    private const ushort VirtualKeyAlt = 0x12;
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyEnter = 0x0D;
-    private const ushort VirtualKeyF9 = 0x78;
-    private const ushort VirtualKeyL = 0x4C;
-    private const ushort VirtualKeyQ = 0x51;
-    private const ushort VirtualKeyShift = 0x10;
-    private const ushort VirtualKeyW = 0x57;
 
     [Fact]
     public void AutomateCurrentScreen_PlayfieldAndControlButtonExist_ClicksPolygonPointsAndFocusesControlButton()
@@ -51,7 +48,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -127,7 +124,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         {
             KeepDebugImages = false
         };
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -192,7 +189,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -256,14 +253,14 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             },
             OnPressKeyChord = (modifierVirtualKey, virtualKey) =>
             {
-                if (modifierVirtualKey == VirtualKeyAlt && virtualKey == VirtualKeyL)
+                if (modifierVirtualKey == VirtualKeys.Alt && virtualKey == VirtualKeys.L)
                 {
                     pilotUnlockPressed = true;
                 }
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -288,12 +285,12 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(summary.ClickedPointCount + 2, automationInputController.ClickCount);
         Assert.Equal(new Point(pilotAvatarLocation.X + 32, pilotAvatarLocation.Y + 32), automationInputController.MoveTargets[^1]);
         Assert.Equal(6, automationInputController.KeyInputs.Count);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyAlt, VirtualKeyQ);
-        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
-        AssertKeyChord(automationInputController.KeyInputs[2], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyInputs[3], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
-        AssertKeyChord(automationInputController.KeyInputs[4], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyInputs[5], VirtualKeyAlt, VirtualKeyL);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Alt, VirtualKeys.Q);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeys.Enter);
+        AssertKeyChord(automationInputController.KeyInputs[2], VirtualKeys.Control, VirtualKeys.W);
+        AssertKeyChord(automationInputController.KeyInputs[3], VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9);
+        AssertKeyChord(automationInputController.KeyInputs[4], VirtualKeys.Control, VirtualKeys.W);
+        AssertKeyChord(automationInputController.KeyInputs[5], VirtualKeys.Alt, VirtualKeys.L);
         Assert.Contains(40_000, automationInputController.Delays);
         Assert.Equal(300, automationInputController.Delays[^1]);
     }
@@ -332,7 +329,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -358,8 +355,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(summary.ClickedPointCount + 1, automationInputController.ClickCount);
         Assert.Equal(2, automationInputController.KeyInputs.Count);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ);
-        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeys.Enter);
         Assert.Equal(2_000, automationInputController.Delays[^1]);
     }
 
@@ -409,7 +406,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -489,7 +486,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -511,9 +508,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(slowDownRecoveryObserved);
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(3, automationInputController.KeyInputs.Count);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeyControl, VirtualKeyShift, VirtualKeyF9);
-        AssertKeyChord(automationInputController.KeyInputs[2], VirtualKeyAlt, VirtualKeyL);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
+        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9);
+        AssertKeyChord(automationInputController.KeyInputs[2], VirtualKeys.Alt, VirtualKeys.L);
         Assert.Contains(70_000, automationInputController.Delays);
     }
 
@@ -555,7 +552,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -578,8 +575,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Equal(1, captureInvocationCount);
         Assert.Equal(2, automationInputController.KeyInputs.Count);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeyAlt, VirtualKeyL);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
+        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeys.Alt, VirtualKeys.L);
         Assert.Contains(70_000, automationInputController.Delays);
     }
 
@@ -617,7 +614,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -640,7 +637,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(captureInvocationCount >= 2);
         Assert.True(automationInputController.ClickCount >= summary.ClickedPointCount + 1);
         Assert.Single(automationInputController.KeyInputs);
-        AssertKey(automationInputController.KeyInputs[0], VirtualKeyEnter);
+        AssertKey(automationInputController.KeyInputs[0], VirtualKeys.Enter);
         Assert.Contains(1_000, automationInputController.Delays);
     }
 
@@ -665,7 +662,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var cancellationTokenSource = new CancellationTokenSource();
         var automationInputController = new StubAutomationInputController();
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -693,8 +690,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(CountMaximumSubmissionsDebugOverlayPixels(Path.Combine(workspace.Path, summary.FocusedCapturePath)) > 0);
         Assert.Null(summary.PilotSwitchCapturePath);
         Assert.Equal(2, automationInputController.KeyInputs.Count);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ);
-        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeys.Enter);
         Assert.Equal(2_000, automationInputController.Delays[^1]);
     }
 
@@ -703,7 +700,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     {
         // Arrange
         var point = new Point(1065, 650);
-        var dpi = new System.Windows.DpiScale(1.25, 1.25);
+        var dpi = new DpiScale(1.25, 1.25);
 
         // Act
         var scaledPoint = ProjectDiscoveryAutomationService.ScalePointForDpi(point, dpi);
@@ -792,6 +789,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(File.Exists(startupCapturePath));
     }
 
+    private static readonly int[] Expected = [20_000, 20_000];
+
     [Fact]
     public void PrepareAutomationFromLauncherStartup_PlayButtonAndPilotExist_ClicksLauncherAndUnlocksPilot()
     {
@@ -837,10 +836,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(summary.ShouldStartAutomation);
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
-        Assert.Equal(new[] { 20_000, 20_000 }, automationInputController.Delays);
+        Assert.Equal(Expected, automationInputController.Delays);
         Assert.Equal(2, automationInputController.KeyInputs.Count);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
-        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeyAlt, VirtualKeyL);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
+        AssertKeyChord(automationInputController.KeyInputs[1], VirtualKeys.Alt, VirtualKeys.L);
         Assert.Equal(new Point(pilotAvatarLocation.X + 32, pilotAvatarLocation.Y + 32), automationInputController.MoveTargets[^1]);
         Assert.InRange(automationInputController.MoveTargets[0].X, playButtonLocation.X, playButtonLocation.X + 257);
         Assert.InRange(automationInputController.MoveTargets[0].Y, playButtonLocation.Y, playButtonLocation.Y + 69);
@@ -887,9 +886,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.False(summary.ShouldStartAutomation);
         Assert.Equal(2, captureInvocationCount);
         Assert.Equal(1, automationInputController.ClickCount);
-        Assert.Equal(new[] { 20_000 }, automationInputController.Delays);
+        Assert.Equal(Expected, automationInputController.Delays);
         Assert.Single(automationInputController.KeyInputs);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyW);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
         Assert.NotNull(summary.PilotCapturePath);
         Assert.True(CountPilotNotFoundDebugOverlayPixels(Path.Combine(workspace.Path, summary.PilotCapturePath)) > 0);
     }
@@ -908,7 +907,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         using var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.Cancel();
 
@@ -971,7 +970,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -1047,14 +1046,14 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             },
             OnPressKeyChord = (modifierVirtualKey, virtualKey) =>
             {
-                if (modifierVirtualKey == VirtualKeyAlt && virtualKey == VirtualKeyL)
+                if (modifierVirtualKey == VirtualKeys.Alt && virtualKey == VirtualKeys.L)
                 {
                     pilotSwitchCompleted = true;
                 }
             }
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -1097,7 +1096,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
-        var dpi = new System.Windows.DpiScale(1.0, 1.0);
+        var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
         // Act
@@ -1125,8 +1124,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(9, captureInvocationCount);
         Assert.Contains(2_000, automationInputController.Delays);
         Assert.Equal(2, automationInputController.KeyInputs.Count);
-        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeyControl, VirtualKeyQ);
-        AssertKey(automationInputController.KeyInputs[1], VirtualKeyEnter);
+        AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Control, VirtualKeys.Q);
+        AssertKey(automationInputController.KeyInputs[1], VirtualKeys.Enter);
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)

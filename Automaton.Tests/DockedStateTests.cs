@@ -1,19 +1,11 @@
 using Automaton.Detectors;
 using Automaton.MiningStates;
-using OpenCvSharp;
+using Automaton.Utilities;
 
 namespace Automaton.Tests;
 
 public sealed class DockedStateTests
 {
-    private const ushort VirtualKeyAlt = 0x12;
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyM = 0x4D;
-    private const ushort VirtualKeyG = 0x47;
-    private const ushort VirtualKeyA = 0x41;
-    private const ushort VirtualKeyX = 0x58;
-    private const ushort VirtualKeyV = 0x56;
-    private const ushort VirtualKeyC = 0x43;
 
     [Fact]
     public void Execute_Docked_PerformsTransferAndTransitionsToUndocking()
@@ -47,12 +39,12 @@ public sealed class DockedStateTests
         // Assert
         Assert.True(automationInputController.MoveTargets.Count >= 2);
         Assert.True(automationInputController.ClickCount >= 2);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyM), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyAlt, null, VirtualKeyG), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyA), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyX), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyV), automationInputController.KeyInputs);
-        Assert.Contains(new KeyboardInput(VirtualKeyControl, null, VirtualKeyC), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeys.Alt, null, VirtualKeys.M), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeys.Alt, null, VirtualKeys.G), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.A), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.X), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.V), automationInputController.KeyInputs);
+        Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.C), automationInputController.KeyInputs);
         Assert.Contains(1000, automationInputController.Delays);
 
         Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
@@ -72,7 +64,6 @@ public sealed class DockedStateTests
         var automationInputController = new StubAutomationInputController();
         var state = new UnloadingCargoState(
             new MiningHoldDetector(),
-            new UndockButtonDetector(),
             new DowntimeDetector(new TimeOnly(19, 0), TimeSpan.FromMinutes(20)));
         MiningAutomationStateTransition transition;
 

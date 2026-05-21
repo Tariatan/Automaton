@@ -1,30 +1,24 @@
-using OpenCvSharp;
 using System.Runtime.InteropServices;
+using Automaton.Utilities;
+using OpenCvSharp;
 
 namespace Automaton;
 
-internal sealed class AutomationInputController : IAutomationInputController
+internal sealed partial class AutomationInputController : IAutomationInputController
 {
-    private const int MouseDownDurationMilliseconds = 300;
-    private const int QuitGameConfirmDelayMilliseconds = 2_000;
-    private const int WindowActivationDelayMilliseconds = 1_000;
     private const uint LeftDownEvent = 0x0002;
     private const uint LeftUpEvent = 0x0004;
     private const uint KeyUpEvent = 0x0002;
-    private const ushort VirtualKeyAlt = 0x12;
-    private const ushort VirtualKeyShift = 0x10;
-    private const ushort VirtualKeyQ = 0x51;
-    private const ushort VirtualKeyEnter = 0x0D;
 
     public void MoveTo(Point point)
     {
-        SetCursorPos(point.X, point.Y);
+        _ = SetCursorPos(point.X, point.Y);
     }
 
     public void LeftClick(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Thread.Sleep(MouseDownDurationMilliseconds);
+        Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
         var leftButtonPressed = false;
 
@@ -32,14 +26,14 @@ internal sealed class AutomationInputController : IAutomationInputController
         {
             mouse_event(LeftDownEvent, 0, 0, 0, UIntPtr.Zero);
             leftButtonPressed = true;
-            Thread.Sleep(MouseDownDurationMilliseconds);
+            Thread.Sleep(Delays.MouseDownMs);
         }
         finally
         {
             if (leftButtonPressed)
             {
                 mouse_event(LeftUpEvent, 0, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(MouseDownDurationMilliseconds);
+                Thread.Sleep(Delays.MouseDownMs);
             }
         }
 
@@ -50,9 +44,9 @@ internal sealed class AutomationInputController : IAutomationInputController
     {
         cancellationToken.ThrowIfCancellationRequested();
         keybd_event((byte)virtualKey, 0, 0, UIntPtr.Zero);
-        Thread.Sleep(MouseDownDurationMilliseconds);
+        Thread.Sleep(Delays.MouseDownMs);
         keybd_event((byte)virtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-        Thread.Sleep(MouseDownDurationMilliseconds);
+        Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
@@ -64,13 +58,13 @@ internal sealed class AutomationInputController : IAutomationInputController
         try
         {
             keybd_event((byte)virtualKey, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(MouseDownDurationMilliseconds);
+            Thread.Sleep(Delays.MouseDownMs);
             keybd_event((byte)virtualKey, 0, KeyUpEvent, UIntPtr.Zero);
         }
         finally
         {
             keybd_event((byte)modifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-            Thread.Sleep(MouseDownDurationMilliseconds);
+            Thread.Sleep(Delays.MouseDownMs);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -89,14 +83,14 @@ internal sealed class AutomationInputController : IAutomationInputController
         try
         {
             keybd_event((byte)virtualKey, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(MouseDownDurationMilliseconds);
+            Thread.Sleep(Delays.MouseDownMs);
             keybd_event((byte)virtualKey, 0, KeyUpEvent, UIntPtr.Zero);
         }
         finally
         {
             keybd_event((byte)secondModifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
             keybd_event((byte)firstModifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-            Thread.Sleep(MouseDownDurationMilliseconds);
+            Thread.Sleep(Delays.MouseDownMs);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -104,17 +98,17 @@ internal sealed class AutomationInputController : IAutomationInputController
 
     public void QuitGame(CancellationToken cancellationToken)
     {
-        PressKeyChord(VirtualKeyAlt, VirtualKeyShift, VirtualKeyQ, cancellationToken);
-        Delay(QuitGameConfirmDelayMilliseconds, cancellationToken);
-        PressKey(VirtualKeyEnter, cancellationToken);
+        PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
+        Delay(Delays.QuitGameConfirmMs, cancellationToken);
+        PressKey(VirtualKeys.Enter, cancellationToken);
     }
 
     public void Logout(CancellationToken cancellationToken)
     {
-        Delay(WindowActivationDelayMilliseconds, cancellationToken);
-        PressKeyChord(VirtualKeyAlt, VirtualKeyQ, cancellationToken);
-        Delay(WindowActivationDelayMilliseconds, cancellationToken);
-        PressKey(VirtualKeyEnter, cancellationToken);
+        Delay(Delays.WindowActivationMs, cancellationToken);
+        PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
+        Delay(Delays.WindowActivationMs, cancellationToken);
+        PressKey(VirtualKeys.Enter, cancellationToken);
     }
 
     public void Delay(int milliseconds, CancellationToken cancellationToken)
@@ -123,12 +117,13 @@ internal sealed class AutomationInputController : IAutomationInputController
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    [DllImport("user32.dll")]
-    private static extern bool SetCursorPos(int x, int y);
+    [LibraryImport("user32.dll", EntryPoint = "SetCursorPosA")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetCursorPos(int x, int y);
 
-    [DllImport("user32.dll")]
-    private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+    [LibraryImport("user32.dll", EntryPoint = "mouse_eventA")]
+    private static partial void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
 
-    [DllImport("user32.dll")]
-    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    [LibraryImport("user32.dll", EntryPoint = "keybd_eventA")]
+    private static partial void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 }

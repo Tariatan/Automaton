@@ -2,7 +2,7 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class UndockButtonDetector
+internal static class UndockButtonDetector
 {
     private const int MinimumUndockButtonWidth = 280;
     private const int MinimumUndockButtonHeight = 30;
@@ -10,7 +10,7 @@ internal sealed class UndockButtonDetector
     private static readonly Scalar BlueUiMinimum = new(85, 35, 25);
     private static readonly Scalar BlueUiMaximum = new(110, 220, 140);
 
-    public bool TryLocate(Mat screen, out Rect undockButtonBounds)
+    public static bool TryLocate(Mat screen, out Rect undockButtonBounds)
     {
         undockButtonBounds = default;
         if (screen.Empty())

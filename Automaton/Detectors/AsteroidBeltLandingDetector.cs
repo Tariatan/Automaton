@@ -2,7 +2,7 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class AsteroidBeltLandingDetector
+internal static class AsteroidBeltLandingDetector
 {
     private const int BinaryMaskMaxValue = 255;
     private const int MinimumLabelBrightPixelCount = 700;
@@ -11,7 +11,7 @@ internal sealed class AsteroidBeltLandingDetector
     private const int MinimumLabelHeight = 35;
     private const int MaximumLabelHeight = 110;
 
-    public AsteroidBeltLandingAnalysis Analyze(Mat screen)
+    public static AsteroidBeltLandingAnalysis Analyze(Mat screen)
     {
         if (screen.Empty())
         {

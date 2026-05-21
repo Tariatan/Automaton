@@ -1,4 +1,5 @@
 using OpenCvSharp;
+using Xunit.Sdk;
 
 namespace Automaton.Tests;
 
@@ -36,7 +37,7 @@ internal static class ScreenshotLoader
     private static void SkipIfMissing(string fullPath, string relativePath)
     {
         if (!File.Exists(fullPath))
-            throw Xunit.Sdk.SkipException.ForSkip($"Screenshot not found: {relativePath}. Capture it and place at: {fullPath}");
+            throw SkipException.ForSkip($"Screenshot not found: {relativePath}. Capture it and place at: {fullPath}");
     }
 
     private static string FindScreenshotsRoot()

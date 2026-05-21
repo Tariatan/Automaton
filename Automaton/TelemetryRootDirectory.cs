@@ -22,12 +22,9 @@ internal static class TelemetryRootDirectory
     public static string GetExpectedDirectory()
     {
         var hallmarkRootDirectory = GetConfiguredHallmarkRootDirectory();
-        if (!string.IsNullOrWhiteSpace(hallmarkRootDirectory))
-        {
-            return Path.Combine(hallmarkRootDirectory, ExpectedFolderName);
-        }
-
-        return BuildDirectoryPath(ExpectedFolderName);
+        return !string.IsNullOrWhiteSpace(hallmarkRootDirectory)
+            ? Path.Combine(hallmarkRootDirectory, ExpectedFolderName)
+            : BuildDirectoryPath(ExpectedFolderName);
     }
 
     public static string? GetConfiguredRootDirectory()
@@ -35,12 +32,7 @@ internal static class TelemetryRootDirectory
         try
         {
             var configuredRootDirectory = Settings.Default.TelemetryRootDirectory;
-            if (string.IsNullOrWhiteSpace(configuredRootDirectory))
-            {
-                return null;
-            }
-
-            return configuredRootDirectory;
+            return string.IsNullOrWhiteSpace(configuredRootDirectory) ? null : configuredRootDirectory;
         }
         catch (Exception) when (!OperatingSystem.IsWindows())
         {
@@ -60,12 +52,7 @@ internal static class TelemetryRootDirectory
         try
         {
             var configuredRootDirectory = Settings.Default.HallmarkRootDirectory;
-            if (string.IsNullOrWhiteSpace(configuredRootDirectory))
-            {
-                return null;
-            }
-
-            return configuredRootDirectory;
+            return string.IsNullOrWhiteSpace(configuredRootDirectory) ? null : configuredRootDirectory;
         }
         catch (Exception) when (!OperatingSystem.IsWindows())
         {
@@ -83,11 +70,6 @@ internal static class TelemetryRootDirectory
     private static string BuildDirectoryPath(string folderName)
     {
         var rootDirectory = GetConfiguredRootDirectory();
-        if (string.IsNullOrWhiteSpace(rootDirectory))
-        {
-            return folderName;
-        }
-
-        return Path.Combine(rootDirectory, folderName);
+        return string.IsNullOrWhiteSpace(rootDirectory) ? folderName : Path.Combine(rootDirectory, folderName);
     }
 }

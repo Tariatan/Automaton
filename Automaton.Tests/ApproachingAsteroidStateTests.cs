@@ -1,15 +1,10 @@
 using Automaton.MiningStates;
-using OpenCvSharp;
+using Automaton.Utilities;
 
 namespace Automaton.Tests;
 
 public sealed class ApproachingAsteroidStateTests
 {
-    private const ushort VirtualKeyA = 0x41;
-    private const ushort VirtualKeyControl = 0x11;
-    private const ushort VirtualKeyF1 = 0x70;
-    private const ushort VirtualKeyF2 = 0x71;
-    private const ushort VirtualKeyF4 = 0x73;
 
     [Fact]
     public void Execute_DistanceSwitchesToMeters_PressesMiningKeysAndTransitionsToMining()
@@ -60,7 +55,7 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Contains(3_000, automationInputControllerMock.Delays);
         Assert.Equal(1_000, automationInputControllerMock.Delays[^1]);
         Assert.Equal(
-            new[] { VirtualKeyF4, VirtualKeyA, VirtualKeyControl, VirtualKeyF1, VirtualKeyF2 },
+            [VirtualKeys.F4, VirtualKeys.A, VirtualKeys.Control, VirtualKeys.F1, VirtualKeys.F2],
             automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
     }
 
@@ -96,7 +91,7 @@ public sealed class ApproachingAsteroidStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal(new[] { VirtualKeyF4 }, automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
+        Assert.Equal([VirtualKeys.F4], automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
     }

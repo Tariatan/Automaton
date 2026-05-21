@@ -5,7 +5,7 @@ namespace Automaton.Detectors;
 
 internal sealed class ErrorPopupDetector
 {
-    internal readonly record struct PopupDetection(PopupState State, Rect Bounds, bool FromTemplate);
+    internal readonly record struct PopupDetection(PopupState State, Rect Bounds);
 
     internal enum PopupState
     {
@@ -78,16 +78,16 @@ internal sealed class ErrorPopupDetector
         return popupState;
     }
 
-    public PopupState DetectPopupState(Mat image)
+    public static PopupState DetectPopupState(Mat image)
     {
         return DetectPopup(image).State;
     }
 
-    public PopupDetection DetectPopup(Mat image)
+    public static PopupDetection DetectPopup(Mat image)
     {
         if (image.Empty())
         {
-            return new PopupDetection(PopupState.None, new Rect(), false);
+            return new PopupDetection(PopupState.None, new Rect());
         }
 
         var searchBounds = BuildClampedBounds(
@@ -108,10 +108,10 @@ internal sealed class ErrorPopupDetector
         LogScores(score);
 
         var state = Classify(score);
-        return new PopupDetection(state, popupBounds, false);
+        return new PopupDetection(state, popupBounds);
     }
 
-    internal string DescribeScores(Mat image)
+    internal static string DescribeScores(Mat image)
     {
         if (image.Empty())
         {
@@ -203,29 +203,29 @@ internal sealed class ErrorPopupDetector
             };
         }
 
-        if (prefersOk)
+        if (!prefersOk)
         {
-            var titleResult = titleKind switch
-            {
-                TitleSignalKind.SlowDown => PopupState.SlowDown,
-                TitleSignalKind.MaximumSubmissions => PopupState.MaximumSubmissions,
-                _ => PopupState.Unknown
-            };
-
-            if (titleResult != PopupState.Unknown)
-            {
-                return titleResult;
-            }
-
-            var bestOkTitle = Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
-            if (bestOkTitle >= SOptions.TitleThreshold * 0.85)
-            {
-                return score.TitleSlowDown >= score.TitleMaxSubmissions
-                    ? PopupState.SlowDown
-                    : PopupState.MaximumSubmissions;
-            }
-
             return PopupState.Unknown;
+        }
+
+        var titleResult = titleKind switch
+        {
+            TitleSignalKind.SlowDown => PopupState.SlowDown,
+            TitleSignalKind.MaximumSubmissions => PopupState.MaximumSubmissions,
+            _ => PopupState.Unknown
+        };
+
+        if (titleResult != PopupState.Unknown)
+        {
+            return titleResult;
+        }
+
+        var bestOkTitle = Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
+        if (bestOkTitle >= SOptions.TitleThreshold * 0.85)
+        {
+            return score.TitleSlowDown >= score.TitleMaxSubmissions
+                ? PopupState.SlowDown
+                : PopupState.MaximumSubmissions;
         }
 
         return PopupState.Unknown;
@@ -309,11 +309,7 @@ internal sealed class ErrorPopupDetector
             TitleMaxSubmissions: Math.Max(
                 MatchTemplateScore(titleRoi, templates.TitleMaxSubmissionsGray),
                 MatchTemplateScore(titleRoiBinary, templates.TitleMaxSubmissionsBinary)),
-            SearchBounds: searchBounds,
-            PopupBounds: popupBounds,
-            IconBounds: iconBounds,
-            ButtonBounds: buttonBounds,
-            TitleBounds: titleBounds);
+            PopupBounds: popupBounds);
         return score;
     }
 
@@ -433,11 +429,7 @@ internal sealed class ErrorPopupDetector
         double TitleConnectionLost,
         double TitleSlowDown,
         double TitleMaxSubmissions,
-        Rect SearchBounds,
-        Rect PopupBounds,
-        Rect IconBounds,
-        Rect ButtonBounds,
-        Rect TitleBounds);
+        Rect PopupBounds);
 
     private sealed class PopupTemplates : IDisposable
     {

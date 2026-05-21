@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Utilities;
 using OpenCvSharp;
 using Serilog;
 
@@ -8,27 +9,20 @@ internal sealed class DockingState : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-dock";
     private const string DockedCaptureSuffix = ".mining-docked-polling";
-    private const int BeforeDockDelayMilliseconds = 1_000;
-    private const int DockedPollingDelayMilliseconds = 5_000;
-    private const int DockedBounceDelayMilliseconds = 15_000;
-    private const ushort VirtualKeyD = 0x44;
 
     private readonly HomeStationDetector m_HomeStationDetector;
-    private readonly UndockButtonDetector m_UndockButtonDetector;
     private readonly ILogger m_Logger;
 
     public DockingState()
-        : this(new HomeStationDetector(), new UndockButtonDetector(), Log.ForContext<DockingState>())
+        : this(new HomeStationDetector(), Log.ForContext<DockingState>())
     {
     }
 
-    internal DockingState(
+    private DockingState(
         HomeStationDetector homeStationDetector,
-        UndockButtonDetector undockButtonDetector,
         ILogger? logger = null)
     {
         m_HomeStationDetector = homeStationDetector;
-        m_UndockButtonDetector = undockButtonDetector;
         m_Logger = logger ?? Log.ForContext<DockingState>();
     }
 
@@ -53,8 +47,7 @@ internal sealed class DockingState : IMiningAutomationState
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Recover,
-                capturePath,
-                AsteroidBeltOverview: analysis.OverviewAnalysis);
+                capturePath);
         }
 
         // Select home station in the belt overview
@@ -62,37 +55,36 @@ internal sealed class DockingState : IMiningAutomationState
         context.ClickUiElement(Center(analysis.HomeStationBounds.Value), cancellationToken);
 
         // Wait 1 second
-        context.AutomationInputController.Delay(BeforeDockDelayMilliseconds, cancellationToken);
+        context.AutomationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
 
         // Warping home
         m_Logger.Information("Warping home");
-        context.AutomationInputController.PressKey(VirtualKeyD, cancellationToken);
+        context.AutomationInputController.PressKey(VirtualKeys.D, cancellationToken);
 
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            context.AutomationInputController.Delay(DockedPollingDelayMilliseconds, cancellationToken);
+            context.AutomationInputController.Delay(Delays.DockedPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(DockedCaptureSuffix);
             using var pollingScreen = Cv2.ImRead(capturePath);
 
             // Docked
-            if (m_UndockButtonDetector.TryLocate(pollingScreen, out _))
+            if (UndockButtonDetector.TryLocate(pollingScreen, out _))
             {
                 m_Logger.Information("Docked");
                 break;
             }
         }
 
-        context.AutomationInputController.Delay(DockedBounceDelayMilliseconds, cancellationToken);
+        context.AutomationInputController.Delay(Delays.DockedBounceMs, cancellationToken);
 
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.UnloadCargo,
             MiningAutomationActionKind.Dock,
-            capturePath,
-            AsteroidBeltOverview: analysis.OverviewAnalysis);
+            capturePath);
     }
 
     private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);

@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Automaton;
 
-internal sealed class ScreenCaptureService
+internal sealed partial class ScreenCaptureService
 {
     private const string CaptureFilePrefix = "capture-";
     private const string CaptureTimestampFormat = "yyyyMMdd-HHmmss";
@@ -115,7 +115,7 @@ internal sealed class ScreenCaptureService
         void CaptureToFile(string outputPath);
     }
 
-    private sealed class ScreenCaptureProvider : IScreenCaptureProvider
+    private sealed partial class ScreenCaptureProvider : IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {
@@ -141,8 +141,8 @@ internal sealed class ScreenCaptureService
                 Math.Max(MinimumCaptureDimension, GetSystemMetrics(VirtualScreenHeightMetric)));
         }
 
-        [DllImport("user32.dll")]
-        private static extern int GetSystemMetrics(int nIndex);
+        [LibraryImport("user32.dll", EntryPoint = "GetSystemMetricsA")]
+        private static partial int GetSystemMetrics(int nIndex);
     }
 }
 

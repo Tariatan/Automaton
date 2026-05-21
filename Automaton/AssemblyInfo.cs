@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-
 #if BUILD_ON_WINDOWS
 using System.Windows;
 

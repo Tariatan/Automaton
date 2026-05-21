@@ -1,11 +1,12 @@
 using System.IO;
+using System.Reflection;
 using OpenCvSharp;
 
 namespace Automaton;
 
 internal static class EmbeddedResourceLoader
 {
-    private static readonly System.Reflection.Assembly ResourceAssembly = typeof(EmbeddedResourceLoader).Assembly;
+    private static readonly Assembly ResourceAssembly = typeof(EmbeddedResourceLoader).Assembly;
 
     public static Mat LoadMat(string resourceFileName, ImreadModes mode = ImreadModes.Color)
     {

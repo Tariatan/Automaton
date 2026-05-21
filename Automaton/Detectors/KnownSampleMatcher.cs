@@ -53,7 +53,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 
     public bool TryMatch(Mat playfieldImage, out IReadOnlyList<Point[]> polygons, out string? matchedSampleFileName)
     {
-        polygons = Array.Empty<Point[]>();
+        polygons = [];
         matchedSampleFileName = null;
 
         var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
@@ -100,7 +100,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 
     public bool TryLoadDefaultFallbackPolygons(out IReadOnlyList<Point[]> polygons, out Size playfieldSize)
     {
-        polygons = Array.Empty<Point[]>();
+        polygons = [];
         playfieldSize = default;
 
         var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
@@ -130,7 +130,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 
     public bool TryLoadDefaultFallbackScreenPolygons(out IReadOnlyList<Point[]> polygons)
     {
-        polygons = Array.Empty<Point[]>();
+        polygons = [];
 
         var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
         if (!Directory.Exists(samplesDirectory) ||
@@ -166,7 +166,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             .Value;
     }
 
-    private IReadOnlyList<KnownSampleTemplate> LoadTemplates(string samplesDirectory)
+    private List<KnownSampleTemplate> LoadTemplates(string samplesDirectory)
     {
         var templates = new List<KnownSampleTemplate>();
         var sampleFiles = Directory
@@ -692,7 +692,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         var contourInput = contour.ToArray();
         var perimeter = Cv2.ArcLength(contourInput, true);
         var epsilon = Math.Max(MinimumSimplificationEpsilon, perimeter * SimplificationEpsilonScale);
-        Point[] bestApproximation = contourInput;
+        var bestApproximation = contourInput;
 
         for (var attempt = 0; attempt < MaxSimplificationAttempts; attempt++)
         {

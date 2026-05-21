@@ -45,7 +45,7 @@ internal sealed class AsteroidBeltOverviewDetector
             ? null
             : BuildOverviewBounds(searchableScreen.Size());
         var homeStationBounds = overviewBounds is null || overviewBeltButtonBounds is null
-            ? (Rect?)null
+            ? null
             : TryLocateTemplate(
                 searchableScreen,
                 m_HomeStationTemplate,

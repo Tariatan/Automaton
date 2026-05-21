@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Utilities;
 using OpenCvSharp;
 using Serilog;
 
@@ -6,28 +7,22 @@ namespace Automaton.MiningStates;
 
 internal sealed class UndockingState : IMiningAutomationState
 {
-    private const int InitialUndockDelayMilliseconds = 15_000;
-    private const int LocationChangeTimerPollingMilliseconds = 1_000;
     private const int LocationChangeTimerPollingAttemptCount = 15;
-    private const int WindowActivationDelayMilliseconds = 2_000;
     private const string CaptureSuffix = ".mining-undocking";
 
     private readonly LocationChangeTimerDetector m_Detector;
-    private readonly UndockButtonDetector m_UndockButtonDetector;
     private readonly ILogger m_Logger;
 
     public UndockingState()
-        : this(new LocationChangeTimerDetector(), new UndockButtonDetector(), Log.ForContext<UndockingState>())
+        : this(new LocationChangeTimerDetector(), Log.ForContext<UndockingState>())
     {
     }
 
-    internal UndockingState(
+    private UndockingState(
         LocationChangeTimerDetector detector,
-        UndockButtonDetector undockButtonDetector,
         ILogger? logger = null)
     {
         m_Detector = detector;
-        m_UndockButtonDetector = undockButtonDetector;
         m_Logger = logger ?? Log.ForContext<UndockingState>();
     }
 
@@ -43,13 +38,13 @@ internal sealed class UndockingState : IMiningAutomationState
         var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        context.AutomationInputController.Delay(WindowActivationDelayMilliseconds, cancellationToken);
+        context.AutomationInputController.Delay(Delays.UndockingWindowActivationMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var initialScreen = Cv2.ImRead(capturePath);
 
         // TryLocate Undock button
-        if (!m_UndockButtonDetector.TryLocate(initialScreen, out var undockButtonBounds))
+        if (!UndockButtonDetector.TryLocate(initialScreen, out var undockButtonBounds))
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort undocking");
@@ -63,7 +58,7 @@ internal sealed class UndockingState : IMiningAutomationState
         // Undocking
         context.ClickUiElement(Center(undockButtonBounds), cancellationToken);
 
-        context.AutomationInputController.Delay(InitialUndockDelayMilliseconds, cancellationToken);
+        context.AutomationInputController.Delay(Delays.InitialUndockMs, cancellationToken);
 
         // Try to locate Location Change Timer icon with 1 second interval
         for (var attempt = 0; attempt < LocationChangeTimerPollingAttemptCount; attempt++)
@@ -71,7 +66,7 @@ internal sealed class UndockingState : IMiningAutomationState
             cancellationToken.ThrowIfCancellationRequested();
             capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
             using var screen = Cv2.ImRead(capturePath);
-            if (m_Detector.TryLocate(screen, out var location))
+            if (m_Detector.TryLocate(screen, out _))
             {
                 m_Logger.Information("Location Change Timer located");
 
@@ -80,11 +75,10 @@ internal sealed class UndockingState : IMiningAutomationState
                     Kind,
                     MiningAutomationStateKind.SelectBeltAndWarp,
                     MiningAutomationActionKind.CompleteUndock,
-                    capturePath,
-                    LocationChangeTimer: location);
+                    capturePath);
             }
 
-            context.AutomationInputController.Delay(LocationChangeTimerPollingMilliseconds, cancellationToken);
+            context.AutomationInputController.Delay(Delays.LocationChangeTimerPollingMs, cancellationToken);
         }
 
         return new MiningAutomationStateTransition(

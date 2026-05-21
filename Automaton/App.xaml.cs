@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Threading;
 using Serilog;
 
 namespace Automaton;
@@ -64,12 +63,5 @@ public partial class App
             "Command-line sample processing finished. SamplesDirectory={SamplesDirectory}, ResultCount={ResultCount}",
             summary.SamplesDirectory,
             summary.Results.Count);
-
-        Console.WriteLine($"Samples folder: {summary.SamplesDirectory}");
-
-        foreach (var result in summary.Results)
-        {
-            Console.WriteLine($"{result.FileName,-12} playfield={(result.PlayfieldFound ? "yes" : "no"),-3}  clusters={result.ClusterCount}  output={result.OutputPath}");
-        }
     }
 }

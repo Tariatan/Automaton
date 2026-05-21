@@ -1,12 +1,13 @@
 using Automaton.Detectors;
 using Automaton.MiningStates;
+using Automaton.Utilities;
 using OpenCvSharp;
 
 namespace Automaton.Tests;
 
 public sealed class SelectBeltAndWarpStateTests
 {
-    private const ushort VirtualKeyS = 0x53;
+    private static readonly int[] Expected = [300, 300, 1_000];
 
     [Fact]
     public void Execute_OverviewHasAsteroidBelts_ClicksBeltTabRandomBeltAndPressesS()
@@ -31,9 +32,7 @@ public sealed class SelectBeltAndWarpStateTests
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             new AsteroidBeltOverviewDetector(),
-            new AsteroidBeltLandingDetector(),
             new MineOverviewDetector(),
-            new NothingFoundDetector(),
             _ => 1);
         MiningAutomationStateTransition transition;
 
@@ -55,14 +54,11 @@ public sealed class SelectBeltAndWarpStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.WarpToAsteroidField, transition.Action);
-        Assert.NotNull(transition.AsteroidBeltOverview);
-        Assert.NotNull(transition.AsteroidBeltLanding);
-        Assert.True(transition.AsteroidBeltLanding!.LandedOnAsteroidBelt);
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
-        Assert.Equal(new[] { 300, 300, 1_000 }, automationInputController.Delays);
+        Assert.Equal(Expected, automationInputController.Delays);
         Assert.Equal(4, automationInputController.MoveTargets.Count);
-        Assert.Equal(new[] { VirtualKeyS }, automationInputController.KeyInputs.Select(k => k.VirtualKey));
+        Assert.Equal([VirtualKeys.S], automationInputController.KeyInputs.Select(k => k.VirtualKey));
         Assert.InRange(automationInputController.MoveTargets[0].X, 2270, 2315);
         Assert.InRange(automationInputController.MoveTargets[0].Y, 330, 365);
         AssertMouseParked(automationInputController.MoveTargets[1]);
@@ -84,9 +80,7 @@ public sealed class SelectBeltAndWarpStateTests
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             new AsteroidBeltOverviewDetector(),
-            new AsteroidBeltLandingDetector(),
             new MineOverviewDetector(),
-            new NothingFoundDetector(),
             _ => 0);
         MiningAutomationStateTransition transition;
 

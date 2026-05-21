@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Utilities;
 using OpenCvSharp;
 using Serilog;
 
@@ -7,12 +8,9 @@ namespace Automaton.MiningStates;
 internal sealed class MiningState : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-state";
-    private const int PollingDelayMilliseconds = 5_000;
-    private static readonly TimeSpan MiningLoopDuration = TimeSpan.FromMinutes(15);
     private readonly MiningAsteroidDetector m_AsteroidDetector;
     private readonly MiningLaserDetector m_LaserDetector;
     private readonly WarOverviewDetector m_WarOverviewDetector;
-    private readonly NothingFoundDetector m_NothingFoundDetector;
     private readonly ILogger m_Logger;
 
     private enum DockingReason
@@ -28,7 +26,6 @@ internal sealed class MiningState : IMiningAutomationState
             new MiningAsteroidDetector(),
             new MiningLaserDetector(),
             new WarOverviewDetector(),
-            new NothingFoundDetector(),
             Log.ForContext<MiningState>())
     {
     }
@@ -37,13 +34,11 @@ internal sealed class MiningState : IMiningAutomationState
         MiningAsteroidDetector asteroidDetector,
         MiningLaserDetector laserDetector,
         WarOverviewDetector warOverviewDetector,
-        NothingFoundDetector nothingFoundDetector,
         ILogger? logger = null)
     {
         m_AsteroidDetector = asteroidDetector;
         m_LaserDetector = laserDetector;
         m_WarOverviewDetector = warOverviewDetector;
-        m_NothingFoundDetector = nothingFoundDetector;
         m_Logger = logger ?? Log.ForContext<MiningState>();
     }
 
@@ -58,10 +53,10 @@ internal sealed class MiningState : IMiningAutomationState
 
         // Start mining
         m_Logger.Information("Start mining...");
-        while (DateTime.UtcNow - loopStart < MiningLoopDuration)
+        while (DateTime.UtcNow - loopStart < Delays.MiningLoopDuration)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            context.AutomationInputController.Delay(PollingDelayMilliseconds, cancellationToken);
+            context.AutomationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
@@ -75,7 +70,7 @@ internal sealed class MiningState : IMiningAutomationState
 
             if (m_WarOverviewDetector.TryLocate(screen, out var warOverviewBounds))
             {
-                var warOverviewNothingFound = m_NothingFoundDetector.Detect(screen, warOverviewBounds);
+                var warOverviewNothingFound = NothingFoundDetector.Detect(screen, warOverviewBounds);
                 if (!warOverviewNothingFound)
                 {
                     if (context.TryGetCurrentAsteroidBelt(out var currentAsteroidBeltBounds))

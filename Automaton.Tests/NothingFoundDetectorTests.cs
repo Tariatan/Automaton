@@ -1,20 +1,20 @@
 using Automaton.Detectors;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
 public sealed class NothingFoundDetectorTests
 {
-    private static readonly OpenCvSharp.Rect MineOverviewBounds = new(1700, 1226, 270, 336);
+    private static readonly Rect MineOverviewBounds = new(1700, 1226, 270, 336);
 
     [Fact]
     public void Detect_LandedOnEmptyAsteroidBeltImage_ReturnsTrue()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateLandedOnEmptyAsteroidBeltImage();
-        var nothingFoundDetector = new NothingFoundDetector();
 
         // Act
-        var detected = nothingFoundDetector.Detect(image, MineOverviewBounds);
+        var detected = NothingFoundDetector.Detect(image, MineOverviewBounds);
 
         // Assert
         Assert.True(detected);
@@ -25,10 +25,9 @@ public sealed class NothingFoundDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImage();
-        var nothingFoundDetector = new NothingFoundDetector();
 
         // Act
-        var detected = nothingFoundDetector.Detect(image, MineOverviewBounds);
+        var detected = NothingFoundDetector.Detect(image, MineOverviewBounds);
 
         // Assert
         Assert.False(detected);

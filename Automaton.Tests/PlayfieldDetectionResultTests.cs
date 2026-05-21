@@ -23,7 +23,7 @@ public sealed class PlayfieldDetectionResultTests
     public void IsFound_BoundsAreNotEmpty_ReturnsTrue()
     {
         // Arrange
-        var result = new PlayfieldDetectionResult(new Rect(10, 20, 30, 40), Array.Empty<Rect>());
+        var result = new PlayfieldDetectionResult(new Rect(10, 20, 30, 40), []);
 
         // Act
         var isFound = result.IsFound;
