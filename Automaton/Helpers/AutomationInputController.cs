@@ -117,13 +117,12 @@ internal sealed partial class AutomationInputController : IAutomationInputContro
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    [LibraryImport("user32.dll", EntryPoint = "SetCursorPosA")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
 
-    [LibraryImport("user32.dll", EntryPoint = "mouse_eventA")]
-    private static partial void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+    [DllImport("user32.dll")]
+    private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
 
-    [LibraryImport("user32.dll", EntryPoint = "keybd_eventA")]
-    private static partial void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 }

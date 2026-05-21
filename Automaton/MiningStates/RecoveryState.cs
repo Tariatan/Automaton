@@ -47,9 +47,11 @@ internal sealed class RecoveryState : IMiningAutomationState
             {
                 m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
                 context.AutomationInputController.QuitGame(cancellationToken);
+                // Debounce
+                context.AutomationInputController.Delay(Delays.RecoveryMs, cancellationToken);
                 return new MiningAutomationStateTransition(
                     Kind,
-                    MiningAutomationStateKind.None,
+                    MiningAutomationStateKind.StartingGame,
                     MiningAutomationActionKind.None,
                     capture.CapturePath);
             }
@@ -65,9 +67,11 @@ internal sealed class RecoveryState : IMiningAutomationState
             {
                 m_Logger.Error("Undock button not found while docked. Quit Game since this state is unrecoverable.");
                 context.AutomationInputController.QuitGame(cancellationToken);
+                // Debounce
+                context.AutomationInputController.Delay(Delays.RecoveryMs, cancellationToken);
                 return new MiningAutomationStateTransition(
                     Kind,
-                    MiningAutomationStateKind.None,
+                    MiningAutomationStateKind.StartingGame,
                     MiningAutomationActionKind.None,
                     capture.CapturePath);
             }

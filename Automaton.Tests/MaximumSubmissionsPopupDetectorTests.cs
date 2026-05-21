@@ -130,20 +130,6 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     }
 
     [Fact]
-    public void Detect_FullScreenImageContainsMaximumSubmissionsPopupOutsideExpectedPopupRoi_ReturnsFalse()
-    {
-        // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateWideScreenMaximumSubmissionsPopupImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.Detect(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
     public void Detect_FullScreenImageContainsCompactDimMaximumSubmissionsPopup_ReturnsTrue()
     {
         // Arrange

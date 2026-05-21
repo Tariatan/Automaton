@@ -13,26 +13,14 @@ internal static class SyntheticDiscoveryImageFactory
     public static Mat CreateFourClusterImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_four_clusters.png");
 
-    public static Mat CreateSparseLowerClusterImage()
-        => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_sparse_lower_cluster.png");
-
-    public static Mat CreateMultiSizeClusterImage()
-        => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_multi_size_clusters.png");
-
     public static Mat CreateMaximumSubmissionsPopupImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/maximum_submissions_popup.png");
-
-    public static Mat CreateMaximumSubmissionsPopupImageWithPlayfield()
-        => ScreenshotLoader.LoadOrSkip("Discovery/maximum_submissions_popup_with_playfield.png");
 
     public static Mat CreateSlowDownPopupImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/slow_down_popup.png");
 
     public static Mat CreateConnectionLostPopupImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/connection_lost_popup.png");
-
-    public static Mat CreateWideScreenMaximumSubmissionsPopupImage()
-        => ScreenshotLoader.LoadOrSkip("Discovery/wide_screen_maximum_submissions_popup.png");
 
     public static string GetSingleClusterImagePath()
         => ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_single_cluster.png");
@@ -42,9 +30,6 @@ internal static class SyntheticDiscoveryImageFactory
 
     public static string GetMaximumSubmissionsPopupImagePath()
         => ScreenshotLoader.GetPathOrSkip("Discovery/maximum_submissions_popup.png");
-
-    public static string GetMaximumSubmissionsPopupImageWithPlayfieldPath()
-        => ScreenshotLoader.GetPathOrSkip("Discovery/maximum_submissions_popup_with_playfield.png");
 
     public static string GetSlowDownPopupImagePath()
         => ScreenshotLoader.GetPathOrSkip("Discovery/slow_down_popup.png");

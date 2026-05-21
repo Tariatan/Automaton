@@ -329,13 +329,11 @@ public partial class MainWindow
         return IntPtr.Zero;
     }
 
-    [LibraryImport("user32.dll", EntryPoint = "RegisterHotKeyA", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
-    [LibraryImport("user32.dll", EntryPoint = "UnregisterHotKeyA", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool UnregisterHotKey(IntPtr hWnd, int id);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     private static bool IsWindowPositionVisible(Point position)
     {
