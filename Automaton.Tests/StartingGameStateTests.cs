@@ -1,5 +1,7 @@
+using Automaton.Helpers;
+using Automaton.Infrastructure;
 using Automaton.MiningStates;
-using Automaton.Utilities;
+using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Tests;
@@ -15,7 +17,7 @@ public sealed class StartingGameStateTests
         using var workspace = new TemporaryDirectory();
         var startupCapturePath = Path.Combine(workspace.Path, "startup-screen.png");
         WritePlayButtonScreen(startupCapturePath, new Point(260, 340));
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(startupCapturePath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
@@ -54,7 +56,7 @@ public sealed class StartingGameStateTests
         using var workspace = new TemporaryDirectory();
         var startupCapturePath = Path.Combine(workspace.Path, "startup-screen-empty.png");
         WriteBlankScreen(startupCapturePath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(startupCapturePath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
@@ -116,7 +118,7 @@ public sealed class StartingGameStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

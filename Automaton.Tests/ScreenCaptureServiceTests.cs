@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using OpenCvSharp;
 using DrawingRectangle = System.Drawing.Rectangle;
 
@@ -13,7 +14,7 @@ public sealed class ScreenCaptureServiceTests
         var samplePath = Path.Combine(workspace.Path, "fixture-05.png");
         SyntheticDiscoveryImageFactory.WriteTwoClusterImage(samplePath);
         var screenCaptureProvider = new StubScreenCaptureProvider(outputPath => File.Copy(samplePath, outputPath));
-        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
+        var screenCaptureService = new Helpers.ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
         ScreenCaptureSummary summary;
 
         // Act
@@ -45,7 +46,7 @@ public sealed class ScreenCaptureServiceTests
         using var workspace = new TemporaryDirectory();
         DefaultFallbackExampleFactory.Create(workspace.Path);
         var screenCaptureProvider = new StubScreenCaptureProvider(CreateBlankCapture);
-        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
+        var screenCaptureService = new Helpers.ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
         ScreenCaptureSummary summary;
 
         // Act
@@ -75,7 +76,7 @@ public sealed class ScreenCaptureServiceTests
         var virtualScreenBounds = new DrawingRectangle(0, 0, 7680, 2160);
 
         // Act
-        var captureBounds = ScreenCaptureService.BuildGameCaptureBounds(virtualScreenBounds);
+        var captureBounds = Helpers.ScreenCaptureService.BuildGameCaptureBounds(virtualScreenBounds);
 
         // Assert
         Assert.Equal(new DrawingRectangle(0, 0, 2560, 2160), captureBounds);
@@ -88,7 +89,7 @@ public sealed class ScreenCaptureServiceTests
         var virtualScreenBounds = new DrawingRectangle(0, 0, 1920, 1080);
 
         // Act
-        var captureBounds = ScreenCaptureService.BuildGameCaptureBounds(virtualScreenBounds);
+        var captureBounds = Helpers.ScreenCaptureService.BuildGameCaptureBounds(virtualScreenBounds);
 
         // Assert
         Assert.Equal(virtualScreenBounds, captureBounds);
@@ -101,7 +102,7 @@ public sealed class ScreenCaptureServiceTests
         var virtualScreenBounds = new DrawingRectangle(3000, 0, 1920, 1080);
 
         // Act
-        var captureBounds = ScreenCaptureService.BuildGameCaptureBounds(virtualScreenBounds);
+        var captureBounds = Helpers.ScreenCaptureService.BuildGameCaptureBounds(virtualScreenBounds);
 
         // Assert
         Assert.Equal(virtualScreenBounds, captureBounds);
@@ -113,7 +114,7 @@ public sealed class ScreenCaptureServiceTests
         Cv2.ImWrite(outputPath, image);
     }
 
-    private sealed class StubScreenCaptureProvider : ScreenCaptureService.IScreenCaptureProvider
+    private sealed class StubScreenCaptureProvider : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         private readonly Action<string> m_CaptureAction;
 

@@ -1,4 +1,4 @@
-namespace Automaton;
+namespace Automaton.Infrastructure;
 
 internal sealed record ApplicationStartupOptions(
     bool ProcessSamples,

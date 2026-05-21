@@ -1,5 +1,6 @@
+using Automaton.Helpers;
 using Automaton.MiningStates;
-using Automaton.Utilities;
+using Automaton.Primitives;
 using Serilog;
 
 namespace Automaton;
@@ -12,12 +13,12 @@ internal sealed class MiningAutomationService
     private IMiningAutomationState m_CurrentState;
 
     public MiningAutomationService()
-        : this(new ScreenCaptureService(), new AutomationInputController(), new SystemAutomationClock())
+        : this(new Helpers.ScreenCaptureService(), new Helpers.AutomationInputController(), new SystemAutomationClock())
     {
     }
 
     private MiningAutomationService(
-        ScreenCaptureService screenCaptureService,
+        Helpers.ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
         IAutomationClock automationClock)
     {

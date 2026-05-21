@@ -1,4 +1,4 @@
-namespace Automaton.Utilities;
+namespace Automaton.Primitives;
 
 internal static class VirtualKeys
 {

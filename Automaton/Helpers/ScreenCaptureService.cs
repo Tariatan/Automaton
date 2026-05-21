@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Serilog;
 
-namespace Automaton;
+namespace Automaton.Helpers;
 
 internal sealed partial class ScreenCaptureService
 {

@@ -1,5 +1,5 @@
 using Automaton.Detectors;
-using Automaton.Utilities;
+using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
 
@@ -7,9 +7,6 @@ namespace Automaton.MiningStates;
 
 internal sealed class ApproachingAsteroidState : IMiningAutomationState
 {
-    private const string CaptureSuffix = ".mining-approaching-asteroid";
-    private const int DistancePollingAttemptCount = 60;
-
     private readonly MineOverviewDetector m_MineOverviewDetector;
     private readonly FirstAsteroidWithinReachDetector m_FirstAsteroidWithinReachDetector;
     private readonly ILogger m_Logger;
@@ -44,7 +41,7 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
         // Activate propulsion module
         context.AutomationInputController.PressKey(VirtualKeys.F4, cancellationToken);
 
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
+        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(Settings.ApproachingAsteroidCaptureSuffix);
         using var initialScreen = Cv2.ImRead(capturePath);
 
         // Failed to detect Mine overview tab
@@ -87,10 +84,10 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
 
         m_Logger.Information("Approaching nearest asteroid...");
         // Approach asteroid until the distance becomes less than 10 km
-        for (var attempt = 0; attempt < DistancePollingAttemptCount; attempt++)
+        for (var attempt = 0; attempt < Settings.ApproachingAsteroidDistancePollingAttemptCount; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
+            capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(Settings.ApproachingAsteroidCaptureSuffix);
             using var screen = Cv2.ImRead(capturePath);
             var currentAsteroids = AsteroidRowsDetector.Locate(screen, mineOverviewBounds);
             var firstAsteroidRowBounds = currentAsteroids.Count > 0
@@ -106,7 +103,7 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
             m_Logger.Information(
                 "Distance unit detection. Attempt={Attempt}/{MaxAttempts}, CurrentAsteroidCount={CurrentAsteroidCount}, FirstAsteroidRowBounds={FirstAsteroidRowBounds}, RowSearchBounds={RowSearchBounds}, UnitSearchBounds={UnitSearchBounds}, IsMetersTemplateMatch={IsMetersTemplateMatch}, BestMetersScore={BestMetersScore}, MatchedMetersScale={MatchedMetersScale}, nearestAsteroidWithinReach={NearestAsteroidWithinReach}",
                 attempt + 1,
-                DistancePollingAttemptCount,
+                Settings.ApproachingAsteroidDistancePollingAttemptCount,
                 currentAsteroids.Count,
                 firstAsteroidRowBounds,
                 distanceTelemetry.RowSearchBounds,

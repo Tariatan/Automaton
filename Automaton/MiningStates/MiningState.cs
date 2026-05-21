@@ -1,5 +1,5 @@
 using Automaton.Detectors;
-using Automaton.Utilities;
+using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
 

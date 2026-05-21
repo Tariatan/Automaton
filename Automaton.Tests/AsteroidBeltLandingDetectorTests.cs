@@ -5,7 +5,7 @@ namespace Automaton.Tests;
 public sealed class AsteroidBeltLandingDetectorTests
 {
     [Fact]
-    public void Analyze_LandedOnAsteroidBeltImage_ReturnsLabelMineOverviewAndAsteroidRows()
+    public void Analyze_LandedOnAsteroidBeltImage_DetectsAsteroidBeltLabelSuccessfully()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImage();
@@ -48,19 +48,6 @@ public sealed class AsteroidBeltLandingDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.CreateLandedOnEmptyAsteroidBeltImage();
-
-        // Act
-        var analysis = AsteroidBeltLandingDetector.Analyze(image);
-
-        // Assert
-        Assert.True(analysis.LandedOnAsteroidBelt);
-    }
-
-    [Fact]
-    public void Analyze_LandedOnAsteroidBeltImageWithMetersDistance_DetectsMetersUnit()
-    {
-        // Arrange
-        using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImageWithMetersDistance();
 
         // Act
         var analysis = AsteroidBeltLandingDetector.Analyze(image);

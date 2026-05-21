@@ -1,6 +1,8 @@
 using System.Windows;
 using Automaton.Detectors;
-using Automaton.Utilities;
+using Automaton.Helpers;
+using Automaton.Infrastructure;
+using Automaton.Primitives;
 using OpenCvSharp;
 using Point = OpenCvSharp.Point;
 using Rect = OpenCvSharp.Rect;
@@ -18,7 +20,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var workspace = new TemporaryDirectory();
         var capturePath = Path.Combine(workspace.Path, "fixture-capture.png");
         SyntheticDiscoveryImageFactory.WriteTwoClusterImage(capturePath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -94,7 +96,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var workspace = new TemporaryDirectory();
         var capturePath = Path.Combine(workspace.Path, "fixture-capture.png");
         SyntheticDiscoveryImageFactory.WriteTwoClusterImage(capturePath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -155,7 +157,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var capturePath = Path.Combine(workspace.Path, "fixture-capture.png");
         SyntheticDiscoveryImageFactory.WriteTwoClusterImage(capturePath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -224,7 +226,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         WritePilotSelectionScreen(pilotSelectionScreenPath, pilotAvatarLocation);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -310,7 +312,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         WritePilotAvatarTemplates(pilotDirectory, 3);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -372,7 +374,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.True(new ErrorPopupDetector().Detect(focusedCapturePath));
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -440,7 +442,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         SyntheticDiscoveryImageFactory.WriteSlowDownPopupImage(slowDownPopupPath);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -523,7 +525,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         SyntheticDiscoveryImageFactory.WriteSlowDownPopupImage(slowDownPopupPath);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -591,7 +593,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         SyntheticDiscoveryImageFactory.WriteConnectionLostPopupImage(connectionLostPopupPath);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -652,7 +654,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         SyntheticDiscoveryImageFactory.WriteMaximumSubmissionsPopupImage(popupPath);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -718,7 +720,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var startupCapturePath = Path.Combine(workspace.Path, "startup.png");
         WriteBlankStartupScreen(startupCapturePath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -760,7 +762,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var workspace = new TemporaryDirectory();
         var startupCapturePath = Path.Combine(workspace.Path, "startup.png");
         WriteBlankStartupScreen(startupCapturePath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(startupCapturePath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -806,7 +808,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         WritePilotSelectionScreen(pilotSelectionScreenPath, pilotAvatarLocation);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -856,7 +858,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         WriteBlankStartupScreen(pilotSelectionScreenPath);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -898,7 +900,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(_ => throw new InvalidOperationException("Capture should not run when automation is already canceled.")),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -937,7 +939,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var capturePath = Path.Combine(workspace.Path, "fixture-capture.png");
         SyntheticDiscoveryImageFactory.WriteSingleClusterImage(capturePath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -1009,7 +1011,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         WritePilotSelectionScreen(pilotSelectionScreenPath, pilotAvatarLocation);
 
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -1083,7 +1085,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var capturePath = Path.Combine(workspace.Path, "blank-capture.png");
         WriteBlankStartupScreen(capturePath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -1129,7 +1131,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

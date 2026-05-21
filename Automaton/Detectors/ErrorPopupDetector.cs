@@ -1,3 +1,4 @@
+using Automaton.Infrastructure;
 using OpenCvSharp;
 using Serilog;
 

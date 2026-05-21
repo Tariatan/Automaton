@@ -1,7 +1,8 @@
 using System.IO;
 using System.Windows;
 using Automaton.Detectors;
-using Automaton.Utilities;
+using Automaton.Helpers;
+using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
 using Point = OpenCvSharp.Point;
@@ -24,7 +25,7 @@ internal sealed class ProjectDiscoveryAutomationService
     private static readonly Scalar DebugOverlayTextColor = new(80, 120, 255);
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
 
-    private readonly ScreenCaptureService m_ScreenCaptureService;
+    private readonly Helpers.ScreenCaptureService m_ScreenCaptureService;
     private readonly IAutomationInputController m_AutomationInputController;
     private readonly IAutomationClock m_AutomationClock;
     private readonly ErrorPopupDetector m_ErrorPopupDetector;
@@ -36,17 +37,17 @@ internal sealed class ProjectDiscoveryAutomationService
     internal bool KeepDebugImages { get; set; } = true;
 
     public ProjectDiscoveryAutomationService()
-        : this(new ScreenCaptureService(), new AutomationInputController(), new SystemAutomationClock())
+        : this(new Helpers.ScreenCaptureService(), new Helpers.AutomationInputController(), new SystemAutomationClock())
     {
     }
 
-    internal ProjectDiscoveryAutomationService(ScreenCaptureService screenCaptureService, IAutomationInputController automationInputController)
+    internal ProjectDiscoveryAutomationService(Helpers.ScreenCaptureService screenCaptureService, IAutomationInputController automationInputController)
         : this(screenCaptureService, automationInputController, new SystemAutomationClock())
     {
     }
 
     internal ProjectDiscoveryAutomationService(
-        ScreenCaptureService screenCaptureService,
+        Helpers.ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
         IAutomationClock automationClock)
     {

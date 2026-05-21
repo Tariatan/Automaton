@@ -52,7 +52,7 @@ internal static class NothingFoundDetector
     private static Rect BuildNothingFoundSearchBounds(Size imageSize, Rect mineOverviewBounds)
     {
         var left = Math.Clamp(mineOverviewBounds.X + 40, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(mineOverviewBounds.Y + 185, 0, Math.Max(0, imageSize.Height - 1));
+        var top = Math.Clamp(mineOverviewBounds.Y + 80, 0, Math.Max(0, imageSize.Height - 1));
         var right = Math.Clamp(mineOverviewBounds.Right - 28, left + 1, imageSize.Width);
         var bottom = Math.Clamp(mineOverviewBounds.Bottom - 30, top + 1, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);

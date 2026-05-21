@@ -3,7 +3,7 @@ using System.IO;
 using Serilog;
 using Serilog.Events;
 
-namespace Automaton;
+namespace Automaton.Infrastructure;
 
 internal static class ApplicationLogging
 {

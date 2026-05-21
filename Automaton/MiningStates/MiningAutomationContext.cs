@@ -1,9 +1,10 @@
+using Automaton.Helpers;
 using OpenCvSharp;
 
-namespace Automaton;
+namespace Automaton.MiningStates;
 
 internal sealed record MiningAutomationContext(
-    ScreenCaptureService ScreenCaptureService,
+    Helpers.ScreenCaptureService ScreenCaptureService,
     IAutomationInputController AutomationInputController,
     IAutomationClock AutomationClock)
 {

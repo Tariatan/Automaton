@@ -1,6 +1,7 @@
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.MiningStates;
-using Automaton.Utilities;
+using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Tests;
@@ -19,7 +20,7 @@ public sealed class SelectBeltAndWarpStateTests
         SyntheticMiningImageFactory.WriteWarpToAsteroidFieldImage(overviewPath);
         SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImage(landedPath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -74,7 +75,7 @@ public sealed class SelectBeltAndWarpStateTests
         using var workspace = new TemporaryDirectory();
         var undockedPath = Path.Combine(workspace.Path, "undocked.png");
         SyntheticMiningImageFactory.WriteUndockedCompleteImage(undockedPath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(undockedPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -108,7 +109,7 @@ public sealed class SelectBeltAndWarpStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

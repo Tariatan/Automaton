@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Automaton.Infrastructure;
 using Automaton.Properties;
 using Microsoft.Win32;
 using Serilog;

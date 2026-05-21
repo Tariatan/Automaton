@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.MiningStates;
 using OpenCvSharp;
 
@@ -17,7 +18,7 @@ public sealed class UndockingStateTests
         WriteUndockedImage(undockedPath);
         SyntheticMiningImageFactory.WriteUndockedCompleteImage(undockedCompletePath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -61,7 +62,7 @@ public sealed class UndockingStateTests
         var undockedPath = Path.Combine(workspace.Path, "undocked.png");
         WriteUndockedImage(undockedPath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -103,7 +104,7 @@ public sealed class UndockingStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

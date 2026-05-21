@@ -1,3 +1,5 @@
+using Automaton.Infrastructure;
+using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -72,10 +74,10 @@ internal sealed class MineOverviewDetector
 
     private static Rect BuildMineOverviewBounds(Size imageSize, Rect overviewMineHeaderBounds)
     {
-        var left = Math.Clamp(overviewMineHeaderBounds.X - 10, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(overviewMineHeaderBounds.Y - 40, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(left + 180, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(top + 420, top + 1, imageSize.Height);
+        var left = Math.Clamp(overviewMineHeaderBounds.X - 10, 0, imageSize.Width);
+        var top = Math.Clamp(overviewMineHeaderBounds.Y - 10, 0, imageSize.Height);
+        var right = Math.Clamp(left + Settings.MineOverviewWidth, left, imageSize.Width);
+        var bottom = Math.Clamp(top + Settings.MineOverviewHeight, top, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
 

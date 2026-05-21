@@ -5,7 +5,7 @@ namespace Automaton.Tests;
 
 public sealed class NothingFoundDetectorTests
 {
-    private static readonly Rect MineOverviewBounds = new(1700, 1226, 270, 336);
+    private static readonly Rect MineOverviewBounds = new(1778, 1339, 180, 420);
 
     [Fact]
     public void Detect_LandedOnEmptyAsteroidBeltImage_ReturnsTrue()

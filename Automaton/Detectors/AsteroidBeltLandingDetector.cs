@@ -9,7 +9,7 @@ internal static class AsteroidBeltLandingDetector
     private const int MinimumLabelRowBrightPixelCount = 40;
     private const int MinimumLabelWidth = 400;
     private const int MinimumLabelHeight = 35;
-    private const int MaximumLabelHeight = 110;
+    private const int MaximumLabelHeight = 50;
 
     public static AsteroidBeltLandingAnalysis Analyze(Mat screen)
     {

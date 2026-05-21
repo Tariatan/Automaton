@@ -1,5 +1,6 @@
+using Automaton.Helpers;
 using Automaton.MiningStates;
-using Automaton.Utilities;
+using Automaton.Primitives;
 
 namespace Automaton.Tests;
 
@@ -16,7 +17,7 @@ public sealed class ApproachingAsteroidStateTests
         SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImage(landedKilometersPath);
         SyntheticMiningImageFactory.WriteLandedOnAsteroidBeltImageWithMetersDistance(landedMetersPath);
         var captureInvocationCount = 0;
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath =>
             {
                 captureInvocationCount++;
@@ -51,9 +52,8 @@ public sealed class ApproachingAsteroidStateTests
         Assert.True(captureInvocationCount >= 2);
         Assert.Equal(2, automationInputControllerMock.MoveTargets.Count);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal(300, automationInputControllerMock.Delays[0]);
-        Assert.Contains(3_000, automationInputControllerMock.Delays);
-        Assert.Equal(1_000, automationInputControllerMock.Delays[^1]);
+        Assert.Equal(Delays.ApproachAsteroidDistancePollingMs, automationInputControllerMock.Delays[0]);
+        Assert.Contains(Delays.LockAsteroidMs, automationInputControllerMock.Delays);
         Assert.Equal(
             [VirtualKeys.F4, VirtualKeys.A, VirtualKeys.Control, VirtualKeys.F1, VirtualKeys.F2],
             automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
@@ -66,7 +66,7 @@ public sealed class ApproachingAsteroidStateTests
         using var workspace = new TemporaryDirectory();
         var landedEmptyPath = Path.Combine(workspace.Path, "landed-empty.png");
         SyntheticMiningImageFactory.WriteLandedOnEmptyAsteroidBeltImage(landedEmptyPath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(landedEmptyPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
@@ -97,7 +97,7 @@ public sealed class ApproachingAsteroidStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

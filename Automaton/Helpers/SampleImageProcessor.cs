@@ -3,7 +3,7 @@ using Automaton.Detectors;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton;
+namespace Automaton.Helpers;
 
 internal sealed class SampleImageProcessor
 {

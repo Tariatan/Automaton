@@ -1,5 +1,6 @@
+using Automaton.Helpers;
 using Automaton.MiningStates;
-using Automaton.Utilities;
+using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Tests;
@@ -17,7 +18,7 @@ public sealed class LoginStateTests
         var pilotSelectionPath = Path.Combine(workspace.Path, "pilot-selection.png");
         WritePilotAvatarTemplates(pilotDirectory, 2);
         WritePilotSelectionScreen(pilotSelectionPath, new Point(240, 180));
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(pilotSelectionPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
@@ -59,7 +60,7 @@ public sealed class LoginStateTests
         var pilotSelectionPath = Path.Combine(workspace.Path, "pilot-selection-empty.png");
         WritePilotAvatarTemplates(pilotDirectory, 2);
         WriteBlankScreen(pilotSelectionPath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(pilotSelectionPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
@@ -155,7 +156,7 @@ public sealed class LoginStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

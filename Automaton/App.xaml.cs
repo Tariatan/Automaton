@@ -1,4 +1,6 @@
 using System.Windows;
+using Automaton.Helpers;
+using Automaton.Infrastructure;
 using Serilog;
 
 namespace Automaton;

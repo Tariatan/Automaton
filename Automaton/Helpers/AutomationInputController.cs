@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
-using Automaton.Utilities;
+using Automaton.Primitives;
 using OpenCvSharp;
 
-namespace Automaton;
+namespace Automaton.Helpers;
 
 internal sealed partial class AutomationInputController : IAutomationInputController
 {

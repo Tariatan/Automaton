@@ -1,6 +1,7 @@
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.MiningStates;
-using Automaton.Utilities;
+using Automaton.Primitives;
 
 namespace Automaton.Tests;
 
@@ -14,7 +15,7 @@ public sealed class DockedStateTests
         using var workspace = new TemporaryDirectory();
         var capturePath = Path.Combine(workspace.Path, "docked.png");
         SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(capturePath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -58,7 +59,7 @@ public sealed class DockedStateTests
         using var workspace = new TemporaryDirectory();
         var capturePath = Path.Combine(workspace.Path, "docked.png");
         SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(capturePath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -89,7 +90,7 @@ public sealed class DockedStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {

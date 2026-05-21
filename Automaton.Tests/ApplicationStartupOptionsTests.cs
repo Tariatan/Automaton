@@ -1,3 +1,5 @@
+using Automaton.Infrastructure;
+
 namespace Automaton.Tests;
 
 public sealed class ApplicationStartupOptionsTests

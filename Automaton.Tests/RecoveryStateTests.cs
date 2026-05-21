@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.MiningStates;
 using OpenCvSharp;
 
@@ -12,7 +13,7 @@ public sealed class RecoveryStateTests
         using var workspace = new TemporaryDirectory();
         var dockedPath = Path.Combine(workspace.Path, "docked.png");
         SyntheticMiningImageFactory.WriteDockedItemHangarAndMiningHoldVisibleImage(dockedPath);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(dockedPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -48,7 +49,7 @@ public sealed class RecoveryStateTests
         var undockedPath = Path.Combine(workspace.Path, "undocked.png");
         using var image = SyntheticMiningImageFactory.CreateUndockedWithoutLocationChangeTimerImage();
         Cv2.ImWrite(undockedPath, image);
-        var screenCaptureService = new ScreenCaptureService(
+        var screenCaptureService = new Helpers.ScreenCaptureService(
             new StubScreenCaptureProvider(outputPath => File.Copy(undockedPath, outputPath, overwrite: true)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -77,7 +78,7 @@ public sealed class RecoveryStateTests
     }
 
     private sealed class StubScreenCaptureProvider(Action<string> captureAction)
-        : ScreenCaptureService.IScreenCaptureProvider
+        : Helpers.ScreenCaptureService.IScreenCaptureProvider
     {
         public void CaptureToFile(string outputPath)
         {
