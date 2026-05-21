@@ -4,48 +4,27 @@ namespace Automaton.Tests;
 
 internal static class SyntheticMiningImageFactory
 {
-    public static Mat CreateDockedItemHangarAndMiningHoldVisibleImage()
+    public static Mat LoadDockedItemHangarAndMiningHoldVisibleImage()
         => ScreenshotLoader.LoadOrSkip("Mining/docked_item_hangar_and_mining_hold_visible.png");
 
-    public static Mat CreateUndockedWithoutLocationChangeTimerImage()
+    public static Mat LoadUndockedWithoutLocationChangeTimerImage()
         => ScreenshotLoader.LoadOrSkip("Mining/undocked_without_location_change_timer.png");
 
-    public static Mat CreateUndockedCompleteImage()
+    public static Mat LoadUndockedCompleteImage()
         => ScreenshotLoader.LoadOrSkip("Mining/undocked_with_location_change_timer.png");
 
-    public static Mat CreateWarpToAsteroidFieldImage()
+    public static Mat LoadWarpToAsteroidFieldImage()
         => ScreenshotLoader.LoadOrSkip("Mining/warp_to_asteroid_field_overview_visible.png");
 
-    public static Mat CreateWarpDriveActiveImage()
+    public static Mat LoadWarpDriveActiveImage()
         => ScreenshotLoader.LoadOrSkip("Mining/warp_drive_active.png");
 
-    public static Mat CreateLandedOnAsteroidBeltImage()
+    public static Mat LoadLandedOnAsteroidBeltImage()
         => ScreenshotLoader.LoadOrSkip("Mining/landed_on_asteroid_belt.png");
 
-    public static Mat CreateLandedOnEmptyAsteroidBeltImage()
+    public static Mat LoadLandedOnEmptyAsteroidBeltImage()
         => ScreenshotLoader.LoadOrSkip("Mining/landed_on_empty_asteroid_belt.png");
 
-    public static Mat CreateLandedOnAsteroidBeltImageWithMetersDistance()
+    public static Mat LoadLandedOnAsteroidBeltImageWithMetersDistance()
         => ScreenshotLoader.LoadOrSkip("Mining/landed_on_asteroid_belt_meters_distance.png");
-
-    public static string GetDockedItemHangarAndMiningHoldVisibleImagePath()
-        => ScreenshotLoader.GetPathOrSkip("Mining/docked_item_hangar_and_mining_hold_visible.png");
-
-    public static string GetUndockedWithoutLocationChangeTimerImagePath()
-        => ScreenshotLoader.GetPathOrSkip("Mining/undocked_without_location_change_timer.png");
-
-    public static string GetUndockedCompleteImagePath()
-        => ScreenshotLoader.GetPathOrSkip("Mining/undocked_with_location_change_timer.png");
-
-    public static string GetWarpToAsteroidFieldImagePath()
-        => ScreenshotLoader.GetPathOrSkip("Mining/warp_to_asteroid_field_overview_visible.png");
-
-    public static string GetLandedOnAsteroidBeltImagePath()
-        => ScreenshotLoader.GetPathOrSkip("Mining/landed_on_asteroid_belt.png");
-
-    public static string GetLandedOnEmptyAsteroidBeltImagePath()
-        => ScreenshotLoader.GetPathOrSkip("Mining/landed_on_empty_asteroid_belt.png");
-
-    public static string GetLandedOnAsteroidBeltImageWithMetersDistancePath()
-        => ScreenshotLoader.GetPathOrSkip("Mining/landed_on_asteroid_belt_meters_distance.png");
 }

@@ -1,6 +1,5 @@
 using Automaton.Detectors;
 using Automaton.Primitives;
-using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.MiningStates;
@@ -36,15 +35,14 @@ internal sealed class RecoveryState : IMiningAutomationState
         context.AutomationInputController.Delay(Delays.RecoveryMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
-        using var screen = Cv2.ImRead(capturePath);
+        using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
 
         var nextState = MiningAutomationStateKind.None;
 
         // Try to detect safe haven again
         if (context.LastAction == MiningAutomationActionKind.QuitGameFromSpace)
         {
-            var beltAnalysis = m_BeltOverviewDetector.Analyze(screen);
+            var beltAnalysis = m_BeltOverviewDetector.Analyze(capture.Image);
             if (!beltAnalysis.OverviewLocated || beltAnalysis.HomeStationBounds is null)
             {
                 m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
@@ -53,7 +51,7 @@ internal sealed class RecoveryState : IMiningAutomationState
                     Kind,
                     MiningAutomationStateKind.None,
                     MiningAutomationActionKind.None,
-                    capturePath);
+                    capture.CapturePath);
             }
 
             // We are still in space and docking is possible
@@ -63,7 +61,7 @@ internal sealed class RecoveryState : IMiningAutomationState
         // Try to detect Undock button again
         if (context.LastAction == MiningAutomationActionKind.QuitGameFromDock)
         {
-            if (!UndockButtonDetector.TryLocate(screen, out _))
+            if (!UndockButtonDetector.TryLocate(capture.Image, out _))
             {
                 m_Logger.Error("Undock button not found while docked. Quit Game since this state is unrecoverable.");
                 context.AutomationInputController.QuitGame(cancellationToken);
@@ -71,7 +69,7 @@ internal sealed class RecoveryState : IMiningAutomationState
                     Kind,
                     MiningAutomationStateKind.None,
                     MiningAutomationActionKind.None,
-                    capturePath);
+                    capture.CapturePath);
             }
 
             // Docked and Undock button found
@@ -82,6 +80,6 @@ internal sealed class RecoveryState : IMiningAutomationState
             Kind,
             nextState,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capture.CapturePath);
     }
 }

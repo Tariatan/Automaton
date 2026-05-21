@@ -10,29 +10,17 @@ public sealed class RecoveryStateTests
     public void Execute_UndockButtonFound_TransitionsToUnloadCargo()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticMiningImageFactory.GetDockedItemHangarAndMiningHoldVisibleImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new RecoveryState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
@@ -44,29 +32,17 @@ public sealed class RecoveryStateTests
     public void Execute_UndockButtonMissing_TransitionsToDock()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticMiningImageFactory.GetUndockedWithoutLocationChangeTimerImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadUndockedWithoutLocationChangeTimerImage()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new RecoveryState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Dock, transition.NextState);
@@ -74,13 +50,10 @@ public sealed class RecoveryStateTests
         Assert.Equal([60_000], automationInputController.Delays);
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationInputController : IAutomationInputController

@@ -8,7 +8,7 @@ public sealed class AsteroidBeltLandingDetectorTests
     public void Analyze_LandedOnAsteroidBeltImage_DetectsAsteroidBeltLabelSuccessfully()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImage();
+        using var image = SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
 
         // Act
         var analysis = AsteroidBeltLandingDetector.Analyze(image);
@@ -21,7 +21,7 @@ public sealed class AsteroidBeltLandingDetectorTests
     public void Analyze_WarpToAsteroidFieldImage_ReturnsNotFound()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateWarpToAsteroidFieldImage();
+        using var image = SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage();
 
         // Act
         var analysis = AsteroidBeltLandingDetector.Analyze(image);
@@ -34,7 +34,7 @@ public sealed class AsteroidBeltLandingDetectorTests
     public void Analyze_WarpDriveActiveTextMentionsAsteroidBelt_ReturnsNotFound()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateWarpDriveActiveImage();
+        using var image = SyntheticMiningImageFactory.LoadWarpDriveActiveImage();
 
         // Act
         var analysis = AsteroidBeltLandingDetector.Analyze(image);
@@ -47,7 +47,7 @@ public sealed class AsteroidBeltLandingDetectorTests
     public void Analyze_LandedOnEmptyAsteroidBeltImage_DetectsNothingFound()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateLandedOnEmptyAsteroidBeltImage();
+        using var image = SyntheticMiningImageFactory.LoadLandedOnEmptyAsteroidBeltImage();
 
         // Act
         var analysis = AsteroidBeltLandingDetector.Analyze(image);

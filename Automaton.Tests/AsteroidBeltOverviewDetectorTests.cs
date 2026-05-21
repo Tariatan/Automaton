@@ -8,7 +8,7 @@ public sealed class AsteroidBeltOverviewDetectorTests
     public void Analyze_OverviewWithAsteroidBelts_ReturnsControlsAndBeltRows()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateWarpToAsteroidFieldImage();
+        using var image = SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage();
         var detector = new AsteroidBeltOverviewDetector();
 
         // Act

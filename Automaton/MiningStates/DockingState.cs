@@ -33,9 +33,8 @@ internal sealed class DockingState : IMiningAutomationState
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
-        using var screen = Cv2.ImRead(capturePath);
-        var analysis = m_HomeStationDetector.Analyze(screen);
+        var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
+        var analysis = m_HomeStationDetector.Analyze(capture.Image);
         if (!analysis.HomeStationLocated || analysis.HomeStationBounds is null)
         {
             m_Logger.Error(
@@ -43,16 +42,19 @@ internal sealed class DockingState : IMiningAutomationState
                 analysis.BestMatchScore,
                 analysis.OverviewAnalysis.OverviewLocated,
                 analysis.OverviewAnalysis.OverviewBounds);
-            return new MiningAutomationStateTransition(
+            var result = new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Recover,
-                capturePath);
+                capture.CapturePath);
+            capture.Dispose();
+            return result;
         }
 
         // Select home station in the belt overview
         m_Logger.Information("Selecting home station");
         context.ClickUiElement(Center(analysis.HomeStationBounds.Value), cancellationToken);
+        capture.Dispose();
 
         // Wait 1 second
         context.AutomationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
@@ -67,24 +69,27 @@ internal sealed class DockingState : IMiningAutomationState
             context.AutomationInputController.Delay(Delays.DockedPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
-            capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(DockedCaptureSuffix);
-            using var pollingScreen = Cv2.ImRead(capturePath);
+            capture = context.ScreenCaptureService.CaptureCurrentScreen(DockedCaptureSuffix);
 
             // Docked
-            if (UndockButtonDetector.TryLocate(pollingScreen, out _))
+            if (UndockButtonDetector.TryLocate(capture.Image, out _))
             {
                 m_Logger.Information("Docked");
                 break;
             }
+
+            capture.Dispose();
         }
 
         context.AutomationInputController.Delay(Delays.DockedBounceMs, cancellationToken);
 
-        return new MiningAutomationStateTransition(
+        var transitionResult = new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.UnloadCargo,
             MiningAutomationActionKind.Dock,
-            capturePath);
+            capture.CapturePath);
+        capture.Dispose();
+        return transitionResult;
     }
 
     private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);

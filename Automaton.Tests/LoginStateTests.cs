@@ -15,19 +15,20 @@ public sealed class LoginStateTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         var pilotDirectory = Path.Combine(workspace.Path, "pilot");
-        var pilotSelectionPath = Path.Combine(workspace.Path, "pilot-selection.png");
         WritePilotAvatarTemplates(pilotDirectory, 2);
-        WritePilotSelectionScreen(pilotSelectionPath, new Point(240, 180));
+        using var pilotScreen = CreatePilotSelectionScreen(new Point(240, 180));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(pilotSelectionPath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => pilotScreen.Clone()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new LoginState();
-        MiningAutomationStateTransition transition;
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(workspace.Path);
+
+        MiningAutomationStateTransition transition;
 
         try
         {
@@ -57,19 +58,20 @@ public sealed class LoginStateTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         var pilotDirectory = Path.Combine(workspace.Path, "pilot");
-        var pilotSelectionPath = Path.Combine(workspace.Path, "pilot-selection-empty.png");
         WritePilotAvatarTemplates(pilotDirectory, 2);
-        WriteBlankScreen(pilotSelectionPath);
+        using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(pilotSelectionPath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => blankScreen.Clone()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new LoginState();
-        MiningAutomationStateTransition transition;
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(workspace.Path);
+
+        MiningAutomationStateTransition transition;
 
         try
         {
@@ -91,12 +93,6 @@ public sealed class LoginStateTests
         Assert.Empty(automationInputControllerMock.KeyInputs);
     }
 
-    private static void WriteBlankScreen(string outputPath)
-    {
-        using var image = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
-        Cv2.ImWrite(outputPath, image);
-    }
-
     private static void WritePilotAvatarTemplates(string pilotDirectory, int pilotIndex)
     {
         Directory.CreateDirectory(pilotDirectory);
@@ -106,13 +102,13 @@ public sealed class LoginStateTests
         Cv2.ImWrite(Path.Combine(pilotDirectory, $"{pilotIndex}_focused.png"), focusedAvatar);
     }
 
-    private static void WritePilotSelectionScreen(string outputPath, Point pilotAvatarLocation)
+    private static Mat CreatePilotSelectionScreen(Point pilotAvatarLocation)
     {
-        using var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
+        var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
         using var focusedAvatar = CreatePilotAvatarTemplate(focused: true);
         using var region = new Mat(screen, new Rect(pilotAvatarLocation.X, pilotAvatarLocation.Y, focusedAvatar.Width, focusedAvatar.Height));
         focusedAvatar.CopyTo(region);
-        Cv2.ImWrite(outputPath, screen);
+        return screen;
     }
 
     private static Mat CreatePilotAvatarTemplate(bool focused)
@@ -155,13 +151,10 @@ public sealed class LoginStateTests
         Assert.Equal(virtualKey, keyInput.VirtualKey);
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationClock : IAutomationClock

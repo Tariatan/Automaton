@@ -16,6 +16,8 @@ internal static class Settings
     public const string UnloadingCargoCaptureSuffix = ".mining-unlading-cargo";
 
     // Inventory
+    public static readonly Rect ItemHangarBounds = new(40, 30, 250, 70);
+    public static readonly Rect MiningHoldBounds = new(40, 320, 250, 70);
     public static readonly Rect ItemHangarFirstRowBounds = new(75, 205, 300, 30);
     public static readonly Rect MiningHoldFirstRowBounds = new(75, 495, 300, 30);
 

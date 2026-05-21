@@ -30,17 +30,16 @@ internal sealed class LoginState : IMiningAutomationState
     {
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace($"{CaptureSuffix}-{PilotIndex}");
+        using var capture = context.ScreenCaptureService.CaptureCurrentScreen($"{CaptureSuffix}-{PilotIndex}");
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var screen = Cv2.ImRead(capturePath);
-        if (!PilotAvatarLocator.TryLocate(screen, PilotIndex, out var pilotLocation))
+        if (!PilotAvatarLocator.TryLocate(capture.Image, PilotIndex, out var pilotLocation))
         {
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Recover,
-                capturePath);
+                capture.CapturePath);
         }
 
         // Select miner pilot
@@ -64,7 +63,7 @@ internal sealed class LoginState : IMiningAutomationState
             Kind,
             MiningAutomationStateKind.UnloadCargo,
             MiningAutomationActionKind.LoginPilot,
-            capturePath);
+            capture.CapturePath);
     }
 
     private static Point Center(Rect bounds)

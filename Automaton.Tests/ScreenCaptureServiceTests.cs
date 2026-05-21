@@ -11,8 +11,8 @@ public sealed class ScreenCaptureServiceTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticDiscoveryImageFactory.GetTwoClusterImagePath();
-        var screenCaptureProvider = new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath));
+        var screenCaptureProvider = new StubScreenCaptureProvider(
+            () => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_two_clusters.png"));
         var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
         ScreenCaptureSummary summary;
 
@@ -44,7 +44,8 @@ public sealed class ScreenCaptureServiceTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         DefaultFallbackExampleFactory.Create(workspace.Path);
-        var screenCaptureProvider = new StubScreenCaptureProvider(CreateBlankCapture);
+        var screenCaptureProvider = new StubScreenCaptureProvider(
+            () => new Mat(new Size(1200, 900), MatType.CV_8UC3, Scalar.All(0)));
         var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
         ScreenCaptureSummary summary;
 
@@ -107,24 +108,9 @@ public sealed class ScreenCaptureServiceTests
         Assert.Equal(virtualScreenBounds, captureBounds);
     }
 
-    private static void CreateBlankCapture(string outputPath)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
+        : ScreenCaptureService.IScreenCaptureProvider
     {
-        using var image = new Mat(new Size(1200, 900), MatType.CV_8UC3, Scalar.All(0));
-        Cv2.ImWrite(outputPath, image);
-    }
-
-    private sealed class StubScreenCaptureProvider : ScreenCaptureService.IScreenCaptureProvider
-    {
-        private readonly Action<string> m_CaptureAction;
-
-        public StubScreenCaptureProvider(Action<string> captureAction)
-        {
-            m_CaptureAction = captureAction;
-        }
-
-        public void CaptureToFile(string outputPath)
-        {
-            m_CaptureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 }

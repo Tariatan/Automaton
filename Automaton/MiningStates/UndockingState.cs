@@ -35,28 +35,29 @@ internal sealed class UndockingState : IMiningAutomationState
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
+        var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
         context.AutomationInputController.Delay(Delays.UndockingWindowActivationMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var initialScreen = Cv2.ImRead(capturePath);
-
         // TryLocate Undock button
-        if (!UndockButtonDetector.TryLocate(initialScreen, out var undockButtonBounds))
+        if (!UndockButtonDetector.TryLocate(capture.Image, out var undockButtonBounds))
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort undocking");
-            return new MiningAutomationStateTransition(
+            var result = new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Recover,
-                capturePath);
+                capture.CapturePath);
+            capture.Dispose();
+            return result;
         }
 
         // Undocking
         context.ClickUiElement(Center(undockButtonBounds), cancellationToken);
+        capture.Dispose();
 
         context.AutomationInputController.Delay(Delays.InitialUndockMs, cancellationToken);
 
@@ -64,20 +65,22 @@ internal sealed class UndockingState : IMiningAutomationState
         for (var attempt = 0; attempt < LocationChangeTimerPollingAttemptCount; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
-            using var screen = Cv2.ImRead(capturePath);
-            if (m_Detector.TryLocate(screen, out _))
+            capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
+            if (m_Detector.TryLocate(capture.Image, out _))
             {
                 m_Logger.Information("Location Change Timer located");
 
                 // Located => warp to asteroid belt
-                return new MiningAutomationStateTransition(
+                var result = new MiningAutomationStateTransition(
                     Kind,
                     MiningAutomationStateKind.SelectBeltAndWarp,
                     MiningAutomationActionKind.CompleteUndock,
-                    capturePath);
+                    capture.CapturePath);
+                capture.Dispose();
+                return result;
             }
 
+            capture.Dispose();
             context.AutomationInputController.Delay(Delays.LocationChangeTimerPollingMs, cancellationToken);
         }
 
@@ -85,7 +88,7 @@ internal sealed class UndockingState : IMiningAutomationState
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capture.CapturePath);
     }
 
     private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);

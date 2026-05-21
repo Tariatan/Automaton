@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.Helpers;
@@ -23,6 +24,7 @@ internal sealed partial class ScreenCaptureService
 
     private readonly IScreenCaptureProvider m_ScreenCaptureProvider;
     private readonly SampleImageProcessor m_SampleImageProcessor;
+    private readonly bool m_PersistCaptures;
 
     public ScreenCaptureService()
         : this(new ScreenCaptureProvider(), new SampleImageProcessor())
@@ -31,10 +33,12 @@ internal sealed partial class ScreenCaptureService
 
     internal ScreenCaptureService(
         IScreenCaptureProvider screenCaptureProvider,
-        SampleImageProcessor sampleImageProcessor)
+        SampleImageProcessor sampleImageProcessor,
+        bool persistCaptures = true)
     {
         m_ScreenCaptureProvider = screenCaptureProvider;
         m_SampleImageProcessor = sampleImageProcessor;
+        m_PersistCaptures = persistCaptures;
     }
 
     public void ProcessSamples()
@@ -55,37 +59,51 @@ internal sealed partial class ScreenCaptureService
     internal ScreenCaptureAnalysisSummary CaptureAndAnalyzeCurrentScreen()
     {
         var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
-        // Persist the captured desktop first so the exact input remains available
-        // for debugging, then process it through the same screenshot pipeline.
-        var capturePath = CaptureCurrentScreenTrace();
-        var analysis = m_SampleImageProcessor.AnalyzeImageFile(capturePath);
+        using var capture = CaptureCurrentScreen();
+        var analysis = m_SampleImageProcessor.AnalyzeImage(capture.Image, capture.CapturePath);
         Logger.Information(
             "Captured and analyzed current screen. CapturePath={CapturePath}, PlayfieldFound={PlayfieldFound}, ClusterCount={ClusterCount}, OutputPath={OutputPath}",
-            capturePath,
+            capture.CapturePath,
             analysis.Result.PlayfieldFound,
             analysis.Result.ClusterCount,
             analysis.Result.OutputPath);
 
-        return new ScreenCaptureAnalysisSummary(capturesDirectory, capturePath, analysis);
+        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysis);
+    }
+
+    internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "")
+    {
+        var image = m_ScreenCaptureProvider.CaptureScreen();
+        var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
+        var capturePath = Path.Combine(
+            capturesDirectory,
+            $"{CaptureFilePrefix}{DateTime.Now.ToString(CaptureTimestampFormat)}{suffix}.png");
+
+        if (m_PersistCaptures)
+        {
+            Directory.CreateDirectory(capturesDirectory);
+            Cv2.ImWrite(capturePath, image);
+            Logger.Information("Captured current screen trace. CapturePath={CapturePath}", capturePath);
+        }
+
+        return new ScreenCaptureResult(image, capturePath);
     }
 
     internal string CaptureCurrentScreenTrace(string suffix = "")
     {
-        var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
-        Directory.CreateDirectory(capturesDirectory);
-        var capturePath = Path.Combine(
-            capturesDirectory,
-            $"{CaptureFilePrefix}{DateTime.Now.ToString(CaptureTimestampFormat)}{suffix}.png");
-        CaptureCurrentScreenToFile(capturePath);
-        Logger.Information("Captured current screen trace. CapturePath={CapturePath}", capturePath);
-        return capturePath;
+        using var capture = CaptureCurrentScreen(suffix);
+        return capture.CapturePath;
     }
 
     internal void CaptureCurrentScreenToFile(string outputPath)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-        m_ScreenCaptureProvider.CaptureToFile(outputPath);
-        Logger.Debug("Captured current screen to file. OutputPath={OutputPath}", outputPath);
+        using var image = m_ScreenCaptureProvider.CaptureScreen();
+        if (m_PersistCaptures)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            Cv2.ImWrite(outputPath, image);
+            Logger.Debug("Captured current screen to file. OutputPath={OutputPath}", outputPath);
+        }
     }
 
     internal SampleImageAnalysisResult AnalyzeImageFile(string imagePath, bool writeAnnotatedOutput = true)
@@ -112,19 +130,21 @@ internal sealed partial class ScreenCaptureService
 
     internal interface IScreenCaptureProvider
     {
-        void CaptureToFile(string outputPath);
+        Mat CaptureScreen();
     }
 
     private sealed partial class ScreenCaptureProvider : IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
+        public Mat CaptureScreen()
         {
             var bounds = GetPhysicalGameCaptureBounds();
 
             using var bitmap = new Bitmap(bounds.Width, bounds.Height);
             using var graphics = Graphics.FromImage(bitmap);
             graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size);
-            bitmap.Save(outputPath, ImageFormat.Png);
+            using var ms = new MemoryStream();
+            bitmap.Save(ms, ImageFormat.Png);
+            return Cv2.ImDecode(ms.ToArray(), ImreadModes.Color);
         }
 
         private static Rectangle GetPhysicalGameCaptureBounds()
@@ -144,6 +164,11 @@ internal sealed partial class ScreenCaptureService
         [LibraryImport("user32.dll", EntryPoint = "GetSystemMetricsA")]
         private static partial int GetSystemMetrics(int nIndex);
     }
+}
+
+internal sealed record ScreenCaptureResult(Mat Image, string CapturePath) : IDisposable
+{
+    public void Dispose() => Image.Dispose();
 }
 
 internal sealed record ScreenCaptureSummary(

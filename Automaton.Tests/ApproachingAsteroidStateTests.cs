@@ -1,6 +1,7 @@
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -11,38 +12,24 @@ public sealed class ApproachingAsteroidStateTests
     public void Execute_DistanceSwitchesToMeters_PressesMiningKeysAndTransitionsToMining()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var landedKilometersPath = SyntheticMiningImageFactory.GetLandedOnAsteroidBeltImagePath();
-        var landedMetersPath = SyntheticMiningImageFactory.GetLandedOnAsteroidBeltImageWithMetersDistancePath();
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                var sourcePath = captureInvocationCount < 3
-                    ? landedKilometersPath
-                    : landedMetersPath;
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                return captureInvocationCount < 3
+                    ? SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage()
+                    : SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImageWithMetersDistance();
             }),
-            new SampleImageProcessor());
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new ApproachingAsteroidState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Mining, transition.NextState);
@@ -61,29 +48,17 @@ public sealed class ApproachingAsteroidStateTests
     public void Execute_InitialAsteroidListMissing_TransitionsToRecovery()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticMiningImageFactory.GetLandedOnEmptyAsteroidBeltImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadLandedOnEmptyAsteroidBeltImage()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new ApproachingAsteroidState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
@@ -93,13 +68,10 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(0, automationInputControllerMock.ClickCount);
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationClock : IAutomationClock

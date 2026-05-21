@@ -14,30 +14,18 @@ public sealed class StartingGameStateTests
     public void Execute_PlayNowButtonPresent_StartsGameAndTransitionsToLogin()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var startupCapturePath = Path.Combine(workspace.Path, "startup-screen.png");
-        WritePlayButtonScreen(startupCapturePath, new Point(260, 340));
+        using var screen = CreatePlayButtonScreen(new Point(260, 340));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(startupCapturePath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => screen.Clone()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new StartingGameState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Login, transition.NextState);
@@ -53,30 +41,18 @@ public sealed class StartingGameStateTests
     public void Execute_PlayNowButtonMissing_TransitionsToRecoveryWithoutInput()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var startupCapturePath = Path.Combine(workspace.Path, "startup-screen-empty.png");
-        WriteBlankScreen(startupCapturePath);
+        using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(startupCapturePath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => blankScreen.Clone()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new StartingGameState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
@@ -87,24 +63,13 @@ public sealed class StartingGameStateTests
         Assert.Empty(automationInputControllerMock.KeyInputs);
     }
 
-    private static void WriteBlankScreen(string outputPath)
+    private static Mat CreatePlayButtonScreen(Point playButtonLocation)
     {
-        using var image = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
-        Cv2.ImWrite(outputPath, image);
-    }
-
-    private static void WritePlayButtonScreen(string outputPath, Point playButtonLocation)
-    {
-        using var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
-        using var playButton = LoadPlayButtonImage();
+        var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
+        using var playButton = EmbeddedResourceLoader.LoadMat("play.png");
         using var region = new Mat(screen, new Rect(playButtonLocation.X, playButtonLocation.Y, playButton.Width, playButton.Height));
         playButton.CopyTo(region);
-        Cv2.ImWrite(outputPath, screen);
-    }
-
-    private static Mat LoadPlayButtonImage()
-    {
-        return EmbeddedResourceLoader.LoadMat("play.png");
+        return screen;
     }
 
     private static void AssertKeyChord(
@@ -117,13 +82,10 @@ public sealed class StartingGameStateTests
         Assert.Equal(virtualKey, keyInput.VirtualKey);
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationClock : IAutomationClock

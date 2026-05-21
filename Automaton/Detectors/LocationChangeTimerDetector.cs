@@ -6,19 +6,10 @@ namespace Automaton.Detectors;
 internal sealed class LocationChangeTimerDetector
 {
     private const double MinimumMatchScore = 0.90;
-    private static readonly Rect SearchBounds = new(80, 20, 180, 130);
+    private static readonly Rect SearchBounds = new(130, 50, 50, 50);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_Template;
-
-    public LocationChangeTimerDetector()
-    {
-        m_Template = LoadLocationChangeTimerFromResources();
-        if (m_Template.Empty())
-        {
-            throw new InvalidOperationException("Could not load location change timer template from resources.");
-        }
-    }
+    private readonly Mat m_Template = EmbeddedResourceLoader.LoadMat("location_change_timer.png");
 
     public bool TryLocate(Mat screen, out LocationChangeTimerLocation location)
     {
@@ -97,11 +88,6 @@ internal sealed class LocationChangeTimerDetector
         var scaledTemplate = new Mat();
         Cv2.Resize(m_Template, scaledTemplate, new Size(width, height));
         return scaledTemplate;
-    }
-
-    private static Mat LoadLocationChangeTimerFromResources()
-    {
-        return EmbeddedResourceLoader.LoadMat("location_change_timer.png");
     }
 }
 

@@ -20,7 +20,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var workspace = new TemporaryDirectory();
         var capturePath = SyntheticDiscoveryImageFactory.GetTwoClusterImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
+            new StubScreenCaptureProvider(() => Cv2.ImRead(capturePath)),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -95,7 +95,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var workspace = new TemporaryDirectory();
         var capturePath = SyntheticDiscoveryImageFactory.GetTwoClusterImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(capturePath, outputPath)),
+            new StubScreenCaptureProvider(() => Cv2.ImRead(capturePath)),
             new SampleImageProcessor());
         using var cancellationTokenSource = new CancellationTokenSource();
         var sawAfterSubmitDelay = false;
@@ -154,10 +154,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var capturePath = SyntheticDiscoveryImageFactory.GetTwoClusterImagePath();
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(capturePath, outputPath);
+                return Cv2.ImRead(capturePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -221,7 +221,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
                 var sourcePath = captureInvocationCount switch
@@ -230,7 +230,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                     2 => popupPath,
                     _ => pilotSelectionScreenPath
                 };
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                return Cv2.ImRead(sourcePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -305,7 +305,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
                 var sourcePath = captureInvocationCount switch
@@ -313,7 +313,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                     1 => capturePath,
                     _ => popupPath
                 };
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                return Cv2.ImRead(sourcePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -365,10 +365,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(captureInvocationCount == 1 ? capturePath : focusedCapturePath, outputPath, overwrite: true);
+                return Cv2.ImRead(captureInvocationCount == 1 ? capturePath : focusedCapturePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -431,10 +431,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(captureInvocationCount == 2 ? slowDownPopupPath : capturePath, outputPath, overwrite: true);
+                return Cv2.ImRead(captureInvocationCount == 2 ? slowDownPopupPath : capturePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -513,10 +513,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(slowDownPopupPath, outputPath, overwrite: true);
+                return Cv2.ImRead(slowDownPopupPath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -579,10 +579,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(captureInvocationCount % 2 == 0 ? connectionLostPopupPath : capturePath, outputPath, overwrite: true);
+                return Cv2.ImRead(captureInvocationCount % 2 == 0 ? connectionLostPopupPath : capturePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -638,10 +638,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(captureInvocationCount == 1 ? capturePath : popupPath, outputPath, overwrite: true);
+                return Cv2.ImRead(captureInvocationCount == 1 ? capturePath : popupPath);
             }),
             new SampleImageProcessor());
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -704,10 +704,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         WriteBlankStartupScreen(startupCapturePath);
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(startupCapturePath, outputPath, overwrite: true);
+                return Cv2.ImRead(startupCapturePath);
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -746,7 +746,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var startupCapturePath = Path.Combine(workspace.Path, "startup.png");
         WriteBlankStartupScreen(startupCapturePath);
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(startupCapturePath, outputPath, overwrite: true)),
+            new StubScreenCaptureProvider(() => Cv2.ImRead(startupCapturePath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
         var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController)
@@ -792,10 +792,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(captureInvocationCount == 1 ? startupCapturePath : pilotSelectionScreenPath, outputPath, overwrite: true);
+                return Cv2.ImRead(captureInvocationCount == 1 ? startupCapturePath : pilotSelectionScreenPath);
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -842,10 +842,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(captureInvocationCount == 1 ? startupCapturePath : pilotSelectionScreenPath, outputPath, overwrite: true);
+                return Cv2.ImRead(captureInvocationCount == 1 ? startupCapturePath : pilotSelectionScreenPath);
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
@@ -884,7 +884,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(_ => throw new InvalidOperationException("Capture should not run when automation is already canceled.")),
+            new StubScreenCaptureProvider(() => throw new InvalidOperationException("Capture should not run when automation is already canceled.")),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
         var automationInputController = new StubAutomationInputController
@@ -922,10 +922,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         var capturePath = SyntheticDiscoveryImageFactory.GetSingleClusterImagePath();
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(capturePath, outputPath, overwrite: true);
+                return Cv2.ImRead(capturePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -992,7 +992,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
 
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
                 var sourcePath = captureInvocationCount switch
@@ -1001,7 +1001,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                     11 => pilotSelectionScreenPath,
                     _ => capturePath
                 };
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                return Cv2.ImRead(sourcePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -1066,10 +1066,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         WriteBlankStartupScreen(capturePath);
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(capturePath, outputPath, overwrite: true);
+                return Cv2.ImRead(capturePath);
             }),
             new SampleImageProcessor());
         var automationClock = new StubAutomationClock();
@@ -1110,13 +1110,10 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         AssertKey(automationInputController.KeyInputs[1], VirtualKeys.Enter);
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationClock : IAutomationClock

@@ -1,5 +1,6 @@
 using Automaton.Helpers;
 using Automaton.MiningStates;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -11,38 +12,24 @@ public sealed class UndockingStateTests
     public void Execute_LocationChangeTimerAppears_TransitionsToEmptyOnUndock()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var undockedPath = SyntheticMiningImageFactory.GetUndockedWithoutLocationChangeTimerImagePath();
-        var undockedCompletePath = SyntheticMiningImageFactory.GetUndockedCompleteImagePath();
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                var sourcePath = captureInvocationCount < 3
-                    ? undockedPath
-                    : undockedCompletePath;
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                return captureInvocationCount < 3
+                    ? SyntheticMiningImageFactory.LoadUndockedWithoutLocationChangeTimerImage()
+                    : SyntheticMiningImageFactory.LoadUndockedCompleteImage();
             }),
-            new SampleImageProcessor());
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new UndockingState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.NextState);
@@ -55,34 +42,22 @@ public sealed class UndockingStateTests
     public void Execute_LocationChangeTimerMissing_TransitionsToRecovery()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticMiningImageFactory.GetUndockedWithoutLocationChangeTimerImagePath();
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                return SyntheticMiningImageFactory.LoadUndockedWithoutLocationChangeTimerImage();
             }),
-            new SampleImageProcessor());
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new UndockingState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
@@ -93,13 +68,10 @@ public sealed class UndockingStateTests
         Assert.All(automationInputController.Delays.Skip(1), delay => Assert.Equal(1_000, delay));
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationClock : IAutomationClock

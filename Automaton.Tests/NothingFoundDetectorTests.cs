@@ -11,7 +11,7 @@ public sealed class NothingFoundDetectorTests
     public void Detect_LandedOnEmptyAsteroidBeltImage_ReturnsTrue()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateLandedOnEmptyAsteroidBeltImage();
+        using var image = SyntheticMiningImageFactory.LoadLandedOnEmptyAsteroidBeltImage();
 
         // Act
         var detected = NothingFoundDetector.Detect(image, MineOverviewBounds);
@@ -24,7 +24,7 @@ public sealed class NothingFoundDetectorTests
     public void Detect_LandedOnAsteroidBeltImage_ReturnsFalse()
     {
         // Arrange
-        using var image = SyntheticMiningImageFactory.CreateLandedOnAsteroidBeltImage();
+        using var image = SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
 
         // Act
         var detected = NothingFoundDetector.Detect(image, MineOverviewBounds);

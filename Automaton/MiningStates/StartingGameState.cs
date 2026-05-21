@@ -31,17 +31,16 @@ internal sealed class StartingGameState : IMiningAutomationState
     {
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
+        using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var screen = Cv2.ImRead(capturePath);
-        if (!m_PlayNowButtonLocator.TryLocate(screen, out var playButtonLocation))
+        if (!m_PlayNowButtonLocator.TryLocate(capture.Image, out var playButtonLocation))
         {
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Recover,
-                capturePath);
+                capture.CapturePath);
         }
 
         context.AutomationInputController.MoveTo(Center(playButtonLocation.Bounds));
@@ -52,7 +51,7 @@ internal sealed class StartingGameState : IMiningAutomationState
             Kind,
             MiningAutomationStateKind.Login,
             MiningAutomationActionKind.StartGame,
-            capturePath);
+            capture.CapturePath);
     }
 
     private static Point Center(Rect bounds)

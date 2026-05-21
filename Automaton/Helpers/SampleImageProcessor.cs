@@ -168,6 +168,11 @@ internal sealed class SampleImageProcessor
             throw new InvalidOperationException($"Could not read image: {imagePath}");
         }
 
+        return AnalyzeImage(image, imagePath, writeAnnotatedOutput);
+    }
+
+    internal SampleImageAnalysisResult AnalyzeImage(Mat image, string imagePath, bool writeAnnotatedOutput = true)
+    {
         var playfieldDetection = m_PlayfieldDetector.Detect(image);
         IReadOnlyList<Point[]> polygons;
         var usedKnownSampleTemplate = false;

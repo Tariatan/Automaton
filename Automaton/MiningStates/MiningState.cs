@@ -1,6 +1,5 @@
 using Automaton.Detectors;
 using Automaton.Primitives;
-using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.MiningStates;
@@ -59,18 +58,17 @@ internal sealed class MiningState : IMiningAutomationState
             context.AutomationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
-            var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(CaptureSuffix);
-            lastCapturePath = capturePath;
-            using var screen = Cv2.ImRead(capturePath);
+            using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
+            lastCapturePath = capture.CapturePath;
 
-            if (screen.Empty())
+            if (capture.Image.Empty())
             {
-                return Recover(capturePath);
+                return Recover(capture.CapturePath);
             }
 
-            if (m_WarOverviewDetector.TryLocate(screen, out var warOverviewBounds))
+            if (m_WarOverviewDetector.TryLocate(capture.Image, out var warOverviewBounds))
             {
-                var warOverviewNothingFound = NothingFoundDetector.Detect(screen, warOverviewBounds);
+                var warOverviewNothingFound = NothingFoundDetector.Detect(capture.Image, warOverviewBounds);
                 if (!warOverviewNothingFound)
                 {
                     if (context.TryGetCurrentAsteroidBelt(out var currentAsteroidBeltBounds))
@@ -83,13 +81,13 @@ internal sealed class MiningState : IMiningAutomationState
                 }
             }
 
-            if (!m_AsteroidDetector.TryLocate(screen))
+            if (!m_AsteroidDetector.TryLocate(capture.Image))
             {
                 dockingReason = DockingReason.AsteroidDepleted;
                 break;
             }
 
-            if (!m_LaserDetector.TryLocate(screen))
+            if (!m_LaserDetector.TryLocate(capture.Image))
             {
                 dockingReason = DockingReason.CargoFull;
                 break;

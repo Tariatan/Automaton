@@ -14,41 +14,27 @@ public sealed class SelectBeltAndWarpStateTests
     public void Execute_OverviewHasAsteroidBelts_ClicksBeltTabRandomBeltAndPressesS()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var overviewPath = SyntheticMiningImageFactory.GetWarpToAsteroidFieldImagePath();
-        var landedPath = SyntheticMiningImageFactory.GetLandedOnAsteroidBeltImagePath();
         var captureInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath =>
+            new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                var sourcePath = captureInvocationCount < 4
-                    ? overviewPath
-                    : landedPath;
-                File.Copy(sourcePath, outputPath, overwrite: true);
+                return captureInvocationCount < 4
+                    ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
+                    : SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
             }),
-            new SampleImageProcessor());
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             _ => 1);
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
@@ -70,32 +56,20 @@ public sealed class SelectBeltAndWarpStateTests
     public void Execute_OverviewMissing_TransitionsToRecoveryWithoutClicking()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticMiningImageFactory.GetUndockedCompleteImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath, overwrite: true)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadUndockedCompleteImage()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             _ => 0);
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
@@ -105,13 +79,10 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Empty(automationInputController.Delays);
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationClock : IAutomationClock

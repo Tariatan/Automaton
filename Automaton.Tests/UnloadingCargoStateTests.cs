@@ -2,6 +2,7 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -12,29 +13,17 @@ public sealed class UnloadingCargoStateTests
     public void Execute_Docked_PerformsTransferAndTransitionsToUndocking()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticMiningImageFactory.GetDockedItemHangarAndMiningHoldVisibleImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new UnloadingCargoState();
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.True(automationInputController.MoveTargets.Count >= 2);
@@ -56,31 +45,19 @@ public sealed class UnloadingCargoStateTests
     public void Execute_DowntimeIsImminent_QuitsGameAndRequestsApplicationExit()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var sourcePath = SyntheticMiningImageFactory.GetDockedItemHangarAndMiningHoldVisibleImagePath();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(outputPath => File.Copy(sourcePath, outputPath)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage()),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new UnloadingCargoState(
-            new MiningHoldDetector(),
+            new InventoryDetector(),
             new DowntimeDetector(new TimeOnly(19, 0), TimeSpan.FromMinutes(20)));
-        MiningAutomationStateTransition transition;
 
         // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-
-        try
-        {
-            transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputController, new ImminentDowntimeAutomationClock()),
-                CancellationToken.None);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, automationInputController, new ImminentDowntimeAutomationClock()),
+            CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
@@ -88,13 +65,10 @@ public sealed class UnloadingCargoStateTests
         Assert.True(automationInputController.QuitGameCalled);
     }
 
-    private sealed class StubScreenCaptureProvider(Action<string> captureAction)
+    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
         : ScreenCaptureService.IScreenCaptureProvider
     {
-        public void CaptureToFile(string outputPath)
-        {
-            captureAction(outputPath);
-        }
+        public Mat CaptureScreen() => captureFactory();
     }
 
     private sealed class StubAutomationClock : IAutomationClock

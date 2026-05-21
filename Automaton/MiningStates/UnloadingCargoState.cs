@@ -7,21 +7,21 @@ namespace Automaton.MiningStates;
 
 internal sealed class UnloadingCargoState : IMiningAutomationState
 {
-    private readonly MiningHoldDetector m_MiningHoldDetector;
+    private readonly InventoryDetector m_InventoryDetector;
     private readonly DowntimeDetector m_DowntimeDetector;
     private readonly ILogger m_Logger;
 
     public UnloadingCargoState()
-        : this(new MiningHoldDetector(), new DowntimeDetector(), Log.ForContext<UnloadingCargoState>())
+        : this(new InventoryDetector(), new DowntimeDetector(), Log.ForContext<UnloadingCargoState>())
     {
     }
 
     internal UnloadingCargoState(
-        MiningHoldDetector miningHoldDetector,
+        InventoryDetector inventoryDetector,
         DowntimeDetector downtimeDetector,
         ILogger? logger = null)
     {
-        m_MiningHoldDetector = miningHoldDetector;
+        m_InventoryDetector = inventoryDetector;
         m_DowntimeDetector = downtimeDetector;
         m_Logger = logger ?? Log.ForContext<UnloadingCargoState>();
     }
@@ -40,13 +40,11 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         context.AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
         context.AutomationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
 
-        var capturePath = context.ScreenCaptureService.CaptureCurrentScreenTrace(Settings.UnloadingCargoCaptureSuffix);
+        using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var screen = Cv2.ImRead(capturePath);
-
         // TryLocate Undock button
-        if (!UndockButtonDetector.TryLocate(screen, out _))
+        if (!UndockButtonDetector.TryLocate(capture.Image, out _))
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort unloading");
@@ -54,13 +52,13 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.QuitGameFromDock,
-                capturePath);
+                capture.CapturePath);
         }
 
-        var analysis = m_MiningHoldDetector.Analyze(screen);
+        var analysis = m_InventoryDetector.Analyze(capture.Image);
         AnnotateHoldTransferCapture(
-            capturePath,
-            screen,
+            capture.CapturePath,
+            capture.Image,
             analysis.MiningHoldFirstRowBounds,
             analysis.ItemHangarFirstRowBounds);
         if (analysis.MiningHoldTitleBounds is null || analysis.ItemHangarTitleBounds is null)
@@ -70,7 +68,7 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Recover,
-                capturePath);
+                capture.CapturePath);
         }
 
         if (analysis.MiningHoldFirstRowBounds is not null)
@@ -87,7 +85,7 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
                     Kind,
                     MiningAutomationStateKind.Recovery,
                     MiningAutomationActionKind.Recover,
-                    capturePath);
+                    capture.CapturePath);
             }
 
             context.ClickUiElement(Center(analysis.ItemHangarFirstRowBounds.Value), cancellationToken);
@@ -108,14 +106,14 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.QuitGameAndExitApplication,
-                capturePath);
+                capture.CapturePath);
         }
 
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Undocking,
             MiningAutomationActionKind.Undock,
-            capturePath);
+            capture.CapturePath);
     }
 
     private static void AnnotateHoldTransferCapture(
@@ -124,6 +122,11 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         Rect? miningHoldFirstRowBounds,
         Rect? itemHangarFirstRowBounds)
     {
+        if (!System.IO.File.Exists(capturePath))
+        {
+            return;
+        }
+
         using var annotated = screen.Clone();
         if (miningHoldFirstRowBounds.HasValue)
         {
