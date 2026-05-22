@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
@@ -23,7 +24,7 @@ public sealed class ApproachingAsteroidStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new ApproachingAsteroidState(automationInputControllerMock);
+        var state = new ApproachingAsteroidState(automationInputControllerMock, new MineOverviewDetector(), new FirstAsteroidWithinReachDetector());
 
         // Act
         var transition = state.Execute(
@@ -52,7 +53,7 @@ public sealed class ApproachingAsteroidStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new ApproachingAsteroidState(automationInputControllerMock);
+        var state = new ApproachingAsteroidState(automationInputControllerMock, new MineOverviewDetector(), new FirstAsteroidWithinReachDetector());
 
         // Act
         var transition = state.Execute(

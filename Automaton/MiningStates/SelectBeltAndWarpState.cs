@@ -18,16 +18,6 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
     private readonly Func<int, int> m_NextRandomIndex;
     private readonly ILogger m_Logger;
 
-    public SelectBeltAndWarpState(IAutomationInputController automationInputController)
-        : this(
-            automationInputController,
-            new AsteroidBeltOverviewDetector(),
-            new MineOverviewDetector(),
-            Random.Shared.Next,
-            Log.ForContext<SelectBeltAndWarpState>())
-    {
-    }
-
     internal SelectBeltAndWarpState(
         IAutomationInputController automationInputController,
         AsteroidBeltOverviewDetector beltOverviewDetector,

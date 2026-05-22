@@ -14,12 +14,7 @@ internal sealed class LoginState : IMiningAutomationState
     private readonly IAutomationInputController m_AutomationInputController;
     private readonly ILogger m_Logger;
 
-    public LoginState(IAutomationInputController automationInputController)
-        : this(automationInputController, Log.ForContext<LoginState>())
-    {
-    }
-
-    private LoginState(IAutomationInputController automationInputController, ILogger? logger = null)
+    internal LoginState(IAutomationInputController automationInputController, ILogger? logger = null)
     {
         m_AutomationInputController = automationInputController;
         m_Logger = logger ?? Log.ForContext<LoginState>();

@@ -1,7 +1,7 @@
 using System.IO;
 using Automaton.Properties;
 
-namespace Automaton;
+namespace Automaton.Infrastructure;
 
 internal static class TelemetryRootDirectory
 {

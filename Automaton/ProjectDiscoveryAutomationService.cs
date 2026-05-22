@@ -29,32 +29,25 @@ internal sealed class ProjectDiscoveryAutomationService
     private readonly IAutomationInputController m_AutomationInputController;
     private readonly IAutomationClock m_AutomationClock;
     private readonly ErrorPopupDetector m_ErrorPopupDetector;
-    private readonly PlayNowButtonLocator m_PlayNowButtonLocator = new();
+    private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
     private readonly AutomationSubmitRateLimiter m_SubmitRateLimiter = new();
     private readonly Random m_Random = new();
     private int m_CurrentPilotIndex = InitialPilotIndex;
 
     internal bool KeepDebugImages { get; set; } = true;
 
-    public ProjectDiscoveryAutomationService()
-        : this(new ScreenCaptureService(), new AutomationInputController(), new SystemAutomationClock())
-    {
-    }
-
-    internal ProjectDiscoveryAutomationService(ScreenCaptureService screenCaptureService, IAutomationInputController automationInputController)
-        : this(screenCaptureService, automationInputController, new SystemAutomationClock())
-    {
-    }
-
     internal ProjectDiscoveryAutomationService(
         ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
-        IAutomationClock automationClock)
+        IAutomationClock automationClock,
+        ErrorPopupDetector errorPopupDetector,
+        PlayNowButtonLocator playNowButtonLocator)
     {
         m_ScreenCaptureService = screenCaptureService;
         m_AutomationInputController = automationInputController;
         m_AutomationClock = automationClock;
-        m_ErrorPopupDetector = new ErrorPopupDetector();
+        m_ErrorPopupDetector = errorPopupDetector;
+        m_PlayNowButtonLocator = playNowButtonLocator;
     }
 
     public void ProcessSamples()

@@ -14,12 +14,7 @@ internal sealed class StartingGameState : IMiningAutomationState
     private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
     private readonly ILogger m_Logger;
 
-    public StartingGameState(IAutomationInputController automationInputController)
-        : this(automationInputController, new PlayNowButtonLocator(), Log.ForContext<StartingGameState>())
-    {
-    }
-
-    private StartingGameState(
+    internal StartingGameState(
         IAutomationInputController automationInputController,
         PlayNowButtonLocator playNowButtonLocator,
         ILogger? logger = null)

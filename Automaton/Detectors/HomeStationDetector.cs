@@ -11,12 +11,7 @@ internal sealed class HomeStationDetector
     private readonly AsteroidBeltOverviewDetector m_AsteroidBeltOverviewDetector;
     private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
 
-    public HomeStationDetector()
-        : this(new AsteroidBeltOverviewDetector())
-    {
-    }
-
-    private HomeStationDetector(AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
+    internal HomeStationDetector(AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
     {
         m_AsteroidBeltOverviewDetector = asteroidBeltOverviewDetector;
     }

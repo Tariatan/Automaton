@@ -15,12 +15,7 @@ internal sealed class UndockingState : IMiningAutomationState
     private readonly LocationChangeTimerDetector m_Detector;
     private readonly ILogger m_Logger;
 
-    public UndockingState(IAutomationInputController automationInputController)
-        : this(automationInputController, new LocationChangeTimerDetector(), Log.ForContext<UndockingState>())
-    {
-    }
-
-    private UndockingState(
+    internal UndockingState(
         IAutomationInputController automationInputController,
         LocationChangeTimerDetector detector,
         ILogger? logger = null)

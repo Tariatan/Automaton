@@ -13,12 +13,7 @@ internal sealed class RecoveryState : IMiningAutomationState
     private readonly AsteroidBeltOverviewDetector m_BeltOverviewDetector;
     private readonly ILogger m_Logger;
 
-    public RecoveryState(IAutomationInputController automationInputController)
-        : this(automationInputController, new AsteroidBeltOverviewDetector(), Log.ForContext<RecoveryState>())
-    {
-    }
-
-    private RecoveryState(
+    internal RecoveryState(
         IAutomationInputController automationInputController,
         AsteroidBeltOverviewDetector beltOverviewDetector,
         ILogger? logger = null)

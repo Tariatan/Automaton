@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.IO;
+using Automaton.Infrastructure;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;

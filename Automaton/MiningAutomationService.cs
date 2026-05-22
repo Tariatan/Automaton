@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
@@ -11,21 +12,49 @@ internal sealed class MiningAutomationService
     private static readonly ILogger Logger = Log.ForContext<MiningAutomationService>();
 
     private readonly MiningAutomationContext m_Context;
+    private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
+    private readonly HomeStationDetector m_HomeStationDetector;
+    private readonly LocationChangeTimerDetector m_LocationChangeTimerDetector;
+    private readonly InventoryDetector m_InventoryDetector;
+    private readonly DowntimeDetector m_DowntimeDetector;
+    private readonly AsteroidBeltOverviewDetector m_AsteroidBeltOverviewDetector;
+    private readonly MineOverviewDetector m_MineOverviewDetector;
+    private readonly FirstAsteroidWithinReachDetector m_FirstAsteroidWithinReachDetector;
+    private readonly MiningAsteroidDetector m_MiningAsteroidDetector;
+    private readonly MiningLaserDetector m_MiningLaserDetector;
+    private readonly WarOverviewDetector m_WarOverviewDetector;
     private IMiningAutomationState m_CurrentState;
 
-    public MiningAutomationService()
-        : this(new ScreenCaptureService(), new AutomationInputController(), new SystemAutomationClock())
-    {
-    }
-
-    private MiningAutomationService(
+    internal MiningAutomationService(
         ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
-        IAutomationClock automationClock)
+        IAutomationClock automationClock,
+        PlayNowButtonLocator playNowButtonLocator,
+        HomeStationDetector homeStationDetector,
+        LocationChangeTimerDetector locationChangeTimerDetector,
+        InventoryDetector inventoryDetector,
+        DowntimeDetector downtimeDetector,
+        AsteroidBeltOverviewDetector asteroidBeltOverviewDetector,
+        MineOverviewDetector mineOverviewDetector,
+        FirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector,
+        MiningAsteroidDetector miningAsteroidDetector,
+        MiningLaserDetector miningLaserDetector,
+        WarOverviewDetector warOverviewDetector)
     {
         m_AutomationInputController = automationInputController;
         m_Context = new MiningAutomationContext(screenCaptureService, automationClock);
-        m_CurrentState = new StartingGameState(automationInputController);
+        m_PlayNowButtonLocator = playNowButtonLocator;
+        m_HomeStationDetector = homeStationDetector;
+        m_LocationChangeTimerDetector = locationChangeTimerDetector;
+        m_InventoryDetector = inventoryDetector;
+        m_DowntimeDetector = downtimeDetector;
+        m_AsteroidBeltOverviewDetector = asteroidBeltOverviewDetector;
+        m_MineOverviewDetector = mineOverviewDetector;
+        m_FirstAsteroidWithinReachDetector = firstAsteroidWithinReachDetector;
+        m_MiningAsteroidDetector = miningAsteroidDetector;
+        m_MiningLaserDetector = miningLaserDetector;
+        m_WarOverviewDetector = warOverviewDetector;
+        m_CurrentState = CreateState(MiningAutomationStateKind.StartingGame);
     }
 
     public MiningAutomationStepSummary AutomateCurrentScreen(
@@ -95,15 +124,15 @@ internal sealed class MiningAutomationService
     {
         return stateKind switch
         {
-            MiningAutomationStateKind.StartingGame => new StartingGameState(m_AutomationInputController),
+            MiningAutomationStateKind.StartingGame => new StartingGameState(m_AutomationInputController, m_PlayNowButtonLocator),
             MiningAutomationStateKind.Login => new LoginState(m_AutomationInputController),
-            MiningAutomationStateKind.Dock => new DockingState(m_AutomationInputController),
-            MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(m_AutomationInputController),
-            MiningAutomationStateKind.Undocking => new UndockingState(m_AutomationInputController),
-            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(m_AutomationInputController),
-            MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(m_AutomationInputController),
-            MiningAutomationStateKind.Mining => new MiningState(m_AutomationInputController),
-            MiningAutomationStateKind.Recovery => new RecoveryState(m_AutomationInputController),
+            MiningAutomationStateKind.Dock => new DockingState(m_AutomationInputController, m_HomeStationDetector),
+            MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(m_AutomationInputController, m_InventoryDetector, m_DowntimeDetector),
+            MiningAutomationStateKind.Undocking => new UndockingState(m_AutomationInputController, m_LocationChangeTimerDetector),
+            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(m_AutomationInputController, m_AsteroidBeltOverviewDetector, m_MineOverviewDetector, Random.Shared.Next),
+            MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(m_AutomationInputController, m_MineOverviewDetector, m_FirstAsteroidWithinReachDetector),
+            MiningAutomationStateKind.Mining => new MiningState(m_AutomationInputController, m_MiningAsteroidDetector, m_MiningLaserDetector, m_WarOverviewDetector),
+            MiningAutomationStateKind.Recovery => new RecoveryState(m_AutomationInputController, m_AsteroidBeltOverviewDetector),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }

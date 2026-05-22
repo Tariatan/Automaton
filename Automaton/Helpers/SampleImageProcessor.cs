@@ -94,13 +94,23 @@ internal sealed class SampleImageProcessor
     ];
     private static readonly ILogger Logger = Log.ForContext<SampleImageProcessor>();
 
-    private readonly PlayfieldDetector m_PlayfieldDetector = new();
-    private readonly PlayNowButtonLocator m_PlayNowButtonLocator = new();
+    private readonly PlayfieldDetector m_PlayfieldDetector;
+    private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
     private readonly KnownSampleMatcher m_KnownSampleMatcher;
 
     public SampleImageProcessor()
+        : this(new PlayfieldDetector(), new PlayNowButtonLocator(), null)
     {
-        m_KnownSampleMatcher = new KnownSampleMatcher(m_PlayfieldDetector);
+    }
+
+    internal SampleImageProcessor(
+        PlayfieldDetector playfieldDetector,
+        PlayNowButtonLocator playNowButtonLocator,
+        KnownSampleMatcher? knownSampleMatcher)
+    {
+        m_PlayfieldDetector = playfieldDetector;
+        m_PlayNowButtonLocator = playNowButtonLocator;
+        m_KnownSampleMatcher = knownSampleMatcher ?? new KnownSampleMatcher(playfieldDetector);
     }
 
     private static int ReadInt32FromEnvironment(string variableName, int fallbackValue)

@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 
@@ -26,7 +27,7 @@ public sealed class UndockingStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new UndockingState(automationInputController);
+        var state = new UndockingState(automationInputController, new LocationChangeTimerDetector());
 
         // Act
         var transition = state.Execute(
@@ -56,7 +57,7 @@ public sealed class UndockingStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new UndockingState(automationInputController);
+        var state = new UndockingState(automationInputController, new LocationChangeTimerDetector());
 
         // Act
         var transition = state.Execute(

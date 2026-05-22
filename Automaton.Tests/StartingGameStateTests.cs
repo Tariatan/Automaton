@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
 using Automaton.MiningStates;
@@ -20,7 +21,7 @@ public sealed class StartingGameStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState(automationInputControllerMock);
+        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonLocator());
 
         // Act
         var transition = state.Execute(
@@ -47,7 +48,7 @@ public sealed class StartingGameStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState(automationInputControllerMock);
+        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonLocator());
 
         // Act
         var transition = state.Execute(

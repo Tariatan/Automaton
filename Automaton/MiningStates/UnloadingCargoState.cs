@@ -14,11 +14,6 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
     private readonly DowntimeDetector m_DowntimeDetector;
     private readonly ILogger m_Logger;
 
-    public UnloadingCargoState(IAutomationInputController automationInputController)
-        : this(automationInputController, new InventoryDetector(), new DowntimeDetector(), Log.ForContext<UnloadingCargoState>())
-    {
-    }
-
     internal UnloadingCargoState(
         IAutomationInputController automationInputController,
         InventoryDetector inventoryDetector,

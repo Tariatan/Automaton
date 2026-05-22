@@ -1,4 +1,5 @@
 using System.Windows;
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
 using Automaton.Primitives;
@@ -47,7 +48,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
@@ -119,7 +120,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController)
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, new StubAutomationClock(), new ErrorPopupDetector(), new PlayNowButtonLocator())
         {
             KeepDebugImages = false
         };
@@ -185,7 +186,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
 
         // Act
@@ -254,7 +255,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
@@ -321,7 +322,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         {
             OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
@@ -407,7 +408,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
@@ -472,7 +473,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
@@ -532,7 +533,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
@@ -578,7 +579,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             new SampleImageProcessor());
         using var cancellationTokenSource = new CancellationTokenSource();
         var automationInputController = new StubAutomationInputController();
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, new StubAutomationClock(), new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 
@@ -643,7 +644,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, new StubAutomationClock(), new ErrorPopupDetector(), new PlayNowButtonLocator());
         StartupAutomationSummary summary;
 
         // Act
@@ -681,7 +682,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             new StubScreenCaptureProvider(() => Cv2.ImRead(startupCapturePath)),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController)
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, new StubAutomationClock(), new ErrorPopupDetector(), new PlayNowButtonLocator())
         {
             KeepDebugImages = false
         };
@@ -731,7 +732,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, new StubAutomationClock(), new ErrorPopupDetector(), new PlayNowButtonLocator());
         StartupAutomationSummary summary;
 
         // Act
@@ -781,7 +782,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             }),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, new StubAutomationClock(), new ErrorPopupDetector(), new PlayNowButtonLocator());
         StartupAutomationSummary summary;
 
         // Act
@@ -823,7 +824,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         {
             OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         using var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.Cancel();
@@ -885,7 +886,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
 
         // Act
@@ -966,7 +967,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 }
             }
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
 
         // Act
@@ -1009,7 +1010,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         {
             OnDelay = milliseconds => automationClock.AdvanceBy(milliseconds)
         };
-        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock);
+        var automationService = new ProjectDiscoveryAutomationService(screenCaptureService, automationInputController, automationClock, new ErrorPopupDetector(), new PlayNowButtonLocator());
         var dpi = new DpiScale(1.0, 1.0);
         AutomationSummary summary;
 

@@ -1,35 +1,29 @@
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.InteropServices;
+using Automaton.Infrastructure;
 using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.Helpers;
 
-internal sealed partial class ScreenCaptureService
+internal sealed class ScreenCaptureService
 {
     private const string CaptureFilePrefix = "capture-";
     private const string CaptureTimestampFormat = "yyyyMMdd-HHmmss";
-    private const int MinimumCaptureDimension = 1;
+    internal const int MinimumCaptureDimension = 1;
     private const int GameCaptureLeft = 0;
     private const int GameCaptureTop = 0;
     private const int GameCaptureWidth = 2_560;
     private const int GameCaptureHeight = 2_160;
-    private const int VirtualScreenLeftMetric = 76;
-    private const int VirtualScreenTopMetric = 77;
-    private const int VirtualScreenWidthMetric = 78;
-    private const int VirtualScreenHeightMetric = 79;
+    internal const int VirtualScreenLeftMetric = 76;
+    internal const int VirtualScreenTopMetric = 77;
+    internal const int VirtualScreenWidthMetric = 78;
+    internal const int VirtualScreenHeightMetric = 79;
     private static readonly ILogger Logger = Log.ForContext<ScreenCaptureService>();
 
     private readonly IScreenCaptureProvider m_ScreenCaptureProvider;
     private readonly SampleImageProcessor m_SampleImageProcessor;
     private readonly bool m_PersistCaptures;
-
-    public ScreenCaptureService()
-        : this(new ScreenCaptureProvider(), new SampleImageProcessor())
-    {
-    }
 
     internal ScreenCaptureService(
         IScreenCaptureProvider screenCaptureProvider,
@@ -128,42 +122,6 @@ internal sealed partial class ScreenCaptureService
         return captureBounds;
     }
 
-    internal interface IScreenCaptureProvider
-    {
-        Mat CaptureScreen();
-    }
-
-    private sealed class ScreenCaptureProvider : IScreenCaptureProvider
-    {
-        public Mat CaptureScreen()
-        {
-            var bounds = GetPhysicalGameCaptureBounds();
-
-            using var bitmap = new Bitmap(bounds.Width, bounds.Height);
-            using var graphics = Graphics.FromImage(bitmap);
-            graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size);
-            using var ms = new MemoryStream();
-            bitmap.Save(ms, ImageFormat.Png);
-            return Cv2.ImDecode(ms.ToArray(), ImreadModes.Color);
-        }
-
-        private static Rectangle GetPhysicalGameCaptureBounds()
-        {
-            return BuildGameCaptureBounds(GetPhysicalVirtualScreenBounds());
-        }
-
-        private static Rectangle GetPhysicalVirtualScreenBounds()
-        {
-            return new Rectangle(
-                GetSystemMetrics(VirtualScreenLeftMetric),
-                GetSystemMetrics(VirtualScreenTopMetric),
-                Math.Max(MinimumCaptureDimension, GetSystemMetrics(VirtualScreenWidthMetric)),
-                Math.Max(MinimumCaptureDimension, GetSystemMetrics(VirtualScreenHeightMetric)));
-        }
-
-        [DllImport("user32.dll", EntryPoint = "GetSystemMetrics")]
-        private static extern int GetSystemMetrics(int nIndex);
-    }
 }
 
 internal sealed record ScreenCaptureResult(Mat Image, string CapturePath) : IDisposable

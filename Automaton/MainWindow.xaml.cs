@@ -21,8 +21,8 @@ public partial class MainWindow
     private static readonly Brush StopBrush = new SolidColorBrush(Color.FromRgb(0xD1, 0x34, 0x34));
     private static readonly ILogger Logger = Log.ForContext<MainWindow>();
 
-    private readonly ProjectDiscoveryAutomationService m_ProjectDiscoveryAutomationService = new();
-    private readonly MiningAutomationService m_MiningAutomationService = new();
+    private readonly ProjectDiscoveryAutomationService m_ProjectDiscoveryAutomationService;
+    private readonly MiningAutomationService m_MiningAutomationService;
     private ApplicationAutomationMode m_AutomationMode;
     private HwndSource? m_WindowSource;
     private CancellationTokenSource? m_AutomationCancellationSource;
@@ -32,12 +32,15 @@ public partial class MainWindow
     private int m_DefaultPilotIndex = 1;
     private MiningAutomationStateKind m_SelectedMiningStartState = MiningAutomationStateKind.StartingGame;
 
-    public MainWindow(
-        ApplicationAutomationMode automationMode = ApplicationAutomationMode.ProjectDiscovery,
-        bool autoStartAutomation = false)
+    internal MainWindow(
+        ApplicationStartupOptions startupOptions,
+        ProjectDiscoveryAutomationService projectDiscoveryAutomationService,
+        MiningAutomationService miningAutomationService)
     {
-        m_AutomationMode = automationMode;
-        m_AutoStartAutomation = autoStartAutomation;
+        m_ProjectDiscoveryAutomationService = projectDiscoveryAutomationService;
+        m_MiningAutomationService = miningAutomationService;
+        m_AutomationMode = startupOptions.AutomationMode;
+        m_AutoStartAutomation = startupOptions.AutoStartAutomation;
         InitializeComponent();
         UpdateTelemetryMenuItemHeader();
         UpdateHallmarkMenuItemHeader();

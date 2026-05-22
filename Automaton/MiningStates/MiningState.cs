@@ -22,16 +22,6 @@ internal sealed class MiningState : IMiningAutomationState
         Gtfo
     }
 
-    public MiningState(IAutomationInputController automationInputController)
-        : this(
-            automationInputController,
-            new MiningAsteroidDetector(),
-            new MiningLaserDetector(),
-            new WarOverviewDetector(),
-            Log.ForContext<MiningState>())
-    {
-    }
-
     internal MiningState(
         IAutomationInputController automationInputController,
         MiningAsteroidDetector asteroidDetector,

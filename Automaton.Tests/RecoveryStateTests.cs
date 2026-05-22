@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 
@@ -14,7 +15,7 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new RecoveryState(automationInputController);
+        var state = new RecoveryState(automationInputController, new AsteroidBeltOverviewDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.QuitGameFromDock
@@ -38,7 +39,7 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new RecoveryState(automationInputController);
+        var state = new RecoveryState(automationInputController, new AsteroidBeltOverviewDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.QuitGameFromSpace

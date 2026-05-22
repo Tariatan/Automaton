@@ -1,12 +1,15 @@
 using System.Windows;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Automaton;
 
 public partial class App
 {
+    private ServiceProvider? m_ServiceProvider;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         var logFilePath = ApplicationLogging.Configure();
@@ -32,7 +35,12 @@ public partial class App
                 return;
             }
 
-            var window = new MainWindow(startupOptions.AutomationMode, startupOptions.AutoStartAutomation);
+            var services = new ServiceCollection();
+            services.AddSingleton(startupOptions);
+            services.AddAutomatonServices();
+            m_ServiceProvider = services.BuildServiceProvider();
+
+            var window = m_ServiceProvider.GetRequiredService<MainWindow>();
             window.Show();
             base.OnStartup(e);
         }
@@ -51,6 +59,7 @@ public partial class App
         }
         finally
         {
+            m_ServiceProvider?.Dispose();
             Log.CloseAndFlush();
             base.OnExit(e);
         }

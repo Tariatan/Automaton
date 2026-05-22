@@ -13,16 +13,7 @@ internal sealed class ApproachingAsteroidState : IMiningAutomationState
     private readonly FirstAsteroidWithinReachDetector m_FirstAsteroidWithinReachDetector;
     private readonly ILogger m_Logger;
 
-    public ApproachingAsteroidState(IAutomationInputController automationInputController)
-        : this(
-            automationInputController,
-            new MineOverviewDetector(),
-            new FirstAsteroidWithinReachDetector(),
-            Log.ForContext<ApproachingAsteroidState>())
-    {
-    }
-
-    private ApproachingAsteroidState(
+    internal ApproachingAsteroidState(
         IAutomationInputController automationInputController,
         MineOverviewDetector mineOverviewDetector,
         FirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector,

@@ -15,12 +15,7 @@ internal sealed class DockingState : IMiningAutomationState
     private readonly HomeStationDetector m_HomeStationDetector;
     private readonly ILogger m_Logger;
 
-    public DockingState(IAutomationInputController automationInputController)
-        : this(automationInputController, new HomeStationDetector(), Log.ForContext<DockingState>())
-    {
-    }
-
-    private DockingState(
+    internal DockingState(
         IAutomationInputController automationInputController,
         HomeStationDetector homeStationDetector,
         ILogger? logger = null)

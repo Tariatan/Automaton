@@ -4,7 +4,7 @@ using OpenCvSharp;
 namespace Automaton.Tests;
 
 internal sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-    : ScreenCaptureService.IScreenCaptureProvider
+    : IScreenCaptureProvider
 {
     public Mat CaptureScreen() => captureFactory();
 }

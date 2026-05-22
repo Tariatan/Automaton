@@ -17,7 +17,7 @@ public sealed class UnloadingCargoStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new UnloadingCargoState(automationInputController);
+        var state = new UnloadingCargoState(automationInputController, new InventoryDetector(), new DowntimeDetector());
 
         // Act
         var transition = state.Execute(
