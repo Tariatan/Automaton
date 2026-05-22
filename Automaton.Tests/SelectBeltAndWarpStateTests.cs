@@ -8,8 +8,6 @@ namespace Automaton.Tests;
 
 public sealed class SelectBeltAndWarpStateTests
 {
-    private static readonly int[] Expected = [1_000];
-
     [Fact]
     public void Execute_OverviewHasAsteroidBelts_ClicksBeltTabRandomBeltAndPressesS()
     {
@@ -42,7 +40,7 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Equal(MiningAutomationActionKind.WarpToAsteroidField, transition.Action);
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
-        Assert.Equal(Expected, automationInputController.Delays);
+        Assert.Equal([Delays.LandingPollingMs], automationInputController.Delays);
         Assert.Equal(4, automationInputController.MoveTargets.Count);
         Assert.Equal([VirtualKeys.S], automationInputController.KeyInputs.Select(k => k.VirtualKey));
         Assert.InRange(automationInputController.MoveTargets[0].X, 2200, 2320);

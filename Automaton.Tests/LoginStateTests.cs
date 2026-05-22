@@ -103,6 +103,7 @@ public sealed class LoginStateTests
         Cv2.ImWrite(Path.Combine(pilotDirectory, $"{pilotIndex}_focused.png"), focusedAvatar);
     }
 
+    // ToDo: remove magic
     private static Mat CreatePilotSelectionScreen(Point pilotAvatarLocation)
     {
         var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));

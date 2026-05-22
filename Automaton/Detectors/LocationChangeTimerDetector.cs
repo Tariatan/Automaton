@@ -3,13 +3,15 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class LocationChangeTimerDetector
+internal sealed class LocationChangeTimerDetector : IDisposable
 {
     private const double MinimumMatchScore = 0.90;
     private static readonly Rect SearchBounds = new(130, 50, 50, 50);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
     private readonly Mat m_Template = EmbeddedResourceLoader.LoadMat("location_change_timer.png");
+
+    public void Dispose() => m_Template.Dispose();
 
     public bool TryLocate(Mat screen, out LocationChangeTimerLocation location)
     {
@@ -20,8 +22,7 @@ internal sealed class LocationChangeTimerDetector
         }
 
         var searchBounds = BuildSearchBounds(screen.Size());
-        using var searchableScreen = BuildSearchableScreen(screen);
-        using var searchRegion = new Mat(searchableScreen, searchBounds);
+        using var searchRegion = BuildSearchRegion(screen, searchBounds);
         LocationChangeTimerLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
@@ -55,16 +56,17 @@ internal sealed class LocationChangeTimerDetector
         return true;
     }
 
-    private static Mat BuildSearchableScreen(Mat screen)
+    private static Mat BuildSearchRegion(Mat screen, Rect searchBounds)
     {
-        if (screen.Channels() == 3)
+        using var roi = new Mat(screen, searchBounds);
+        if (roi.Channels() == 3)
         {
-            return screen.Clone();
+            return roi.Clone();
         }
 
-        var colorScreen = new Mat();
-        Cv2.CvtColor(screen, colorScreen, ColorConversionCodes.GRAY2BGR);
-        return colorScreen;
+        var bgr = new Mat();
+        Cv2.CvtColor(roi, bgr, ColorConversionCodes.GRAY2BGR);
+        return bgr;
     }
 
     private static Rect BuildSearchBounds(Size imageSize)

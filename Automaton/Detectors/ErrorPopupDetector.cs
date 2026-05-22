@@ -36,32 +36,11 @@ internal sealed class ErrorPopupDetector
     private static readonly PopupDetectorOptions SOptions = new();
     private static readonly Lazy<PopupTemplates> SPopupTemplates = new(PopupTemplates.Load);
 
-    public bool Detect(string imagePath)
-    {
-        using var image = Cv2.ImRead(imagePath);
-        return Detect(image);
-    }
-
-    public bool Detect(Mat image)
-    {
-        return DetectPopupState(image) == PopupState.MaximumSubmissions;
-    }
-
-    public bool DetectSlowDown(Mat image)
-    {
-        return DetectPopupState(image) == PopupState.SlowDown;
-    }
-
-    public bool DetectConnectionLost(Mat image)
-    {
-        return DetectPopupState(image) == PopupState.ConnectionLost;
-    }
-
     public PopupState DetectPopupStateAndDrawDebugOverlay(string imagePath)
     {
         using var image = Cv2.ImRead(imagePath);
-        var popupState = DetectPopupState(image);
-        var overlayText = popupState switch
+        var detection = DetectPopup(image);
+        var overlayText = detection.State switch
         {
             PopupState.MaximumSubmissions => MaxSubmissionsOverlayText,
             PopupState.SlowDown => SlowDownDebugOverlayText,
@@ -72,11 +51,12 @@ internal sealed class ErrorPopupDetector
 
         if (!string.IsNullOrWhiteSpace(overlayText))
         {
+            Cv2.Rectangle(image, detection.Bounds, DebugOverlayTextColor, 2);
             DrawDebugOverlay(image, overlayText);
             Cv2.ImWrite(imagePath, image);
         }
 
-        return popupState;
+        return detection.State;
     }
 
     public static PopupState DetectPopupState(Mat image)
@@ -110,29 +90,6 @@ internal sealed class ErrorPopupDetector
 
         var state = Classify(score);
         return new PopupDetection(state, popupBounds);
-    }
-
-    internal static string DescribeScores(Mat image)
-    {
-        if (image.Empty())
-        {
-            return "empty image";
-        }
-
-        var searchBounds = BuildClampedBounds(
-            ExpectedPopupLeft - PopupSearchMarginX,
-            ExpectedPopupTop - PopupSearchMarginY,
-            ExpectedPopupWidth + (PopupSearchMarginX * 2),
-            ExpectedPopupHeight + (PopupSearchMarginY * 2),
-            image.Size());
-        var popupBounds = BuildClampedBounds(
-            ExpectedPopupLeft,
-            ExpectedPopupTop,
-            ExpectedPopupWidth,
-            ExpectedPopupHeight,
-            image.Size());
-        var score = ScorePopup(image, searchBounds, popupBounds);
-        return $"ok={score.ButtonOk:F4}, quit={score.ButtonQuit:F4}, info={score.IconInfo:F4}, warning={score.IconWarning:F4}, titleConn={score.TitleConnectionLost:F4}, titleSlow={score.TitleSlowDown:F4}, titleMax={score.TitleMaxSubmissions:F4}";
     }
 
     private static PopupState Classify(PopupScore score)
@@ -282,17 +239,23 @@ internal sealed class ErrorPopupDetector
 
     private static PopupScore ScorePopup(Mat image, Rect searchBounds, Rect popupBounds)
     {
-        using var gray = new Mat();
-        Cv2.CvtColor(image, gray, ColorConversionCodes.BGR2GRAY);
-        using var searchGray = new Mat(gray, searchBounds);
-        var templates = SPopupTemplates.Value;
-        var iconBounds = BuildRelativeBounds(popupBounds, 0.02, 0.02, 0.20, 0.28);
-        var buttonBounds = BuildRelativeBounds(popupBounds, 0.03, 0.74, 0.94, 0.20);
-        var titleBounds = BuildRelativeBounds(popupBounds, 0.16, 0.02, 0.80, 0.34);
+        using var searchRegion = new Mat(image, searchBounds);
+        using var searchGray = new Mat();
+        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
 
-        using var iconRoi = new Mat(gray, iconBounds);
-        using var buttonRoi = new Mat(gray, buttonBounds);
-        using var titleRoi = new Mat(gray, titleBounds);
+        var localPopupBounds = new Rect(
+            popupBounds.X - searchBounds.X,
+            popupBounds.Y - searchBounds.Y,
+            popupBounds.Width,
+            popupBounds.Height);
+        var templates = SPopupTemplates.Value;
+        var iconBounds = BuildRelativeBounds(localPopupBounds, 0.02, 0.02, 0.20, 0.28);
+        var buttonBounds = BuildRelativeBounds(localPopupBounds, 0.03, 0.74, 0.94, 0.20);
+        var titleBounds = BuildRelativeBounds(localPopupBounds, 0.16, 0.02, 0.80, 0.34);
+
+        using var iconRoi = new Mat(searchGray, iconBounds);
+        using var buttonRoi = new Mat(searchGray, buttonBounds);
+        using var titleRoi = new Mat(searchGray, titleBounds);
 
         using var titleRoiBinary = ToBinaryMask(titleRoi);
 

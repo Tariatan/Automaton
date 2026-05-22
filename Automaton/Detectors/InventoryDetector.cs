@@ -4,13 +4,19 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class InventoryDetector
+internal sealed class InventoryDetector : IDisposable
 {
     private const double MinimumTitleMatchScore = 0.82;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
     private readonly Mat m_ItemHangarTemplate = EmbeddedResourceLoader.LoadMat("mining.item_hangar.png");
     private readonly Mat m_MiningHoldTemplate = EmbeddedResourceLoader.LoadMat("mining.mining_hold.png");
+
+    public void Dispose()
+    {
+        m_ItemHangarTemplate.Dispose();
+        m_MiningHoldTemplate.Dispose();
+    }
 
     public InventoryAnalysis Analyze(Mat screen)
     {
@@ -19,22 +25,21 @@ internal sealed class InventoryDetector
             return InventoryAnalysis.NotFound;
         }
 
-        _ = TryLocateTitle(screen, m_ItemHangarTemplate, Settings.ItemHangarBounds, out var miningHoldTitleBounds);
-        _ = TryLocateTitle(screen, m_MiningHoldTemplate, Settings.MiningHoldBounds, out var itemHangarTitleBounds);
-        Rect? itemHangarFirstRowBounds = Settings.ItemHangarFirstRowBounds;
-        Rect? miningHoldFirstRowBounds = Settings.MiningHoldFirstRowBounds;
+        var itemHangarFound = TryLocateTitle(screen, m_ItemHangarTemplate, Settings.ItemHangarBounds, out var itemHangarTitleBounds);
+        var miningHoldFound = TryLocateTitle(screen, m_MiningHoldTemplate, Settings.MiningHoldBounds, out var miningHoldTitleBounds);
 
         return new InventoryAnalysis(
             miningHoldTitleBounds,
             itemHangarTitleBounds,
-            miningHoldFirstRowBounds,
-            itemHangarFirstRowBounds);
+            miningHoldFound ? Settings.MiningHoldFirstRowBounds : null,
+            itemHangarFound ? Settings.ItemHangarFirstRowBounds : null);
     }
 
     private static bool TryLocateTitle(Mat screen, Mat template, Rect searchBounds, out Rect? titleBounds)
     {
         titleBounds = null;
-        using var searchRegion = new Mat(screen, searchBounds);
+        var clampedBounds = ClampBounds(searchBounds, screen.Size());
+        using var searchRegion = new Mat(screen, clampedBounds);
         TemplateMatch? bestMatch = null;
         foreach (var scale in TemplateScales)
         {
@@ -49,8 +54,8 @@ internal sealed class InventoryDetector
             Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out var maxLocation);
             var candidate = new TemplateMatch(
                 new Rect(
-                    searchBounds.X + maxLocation.X,
-                    searchBounds.Y + maxLocation.Y,
+                    clampedBounds.X + maxLocation.X,
+                    clampedBounds.Y + maxLocation.Y,
                     scaledTemplate.Width,
                     scaledTemplate.Height),
                 maxScore);
@@ -67,6 +72,15 @@ internal sealed class InventoryDetector
 
         titleBounds = bestMatch.Value.Bounds;
         return true;
+    }
+
+    private static Rect ClampBounds(Rect bounds, Size imageSize)
+    {
+        var x = Math.Clamp(bounds.X, 0, Math.Max(0, imageSize.Width - 1));
+        var y = Math.Clamp(bounds.Y, 0, Math.Max(0, imageSize.Height - 1));
+        var width = Math.Clamp(bounds.Width, 1, imageSize.Width - x);
+        var height = Math.Clamp(bounds.Height, 1, imageSize.Height - y);
+        return new Rect(x, y, width, height);
     }
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
@@ -92,12 +106,5 @@ internal sealed record InventoryAnalysis(
     Rect? MiningHoldFirstRowBounds,
     Rect? ItemHangarFirstRowBounds)
 {
-    public Rect? MiningHoldEntryBounds => MiningHoldTitleBounds;
-    public Rect? ItemHangarEntryBounds => ItemHangarTitleBounds;
-
-    public static InventoryAnalysis NotFound { get; } = new(
-        null,
-        null,
-        null,
-        null);
+    public static InventoryAnalysis NotFound { get; } = new(null, null, null, null);
 }

@@ -1,13 +1,12 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
+using Automaton.Primitives;
 
 namespace Automaton.Tests;
 
 public sealed class UndockingStateTests
 {
-    private static readonly int[] Expected = [2_000, 15_000, 1_000, 1_000];
-
     [Fact]
     public void Execute_LocationChangeTimerAppears_TransitionsToEmptyOnUndock()
     {
@@ -38,7 +37,14 @@ public sealed class UndockingStateTests
         Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.CompleteUndock, transition.Action);
         Assert.Equal(4, captureInvocationCount);
-        Assert.Equal(Expected, automationInputController.Delays);
+        Assert.Equal(
+        [
+            Delays.UndockingWindowActivationMs,
+            Delays.InitialUndockMs,
+            Delays.LocationChangeTimerPollingMs,
+            Delays.LocationChangeTimerPollingMs,
+        ],
+        automationInputController.Delays);
     }
 
     [Fact]
@@ -69,8 +75,8 @@ public sealed class UndockingStateTests
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(16, captureInvocationCount);
         Assert.Equal(17, automationInputController.Delays.Count);
-        Assert.Equal(2_000, automationInputController.Delays[0]);
-        Assert.Equal(15_000, automationInputController.Delays[1]);
-        Assert.All(automationInputController.Delays.Skip(2), delay => Assert.Equal(1_000, delay));
+        Assert.Equal(Delays.UndockingWindowActivationMs, automationInputController.Delays[0]);
+        Assert.Equal(Delays.InitialUndockMs, automationInputController.Delays[1]);
+        Assert.All(automationInputController.Delays.Skip(2), delay => Assert.Equal(Delays.LocationChangeTimerPollingMs, delay));
     }
 }

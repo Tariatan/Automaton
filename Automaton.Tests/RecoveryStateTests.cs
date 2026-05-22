@@ -1,6 +1,7 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
+using Automaton.Primitives;
 
 namespace Automaton.Tests;
 
@@ -11,7 +12,7 @@ public sealed class RecoveryStateTests
     {
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage()),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
@@ -27,7 +28,7 @@ public sealed class RecoveryStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal([60_000], automationInputController.Delays);
+        Assert.Equal([Delays.RecoveryMs], automationInputController.Delays);
     }
 
     [Fact]
@@ -51,6 +52,6 @@ public sealed class RecoveryStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Dock, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal([60_000], automationInputController.Delays);
+        Assert.Equal([Delays.RecoveryMs], automationInputController.Delays);
     }
 }

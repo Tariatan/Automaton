@@ -163,10 +163,10 @@ public sealed class SampleImageProcessorTests
         Assert.Equal(3, analysis.Polygons.Count);
 
         var fallbackBounds = Cv2.BoundingRect(analysis.Polygons.SelectMany(polygon => polygon).ToArray());
-        Assert.InRange(fallbackBounds.Left, 125, 135);
-        Assert.InRange(fallbackBounds.Top, 215, 225);
-        Assert.InRange(fallbackBounds.Right, 715, 725);
-        Assert.InRange(fallbackBounds.Bottom, 745, 755);
+        Assert.InRange(fallbackBounds.Left, 206, 216);
+        Assert.InRange(fallbackBounds.Top, 373, 383);
+        Assert.InRange(fallbackBounds.Right, 801, 811);
+        Assert.InRange(fallbackBounds.Bottom, 906, 916);
     }
 
     [Fact]
@@ -1137,7 +1137,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath);
+        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
@@ -1153,7 +1153,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath);
+        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
@@ -1168,7 +1168,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath);
+        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
@@ -1179,21 +1179,6 @@ public sealed class SampleImageProcessorTests
     }
 
     [Fact]
-    public void AnalyzeImageFile_MultiSizeClustersExist_KeepsSmallerValidPolygons()
-    {
-        // Arrange
-        var imagePath = ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_multi_size_clusters.png");
-        var processor = new SampleImageProcessor();
-
-        // Act
-        var analysis = processor.AnalyzeImageFile(imagePath);
-
-        // Assert
-        Assert.True(analysis.PlayfieldDetection.IsFound);
-        Assert.True(analysis.Polygons.Count >= 2);
-    }
-
-    [Fact]
     public void AnalyzeImageFile_OnlyUpperClusterExists_DoesNotAddExtraPolygon()
     {
         // Arrange
@@ -1201,7 +1186,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath);
+        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);

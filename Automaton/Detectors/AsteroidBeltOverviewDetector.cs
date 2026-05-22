@@ -3,7 +3,7 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class AsteroidBeltOverviewDetector
+internal sealed class AsteroidBeltOverviewDetector : IDisposable
 {
     private const double MinimumButtonMatchScore = 0.90;
     private const double MinimumHomeStationMatchScore = 0.76;
@@ -18,11 +18,17 @@ internal sealed class AsteroidBeltOverviewDetector
     private const int OverviewRegionTop = 280;
     private const int OverviewRegionWidth = 580;
     private const int OverviewRegionHeight = 1330;
-    private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
+    private static readonly double[] OverviewBeltTemplateScales = [1.0, 0.95, 1.05];
     private static readonly double[] HomeStationTemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20, 1.30];
 
     private readonly Mat m_OverviewBeltTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_belt.png");
     private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
+
+    public void Dispose()
+    {
+        m_OverviewBeltTemplate.Dispose();
+        m_HomeStationTemplate.Dispose();
+    }
 
     public AsteroidBeltOverviewAnalysis Analyze(Mat screen)
     {
@@ -31,38 +37,38 @@ internal sealed class AsteroidBeltOverviewDetector
             return AsteroidBeltOverviewAnalysis.NotFound;
         }
 
-        using var searchableScreen = BuildSearchableScreen(screen);
-        var overviewSearchBounds = BuildOverviewSearchBounds(searchableScreen.Size());
+        using var converted = screen.Channels() != 3 ? ConvertToColor(screen) : null;
+        var searchable = converted ?? screen;
+        var overviewBounds = BuildOverviewSearchBounds(searchable.Size());
         var overviewBeltButtonBounds = TryLocateTemplate(
-            searchableScreen,
+            searchable,
             m_OverviewBeltTemplate,
-            overviewSearchBounds,
-            TemplateScales,
+            overviewBounds,
+            OverviewBeltTemplateScales,
             MinimumButtonMatchScore,
             out var overviewBeltButtonLocation)
             ? overviewBeltButtonLocation.Bounds
             : (Rect?)null;
-        Rect? overviewBounds = overviewBeltButtonBounds is null
-            ? null
-            : BuildOverviewBounds(searchableScreen.Size());
-        var homeStationBounds = overviewBounds is null || overviewBeltButtonBounds is null
-            ? null
-            : TryLocateTemplate(
-                searchableScreen,
-                m_HomeStationTemplate,
-                BuildHomeStationSearchBounds(searchableScreen.Size(), overviewBounds.Value, overviewBeltButtonBounds.Value),
-                HomeStationTemplateScales,
-                MinimumHomeStationMatchScore,
-                out var homeStationLocation)
-                ? homeStationLocation.Bounds
-                : (Rect?)null;
-        var asteroidBelts = overviewBounds is null ||
-                            homeStationBounds is null
+        if (overviewBeltButtonBounds is null)
+        {
+            return AsteroidBeltOverviewAnalysis.NotFound;
+        }
+
+        var homeStationBounds = TryLocateTemplate(
+            searchable,
+            m_HomeStationTemplate,
+            BuildHomeStationSearchBounds(searchable.Size(), overviewBounds, overviewBeltButtonBounds.Value),
+            HomeStationTemplateScales,
+            MinimumHomeStationMatchScore,
+            out var homeStationLocation)
+            ? homeStationLocation.Bounds
+            : (Rect?)null;
+        var asteroidBelts = homeStationBounds is null
             ? []
-            : LocateAsteroidBelts(searchableScreen, overviewBounds.Value, homeStationBounds.Value);
+            : LocateAsteroidBelts(searchable, overviewBounds, homeStationBounds.Value);
 
         return new AsteroidBeltOverviewAnalysis(
-            overviewBounds is not null,
+            true,
             overviewBounds,
             overviewBeltButtonBounds,
             homeStationBounds,
@@ -186,11 +192,6 @@ internal sealed class AsteroidBeltOverviewDetector
         return new Rect(left, top, right - left, bottom - top);
     }
 
-    private static Rect BuildOverviewBounds(Size imageSize)
-    {
-        return BuildOverviewSearchBounds(imageSize);
-    }
-
     private static Rect BuildHomeStationSearchBounds(
         Size imageSize,
         Rect overviewBounds,
@@ -236,13 +237,8 @@ internal sealed class AsteroidBeltOverviewDetector
         return Cv2.CountNonZero(mask) >= MinimumDistanceColumnBrightPixelCount;
     }
 
-    private static Mat BuildSearchableScreen(Mat screen)
+    private static Mat ConvertToColor(Mat screen)
     {
-        if (screen.Channels() == 3)
-        {
-            return screen.Clone();
-        }
-
         var colorScreen = new Mat();
         Cv2.CvtColor(screen, colorScreen, ColorConversionCodes.GRAY2BGR);
         return colorScreen;

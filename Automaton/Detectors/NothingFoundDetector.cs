@@ -5,7 +5,6 @@ namespace Automaton.Detectors;
 internal static class NothingFoundDetector
 {
     private const int MinimumBrightPixelCount = 180;
-    private const int MinimumGlyphArea = 80;
     private const int MinimumLineWidth = 48;
     private const int MinimumLineHeight = 10;
     private const int MinimumLineCount = 2;
@@ -41,9 +40,7 @@ internal static class NothingFoundDetector
 
         var lineBounds = contours
             .Select(Cv2.BoundingRect)
-            .Where(bounds =>
-                bounds is { Width: >= MinimumLineWidth, Height: >= MinimumLineHeight } &&
-                bounds.Width * bounds.Height >= MinimumGlyphArea)
+            .Where(bounds => bounds is { Width: >= MinimumLineWidth, Height: >= MinimumLineHeight })
             .ToArray();
 
         return lineBounds.Length >= MinimumLineCount || lineBounds.Any(bounds => bounds.Width >= WideLineWidth);

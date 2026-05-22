@@ -7,49 +7,33 @@ namespace Automaton.Tests;
 public sealed class MaximumSubmissionsPopupDetectorTests
 {
     [Fact]
-    public void Detect_ImageContainsMaximumSubmissionsPopup_ReturnsTrue()
+    public void DetectPopupState_ImageContainsMaximumSubmissionsPopup_ReturnsMaximumSubmissions()
     {
         // Arrange
         using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.MaximumSubmissions);
-        var detector = new ErrorPopupDetector();
 
         // Act
-        var detected = detector.Detect(image);
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
 
         // Assert
-        Assert.True(detected);
+        Assert.Equal(ErrorPopupDetector.PopupState.MaximumSubmissions, popupState);
     }
 
     [Fact]
-    public void Detect_ImageContainsSlowDownPopup_ReturnsFalse()
-    {
-        // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateSlowDownPopupImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.Detect(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void DetectSlowDown_ImageContainsSlowDownPopup_ReturnsTrue()
+    public void DetectPopupState_ImageContainsSlowDownPopup_ReturnsSlowDown()
     {
         // Arrange
         using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.SlowDown);
-        var detector = new ErrorPopupDetector();
 
         // Act
-        var detected = detector.DetectSlowDown(image);
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
 
         // Assert
-        Assert.True(detected);
+        Assert.Equal(ErrorPopupDetector.PopupState.SlowDown, popupState);
     }
 
     [Fact]
-    public void DetectSlowDown_ImageContainsSlowDownPopupWithStaleMaxSubmissionsOverlay_ReturnsTrue()
+    public void DetectPopupState_SlowDownPopupWithStaleOverlayText_ReturnsSlowDown()
     {
         // Arrange
         using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.SlowDown);
@@ -62,169 +46,142 @@ public sealed class MaximumSubmissionsPopupDetectorTests
             new Scalar(80, 120, 255),
             2,
             LineTypes.AntiAlias);
-        var detector = new ErrorPopupDetector();
 
         // Act
-        var maxSubmissionsDetected = detector.Detect(image);
-        var slowDownDetected = detector.DetectSlowDown(image);
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
 
         // Assert
-        Assert.False(maxSubmissionsDetected);
-        Assert.True(slowDownDetected);
+        Assert.Equal(ErrorPopupDetector.PopupState.SlowDown, popupState);
     }
 
     [Fact]
-    public void DetectSlowDown_ImageContainsMaximumSubmissionsPopup_ReturnsFalse()
-    {
-        // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateMaximumSubmissionsPopupImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.DetectSlowDown(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void DetectConnectionLost_ImageContainsConnectionLostPopup_ReturnsTrue()
+    public void DetectPopupState_ImageContainsConnectionLostPopup_ReturnsConnectionLost()
     {
         // Arrange
         using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.ConnectionLost);
-        var detector = new ErrorPopupDetector();
 
         // Act
-        var detected = detector.DetectConnectionLost(image);
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
 
         // Assert
-        Assert.True(detected);
+        Assert.Equal(ErrorPopupDetector.PopupState.ConnectionLost, popupState);
     }
 
     [Fact]
-    public void DetectConnectionLost_ImageContainsMaximumSubmissionsPopup_ReturnsFalse()
-    {
-        // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateMaximumSubmissionsPopupImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.DetectConnectionLost(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void DetectConnectionLost_ImageContainsSlowDownPopup_ReturnsFalse()
-    {
-        // Arrange
-        using var image = SyntheticDiscoveryImageFactory.CreateSlowDownPopupImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.DetectConnectionLost(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void Detect_FullScreenImageContainsCompactDimMaximumSubmissionsPopup_ReturnsTrue()
+    public void DetectPopupState_CompactDimMaximumSubmissionsPopup_DoesNotReturnMaximumSubmissions()
     {
         // Arrange
         using var image = CreateCompactDimMaximumSubmissionsPopupImage();
-        var detector = new ErrorPopupDetector();
 
         // Act
-        var detected = detector.Detect(image);
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
 
         // Assert
-        Assert.False(detected);
+        Assert.NotEqual(ErrorPopupDetector.PopupState.MaximumSubmissions, popupState);
     }
 
     [Fact]
-    public void Detect_ImageDoesNotContainMaximumSubmissionsPopup_ReturnsFalse()
+    public void DetectPopupState_TwoClusterImage_ReturnsNone()
     {
         // Arrange
         using var image = SyntheticDiscoveryImageFactory.CreateTwoClusterImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.Detect(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void Detect_FullScreenImageContainsBusyPilotSelectionUi_ReturnsFalse()
-    {
-        // Arrange
-        using var image = CreateBusyPilotSelectionImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.Detect(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void Detect_FullScreenImageContainsProjectDiscoveryInstructionPanel_ReturnsFalse()
-    {
-        // Arrange
-        using var image = CreateProjectDiscoveryInstructionImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.Detect(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void Detect_FullScreenImageContainsSubmissionResultUi_ReturnsFalse()
-    {
-        // Arrange
-        using var image = CreateSubmissionResultImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.Detect(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void Detect_FullScreenImageContainsBottomInventoryGrid_ReturnsFalse()
-    {
-        // Arrange
-        using var image = CreateBottomInventoryGridImage();
-        var detector = new ErrorPopupDetector();
-
-        // Act
-        var detected = detector.Detect(image);
-
-        // Assert
-        Assert.False(detected);
-    }
-
-    [Fact]
-    public void DetectPopupState_ImageContainsLauncherPlayNowButton_ReturnsNone()
-    {
-        // Arrange
-        using var image = CreateLauncherPlayNowImage();
-        var detector = new ErrorPopupDetector();
 
         // Act
         var popupState = ErrorPopupDetector.DetectPopupState(image);
 
         // Assert
         Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+    }
+
+    [Fact]
+    public void DetectPopupState_BusyPilotSelectionUi_ReturnsNone()
+    {
+        // Arrange
+        using var image = CreateBusyPilotSelectionImage();
+
+        // Act
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+    }
+
+    [Fact]
+    public void DetectPopupState_ProjectDiscoveryInstructionPanel_ReturnsNone()
+    {
+        // Arrange
+        using var image = CreateProjectDiscoveryInstructionImage();
+
+        // Act
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+    }
+
+    [Fact]
+    public void DetectPopupState_SubmissionResultUi_ReturnsNone()
+    {
+        // Arrange
+        using var image = CreateSubmissionResultImage();
+
+        // Act
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+    }
+
+    [Fact]
+    public void DetectPopupState_BottomInventoryGrid_ReturnsNone()
+    {
+        // Arrange
+        using var image = CreateBottomInventoryGridImage();
+
+        // Act
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+    }
+
+    [Fact]
+    public void DetectPopupState_LauncherPlayNowButton_ReturnsNone()
+    {
+        // Arrange
+        using var image = CreateLauncherPlayNowImage();
+
+        // Act
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+    }
+
+    [Fact]
+    public void DetectPopupState_SlowDownPopupImage_ReturnsSlowDown()
+    {
+        // Arrange
+        using var image = SyntheticDiscoveryImageFactory.CreateSlowDownPopupImage();
+
+        // Act
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.SlowDown, popupState);
+    }
+
+    [Fact]
+    public void DetectPopupState_MaximumSubmissionsPopupImage_ReturnsMaximumSubmissions()
+    {
+        // Arrange
+        using var image = SyntheticDiscoveryImageFactory.CreateMaximumSubmissionsPopupImage();
+
+        // Act
+        var popupState = ErrorPopupDetector.DetectPopupState(image);
+
+        // Assert
+        Assert.Equal(ErrorPopupDetector.PopupState.MaximumSubmissions, popupState);
     }
 
     private static Mat CreateBusyPilotSelectionImage()

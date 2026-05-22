@@ -7,7 +7,6 @@ namespace Automaton.Tests;
 
 public sealed class UnloadingCargoStateTests
 {
-
     [Fact]
     public void Execute_Docked_PerformsTransferAndTransitionsToUndocking()
     {

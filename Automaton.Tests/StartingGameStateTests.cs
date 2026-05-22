@@ -9,8 +9,6 @@ namespace Automaton.Tests;
 
 public sealed class StartingGameStateTests
 {
-    private static readonly int[] Expected = [20_000];
-
     [Fact]
     public void Execute_PlayNowButtonPresent_StartsGameAndTransitionsToLogin()
     {
@@ -33,7 +31,7 @@ public sealed class StartingGameStateTests
         Assert.Equal(MiningAutomationActionKind.StartGame, transition.Action);
         Assert.Single(automationInputControllerMock.MoveTargets);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal(Expected, automationInputControllerMock.Delays);
+        Assert.Equal([Delays.MiningLauncherStartupMs], automationInputControllerMock.Delays);
         Assert.Single(automationInputControllerMock.KeyInputs);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
     }
@@ -64,6 +62,7 @@ public sealed class StartingGameStateTests
         Assert.Empty(automationInputControllerMock.KeyInputs);
     }
 
+    // ToDo: remove magic
     private static Mat CreatePlayButtonScreen(Point playButtonLocation)
     {
         var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
