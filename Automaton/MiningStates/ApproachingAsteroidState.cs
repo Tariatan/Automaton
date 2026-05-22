@@ -9,7 +9,7 @@ namespace Automaton.MiningStates;
 internal sealed class ApproachingAsteroidState(
     IAutomationInputController automationInputController,
     MineOverviewDetector mineOverviewDetector,
-    FirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector,
+    IFirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector,
     ILogger? logger = null)
     : IMiningAutomationState
 {

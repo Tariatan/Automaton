@@ -3,10 +3,10 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class FirstAsteroidWithinReachDetector
+internal sealed class FirstAsteroidWithinReachDetector : IFirstAsteroidWithinReachDetector
 {
-    private const double MinimumMetersTemplateMatchScore = 0.82;
-    private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
+    private const double MinimumMetersTemplateMatchScore = 0.95;
+    private static readonly double[] TemplateScales = [1.0, 0.98, 1.02, 0.97, 1.03, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
     private readonly Mat m_DistanceMetersTemplate = EmbeddedResourceLoader.LoadMat("overview.distance_m.png");
 
     public bool Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds)
@@ -63,10 +63,10 @@ internal sealed class FirstAsteroidWithinReachDetector
 
     private static Rect BuildDistanceUnitSearchBounds(Size imageSize, Rect rowSearchBounds)
     {
-        var left = Math.Clamp(rowSearchBounds.Right - 35, 0, Math.Max(0, imageSize.Width));
-        var top = Math.Clamp(rowSearchBounds.Top - 5, 0, Math.Max(0, imageSize.Height));
-        var right = Math.Clamp(rowSearchBounds.Right + 5, left, imageSize.Width);
-        var bottom = Math.Clamp(rowSearchBounds.Bottom + 5, top, imageSize.Height);
+        var left = Math.Clamp(rowSearchBounds.Right - 50, 0, Math.Max(0, imageSize.Width));
+        var top = Math.Clamp(rowSearchBounds.Top - 8, 0, Math.Max(0, imageSize.Height));
+        var right = Math.Clamp(rowSearchBounds.Right + 10, left, imageSize.Width);
+        var bottom = Math.Clamp(rowSearchBounds.Bottom + 8, top, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
 
@@ -109,6 +109,15 @@ internal sealed class FirstAsteroidWithinReachDetector
             using var scaledTemplate = BuildScaledTemplate(template, adjustedScale);
             using var templateGray = new Mat();
             Cv2.CvtColor(scaledTemplate, templateGray, ColorConversionCodes.BGR2GRAY);
+            if (templateGray.Width > searchGray.Width || templateGray.Height > searchGray.Height)
+            {
+                continue;
+            }
+
+            using var grayscaleResult = new Mat();
+            Cv2.MatchTemplate(searchGray, templateGray, grayscaleResult, TemplateMatchModes.CCoeffNormed);
+            Cv2.MinMaxLoc(grayscaleResult, out _, out var grayscaleScore, out _, out _);
+
             using var templateEdges = new Mat();
             Cv2.Canny(templateGray, templateEdges, 45, 120);
             if (templateEdges.Width > searchEdges.Width || templateEdges.Height > searchEdges.Height)
@@ -118,7 +127,8 @@ internal sealed class FirstAsteroidWithinReachDetector
 
             using var result = new Mat();
             Cv2.MatchTemplate(searchEdges, templateEdges, result, TemplateMatchModes.CCoeffNormed);
-            Cv2.MinMaxLoc(result, out _, out var score, out _, out _);
+            Cv2.MinMaxLoc(result, out _, out var edgeScore, out _, out _);
+            var score = Math.Max(grayscaleScore, edgeScore);
             if (score > bestScore)
             {
                 bestScore = score;

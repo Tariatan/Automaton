@@ -13,6 +13,7 @@ public sealed class ApproachingAsteroidStateTests
     {
         // Arrange
         var captureInvocationCount = 0;
+        var detectInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(() =>
             {
@@ -24,7 +25,17 @@ public sealed class ApproachingAsteroidStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new ApproachingAsteroidState(automationInputControllerMock, new MineOverviewDetector(), new FirstAsteroidWithinReachDetector());
+        var firstAsteroidWithinReachDetector = new StubFirstAsteroidWithinReachDetector(
+            (OpenCvSharp.Mat _, OpenCvSharp.Rect _, OpenCvSharp.Rect _, out DistanceUnitDetectionTelemetry telemetry) =>
+            {
+                detectInvocationCount++;
+                telemetry = new DistanceUnitDetectionTelemetry(null, null, 0.99, 1.0, detectInvocationCount >= 2);
+                return detectInvocationCount >= 2;
+            });
+        var state = new ApproachingAsteroidState(
+            automationInputControllerMock,
+            new MineOverviewDetector(),
+            firstAsteroidWithinReachDetector);
 
         // Act
         var transition = state.Execute(
@@ -35,6 +46,7 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(MiningAutomationStateKind.Mining, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.ActivateMiningLasers, transition.Action);
         Assert.True(captureInvocationCount >= 2);
+        Assert.Equal(2, detectInvocationCount);
         Assert.Equal(2, automationInputControllerMock.MoveTargets.Count);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal(Delays.ApproachAsteroidDistancePollingMs, automationInputControllerMock.Delays[0]);
@@ -66,5 +78,30 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal([VirtualKeys.F4], automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
+    }
+
+    private sealed class StubFirstAsteroidWithinReachDetector(
+        StubFirstAsteroidWithinReachDetector.DetectWithTelemetryHandler detectWithTelemetry)
+        : IFirstAsteroidWithinReachDetector
+    {
+        public bool Detect(OpenCvSharp.Mat screen, OpenCvSharp.Rect mineOverviewBounds, OpenCvSharp.Rect firstAsteroidRowBounds)
+        {
+            return Detect(screen, mineOverviewBounds, firstAsteroidRowBounds, out _);
+        }
+
+        public bool Detect(
+            OpenCvSharp.Mat screen,
+            OpenCvSharp.Rect mineOverviewBounds,
+            OpenCvSharp.Rect firstAsteroidRowBounds,
+            out DistanceUnitDetectionTelemetry telemetry)
+        {
+            return detectWithTelemetry(screen, mineOverviewBounds, firstAsteroidRowBounds, out telemetry);
+        }
+
+        internal delegate bool DetectWithTelemetryHandler(
+            OpenCvSharp.Mat screen,
+            OpenCvSharp.Rect mineOverviewBounds,
+            OpenCvSharp.Rect firstAsteroidRowBounds,
+            out DistanceUnitDetectionTelemetry telemetry);
     }
 }
