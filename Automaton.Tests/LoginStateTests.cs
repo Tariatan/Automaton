@@ -18,11 +18,11 @@ public sealed class LoginStateTests
         WritePilotAvatarTemplates(pilotDirectory, 2);
         using var pilotScreen = CreatePilotSelectionScreen(new Point(240, 180));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => pilotScreen.Clone()),
+            new StubScreenCaptureProvider(pilotScreen.Clone),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState();
+        var state = new LoginState(automationInputControllerMock);
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -33,7 +33,7 @@ public sealed class LoginStateTests
         try
         {
             transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+                new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
                 CancellationToken.None);
         }
         finally
@@ -48,8 +48,9 @@ public sealed class LoginStateTests
         Assert.Equal(new Point(272, 212), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal(Expected, automationInputControllerMock.Delays);
-        Assert.Single(automationInputControllerMock.KeyInputs);
+        Assert.Equal(2, automationInputControllerMock.KeyInputs.Count);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
+        AssertTripleKeyChord(automationInputControllerMock.KeyInputs[1], VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9);
     }
 
     [Fact]
@@ -61,11 +62,11 @@ public sealed class LoginStateTests
         WritePilotAvatarTemplates(pilotDirectory, 2);
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => blankScreen.Clone()),
+            new StubScreenCaptureProvider(blankScreen.Clone),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState();
+        var state = new LoginState(automationInputControllerMock);
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -76,7 +77,7 @@ public sealed class LoginStateTests
         try
         {
             transition = state.Execute(
-                new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+                new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
                 CancellationToken.None);
         }
         finally
@@ -140,7 +141,7 @@ public sealed class LoginStateTests
         Assert.Equal(virtualKey, keyInput.VirtualKey);
     }
 
-    private static void AssertKeyChord(
+    private static void AssertTripleKeyChord(
         KeyboardInput keyInput,
         ushort firstModifierVirtualKey,
         ushort secondModifierVirtualKey,
@@ -149,16 +150,5 @@ public sealed class LoginStateTests
         Assert.Equal(firstModifierVirtualKey, keyInput.ModifierVirtualKey);
         Assert.Equal(secondModifierVirtualKey, keyInput.SecondModifierVirtualKey);
         Assert.Equal(virtualKey, keyInput.VirtualKey);
-    }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
-
-    private sealed class StubAutomationClock : IAutomationClock
-    {
-        public DateTime UtcNow { get; } = new(2026, 5, 10, 12, 0, 0, DateTimeKind.Utc);
     }
 }

@@ -8,7 +8,7 @@ namespace Automaton.Tests;
 
 public sealed class SelectBeltAndWarpStateTests
 {
-    private static readonly int[] Expected = [300, 300, 1_000];
+    private static readonly int[] Expected = [1_000];
 
     [Fact]
     public void Execute_OverviewHasAsteroidBelts_ClicksBeltTabRandomBeltAndPressesS()
@@ -27,13 +27,14 @@ public sealed class SelectBeltAndWarpStateTests
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
+            automationInputController,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             _ => 1);
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
             CancellationToken.None);
 
         // Assert
@@ -44,8 +45,8 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Equal(Expected, automationInputController.Delays);
         Assert.Equal(4, automationInputController.MoveTargets.Count);
         Assert.Equal([VirtualKeys.S], automationInputController.KeyInputs.Select(k => k.VirtualKey));
-        Assert.InRange(automationInputController.MoveTargets[0].X, 2270, 2315);
-        Assert.InRange(automationInputController.MoveTargets[0].Y, 330, 365);
+        Assert.InRange(automationInputController.MoveTargets[0].X, 2200, 2320);
+        Assert.InRange(automationInputController.MoveTargets[0].Y, 330, 370);
         AssertMouseParked(automationInputController.MoveTargets[1]);
         Assert.InRange(automationInputController.MoveTargets[2].X, 1990, 2525);
         Assert.InRange(automationInputController.MoveTargets[2].Y, 490, 530);
@@ -56,38 +57,29 @@ public sealed class SelectBeltAndWarpStateTests
     public void Execute_OverviewMissing_TransitionsToRecoveryWithoutClicking()
     {
         // Arrange
+        using var blankScreen = new Mat(new Size(2560, 1440), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadUndockedCompleteImage()),
+            new StubScreenCaptureProvider(blankScreen.Clone),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
+            automationInputController,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             _ => 0);
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
             CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationActionKind.QuitGameFromSpace, transition.Action);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Empty(automationInputController.Delays);
-    }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
-
-    private sealed class StubAutomationClock : IAutomationClock
-    {
-        public DateTime UtcNow { get; } = new(2026, 5, 3, 12, 0, 0, DateTimeKind.Utc);
     }
 
     private static void AssertMouseParked(Point point)

@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
@@ -9,16 +10,21 @@ internal sealed class StartingGameState : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-starting-game";
 
+    private readonly IAutomationInputController m_AutomationInputController;
     private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
     private readonly ILogger m_Logger;
 
-    public StartingGameState()
-        : this(new PlayNowButtonLocator(), Log.ForContext<StartingGameState>())
+    public StartingGameState(IAutomationInputController automationInputController)
+        : this(automationInputController, new PlayNowButtonLocator(), Log.ForContext<StartingGameState>())
     {
     }
 
-    private StartingGameState(PlayNowButtonLocator playNowButtonLocator, ILogger? logger = null)
+    private StartingGameState(
+        IAutomationInputController automationInputController,
+        PlayNowButtonLocator playNowButtonLocator,
+        ILogger? logger = null)
     {
+        m_AutomationInputController = automationInputController;
         m_PlayNowButtonLocator = playNowButtonLocator;
         m_Logger = logger ?? Log.ForContext<StartingGameState>();
     }
@@ -43,10 +49,10 @@ internal sealed class StartingGameState : IMiningAutomationState
                 capture.CapturePath);
         }
 
-        context.AutomationInputController.MoveTo(Center(playButtonLocation.Bounds));
-        context.AutomationInputController.LeftClick(cancellationToken);
-        context.AutomationInputController.Delay(Delays.MiningLauncherStartupMs, cancellationToken);
-        context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        m_AutomationInputController.MoveTo(Center(playButtonLocation.Bounds));
+        m_AutomationInputController.LeftClick(cancellationToken);
+        m_AutomationInputController.Delay(Delays.MiningLauncherStartupMs, cancellationToken);
+        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Login,

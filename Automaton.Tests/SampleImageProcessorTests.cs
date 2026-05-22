@@ -1302,5 +1302,4 @@ public sealed class SampleImageProcessorTests
         var distanceY = point.Y - projectionY;
         return Math.Sqrt((distanceX * distanceX) + (distanceY * distanceY));
     }
-
 }

@@ -5,13 +5,8 @@ namespace Automaton.MiningStates;
 
 internal sealed record MiningAutomationContext(
     ScreenCaptureService ScreenCaptureService,
-    IAutomationInputController AutomationInputController,
     IAutomationClock AutomationClock)
 {
-    private const int MouseParkingAreaLeft = 200;
-    private const int MouseParkingAreaTop = 200;
-    private const int MouseParkingAreaWidth = 100;
-    private const int MouseParkingAreaHeight = 100;
     private const int BeltBoundsTolerance = 8;
     private readonly List<Rect> m_BlacklistedAsteroidBelts = [];
     private Rect? m_CurrentAsteroidBeltBounds;
@@ -19,13 +14,6 @@ internal sealed record MiningAutomationContext(
     public MiningAutomationActionKind LastAction { get; set; }
 
     public int BlacklistedAsteroidBeltCount => m_BlacklistedAsteroidBelts.Count;
-
-    public void ClickUiElement(Point point, CancellationToken cancellationToken)
-    {
-        AutomationInputController.MoveTo(point);
-        AutomationInputController.LeftClick(cancellationToken);
-        AutomationInputController.MoveTo(BuildRandomMouseParkingPoint());
-    }
 
     public void BlacklistAsteroidBelt(Rect beltBounds)
     {
@@ -57,13 +45,6 @@ internal sealed record MiningAutomationContext(
 
         beltBounds = m_CurrentAsteroidBeltBounds.Value;
         return true;
-    }
-
-    private static Point BuildRandomMouseParkingPoint()
-    {
-        return new Point(
-            Random.Shared.Next(MouseParkingAreaLeft, MouseParkingAreaLeft + MouseParkingAreaWidth),
-            Random.Shared.Next(MouseParkingAreaTop, MouseParkingAreaTop + MouseParkingAreaHeight));
     }
 
     private static bool AreSimilarBounds(Rect first, Rect second)

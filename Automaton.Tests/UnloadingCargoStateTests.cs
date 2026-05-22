@@ -2,7 +2,6 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
-using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -14,15 +13,15 @@ public sealed class UnloadingCargoStateTests
     {
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage()),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new UnloadingCargoState();
+        var state = new UnloadingCargoState(automationInputController);
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
             CancellationToken.None);
 
         // Assert
@@ -46,38 +45,23 @@ public sealed class UnloadingCargoStateTests
     {
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage()),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new UnloadingCargoState(
+            automationInputController,
             new InventoryDetector(),
             new DowntimeDetector(new TimeOnly(19, 0), TimeSpan.FromMinutes(20)));
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputController, new ImminentDowntimeAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock(new DateTime(2026, 5, 2, 18, 45, 0, DateTimeKind.Utc))),
             CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.QuitGameAndExitApplication, transition.Action);
         Assert.True(automationInputController.QuitGameCalled);
-    }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
-
-    private sealed class StubAutomationClock : IAutomationClock
-    {
-        public DateTime UtcNow { get; } = new(2026, 5, 2, 12, 0, 0, DateTimeKind.Utc);
-    }
-
-    private sealed class ImminentDowntimeAutomationClock : IAutomationClock
-    {
-        public DateTime UtcNow { get; } = new(2026, 5, 2, 18, 45, 0, DateTimeKind.Utc);
     }
 }

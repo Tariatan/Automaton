@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
@@ -10,18 +11,21 @@ internal sealed class DockingState : IMiningAutomationState
     private const string CaptureSuffix = ".mining-dock";
     private const string DockedCaptureSuffix = ".mining-docked-polling";
 
+    private readonly IAutomationInputController m_AutomationInputController;
     private readonly HomeStationDetector m_HomeStationDetector;
     private readonly ILogger m_Logger;
 
-    public DockingState()
-        : this(new HomeStationDetector(), Log.ForContext<DockingState>())
+    public DockingState(IAutomationInputController automationInputController)
+        : this(automationInputController, new HomeStationDetector(), Log.ForContext<DockingState>())
     {
     }
 
     private DockingState(
+        IAutomationInputController automationInputController,
         HomeStationDetector homeStationDetector,
         ILogger? logger = null)
     {
+        m_AutomationInputController = automationInputController;
         m_HomeStationDetector = homeStationDetector;
         m_Logger = logger ?? Log.ForContext<DockingState>();
     }
@@ -53,20 +57,20 @@ internal sealed class DockingState : IMiningAutomationState
 
         // Select home station in the belt overview
         m_Logger.Information("Selecting home station");
-        context.ClickUiElement(Center(analysis.HomeStationBounds.Value), cancellationToken);
+        m_AutomationInputController.ClickUiElement(Center(analysis.HomeStationBounds.Value), cancellationToken);
         capture.Dispose();
 
         // Wait 1 second
-        context.AutomationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
+        m_AutomationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
 
         // Warping home
         m_Logger.Information("Warping home");
-        context.AutomationInputController.PressKey(VirtualKeys.D, cancellationToken);
+        m_AutomationInputController.PressKey(VirtualKeys.D, cancellationToken);
 
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            context.AutomationInputController.Delay(Delays.DockedPollingMs, cancellationToken);
+            m_AutomationInputController.Delay(Delays.DockedPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             capture = context.ScreenCaptureService.CaptureCurrentScreen(DockedCaptureSuffix);
@@ -81,7 +85,7 @@ internal sealed class DockingState : IMiningAutomationState
             capture.Dispose();
         }
 
-        context.AutomationInputController.Delay(Delays.DockedBounceMs, cancellationToken);
+        m_AutomationInputController.Delay(Delays.DockedBounceMs, cancellationToken);
 
         var transitionResult = new MiningAutomationStateTransition(
             Kind,

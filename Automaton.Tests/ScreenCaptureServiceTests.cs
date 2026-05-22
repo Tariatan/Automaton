@@ -107,10 +107,4 @@ public sealed class ScreenCaptureServiceTests
         // Assert
         Assert.Equal(virtualScreenBounds, captureBounds);
     }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
 }

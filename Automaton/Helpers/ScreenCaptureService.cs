@@ -133,7 +133,7 @@ internal sealed partial class ScreenCaptureService
         Mat CaptureScreen();
     }
 
-    private sealed partial class ScreenCaptureProvider : IScreenCaptureProvider
+    private sealed class ScreenCaptureProvider : IScreenCaptureProvider
     {
         public Mat CaptureScreen()
         {

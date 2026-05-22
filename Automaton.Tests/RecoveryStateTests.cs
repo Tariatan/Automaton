@@ -1,6 +1,5 @@
 using Automaton.Helpers;
 using Automaton.MiningStates;
-using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -15,12 +14,14 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new RecoveryState();
+        var state = new RecoveryState(automationInputController);
+        var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
+        {
+            LastAction = MiningAutomationActionKind.QuitGameFromDock
+        };
 
         // Act
-        var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-            CancellationToken.None);
+        var transition = state.Execute(context, CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
@@ -29,78 +30,26 @@ public sealed class RecoveryStateTests
     }
 
     [Fact]
-    public void Execute_UndockButtonMissing_TransitionsToDock()
+    public void Execute_HomeStationFound_TransitionsToDock()
     {
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadUndockedWithoutLocationChangeTimerImage()),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new RecoveryState();
+        var state = new RecoveryState(automationInputController);
+        var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
+        {
+            LastAction = MiningAutomationActionKind.QuitGameFromSpace
+        };
 
         // Act
-        var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputController, new StubAutomationClock()),
-            CancellationToken.None);
+        var transition = state.Execute(context, CancellationToken.None);
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Dock, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal([60_000], automationInputController.Delays);
-    }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
-
-    private sealed class StubAutomationInputController : IAutomationInputController
-    {
-        public List<int> Delays { get; } = [];
-
-        public void MoveTo(Point point)
-        {
-        }
-
-        public void LeftClick(CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
-        {
-        }
-
-        public void PressKeyChord(
-            ushort firstModifierVirtualKey,
-            ushort secondModifierVirtualKey,
-            ushort virtualKey,
-            CancellationToken cancellationToken)
-        {
-        }
-
-        public void QuitGame(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Logout(CancellationToken cancellationToken)
-        {
-        }
-
-        public void Delay(int milliseconds, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Delays.Add(milliseconds);
-        }
-    }
-
-    private sealed class StubAutomationClock : IAutomationClock
-    {
-        public DateTime UtcNow { get; } = new(2026, 5, 20, 12, 0, 0, DateTimeKind.Utc);
     }
 }

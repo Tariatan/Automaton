@@ -16,15 +16,15 @@ public sealed class StartingGameStateTests
         // Arrange
         using var screen = CreatePlayButtonScreen(new Point(260, 340));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => screen.Clone()),
+            new StubScreenCaptureProvider(screen.Clone),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState();
+        var state = new StartingGameState(automationInputControllerMock);
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
             CancellationToken.None);
 
         // Assert
@@ -43,15 +43,15 @@ public sealed class StartingGameStateTests
         // Arrange
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => blankScreen.Clone()),
+            new StubScreenCaptureProvider(blankScreen.Clone),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState();
+        var state = new StartingGameState(automationInputControllerMock);
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
             CancellationToken.None);
 
         // Assert
@@ -80,16 +80,5 @@ public sealed class StartingGameStateTests
         Assert.Equal(modifierVirtualKey, keyInput.ModifierVirtualKey);
         Assert.Null(keyInput.SecondModifierVirtualKey);
         Assert.Equal(virtualKey, keyInput.VirtualKey);
-    }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
-
-    private sealed class StubAutomationClock : IAutomationClock
-    {
-        public DateTime UtcNow { get; } = new(2026, 5, 10, 12, 0, 0, DateTimeKind.Utc);
     }
 }

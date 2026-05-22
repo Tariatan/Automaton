@@ -4,11 +4,23 @@ using OpenCvSharp;
 
 namespace Automaton.Helpers;
 
-internal sealed partial class AutomationInputController : IAutomationInputController
+internal sealed class AutomationInputController : IAutomationInputController
 {
     private const uint LeftDownEvent = 0x0002;
     private const uint LeftUpEvent = 0x0004;
     private const uint KeyUpEvent = 0x0002;
+
+    private const int MouseParkingAreaLeft = 200;
+    private const int MouseParkingAreaTop = 200;
+    private const int MouseParkingAreaWidth = 100;
+    private const int MouseParkingAreaHeight = 100;
+
+    public void ClickUiElement(Point point, CancellationToken cancellationToken)
+    {
+        MoveTo(point);
+        LeftClick(cancellationToken);
+        MoveTo(BuildRandomMouseParkingPoint());
+    }
 
     public void MoveTo(Point point)
     {
@@ -115,6 +127,13 @@ internal sealed partial class AutomationInputController : IAutomationInputContro
     {
         cancellationToken.WaitHandle.WaitOne(milliseconds);
         cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static Point BuildRandomMouseParkingPoint()
+    {
+        return new Point(
+            Random.Shared.Next(MouseParkingAreaLeft, MouseParkingAreaLeft + MouseParkingAreaWidth),
+            Random.Shared.Next(MouseParkingAreaTop, MouseParkingAreaTop + MouseParkingAreaHeight));
     }
 
     [DllImport("user32.dll")]

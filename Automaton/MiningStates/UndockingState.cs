@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
@@ -10,18 +11,21 @@ internal sealed class UndockingState : IMiningAutomationState
     private const int LocationChangeTimerPollingAttemptCount = 15;
     private const string CaptureSuffix = ".mining-undocking";
 
+    private readonly IAutomationInputController m_AutomationInputController;
     private readonly LocationChangeTimerDetector m_Detector;
     private readonly ILogger m_Logger;
 
-    public UndockingState()
-        : this(new LocationChangeTimerDetector(), Log.ForContext<UndockingState>())
+    public UndockingState(IAutomationInputController automationInputController)
+        : this(automationInputController, new LocationChangeTimerDetector(), Log.ForContext<UndockingState>())
     {
     }
 
     private UndockingState(
+        IAutomationInputController automationInputController,
         LocationChangeTimerDetector detector,
         ILogger? logger = null)
     {
+        m_AutomationInputController = automationInputController;
         m_Detector = detector;
         m_Logger = logger ?? Log.ForContext<UndockingState>();
     }
@@ -38,7 +42,7 @@ internal sealed class UndockingState : IMiningAutomationState
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        context.AutomationInputController.Delay(Delays.UndockingWindowActivationMs, cancellationToken);
+        m_AutomationInputController.Delay(Delays.UndockingWindowActivationMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         // TryLocate Undock button
@@ -56,10 +60,10 @@ internal sealed class UndockingState : IMiningAutomationState
         }
 
         // Undocking
-        context.ClickUiElement(Center(undockButtonBounds), cancellationToken);
+        m_AutomationInputController.ClickUiElement(Center(undockButtonBounds), cancellationToken);
         capture.Dispose();
 
-        context.AutomationInputController.Delay(Delays.InitialUndockMs, cancellationToken);
+        m_AutomationInputController.Delay(Delays.InitialUndockMs, cancellationToken);
 
         // Try to locate Location Change Timer icon with 1 second interval
         for (var attempt = 0; attempt < LocationChangeTimerPollingAttemptCount; attempt++)
@@ -81,7 +85,7 @@ internal sealed class UndockingState : IMiningAutomationState
             }
 
             capture.Dispose();
-            context.AutomationInputController.Delay(Delays.LocationChangeTimerPollingMs, cancellationToken);
+            m_AutomationInputController.Delay(Delays.LocationChangeTimerPollingMs, cancellationToken);
         }
 
         return new MiningAutomationStateTransition(

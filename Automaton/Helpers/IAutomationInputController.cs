@@ -22,5 +22,7 @@ internal interface IAutomationInputController
 
     void Logout(CancellationToken cancellationToken);
 
+    void ClickUiElement(Point point, CancellationToken cancellationToken);
+
     void Delay(int milliseconds, CancellationToken cancellationToken);
 }

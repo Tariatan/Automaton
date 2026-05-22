@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
@@ -11,13 +12,15 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
     private const string LandingCaptureSuffix = ".mining-landed-on-asteroid-belt";
     private const int LandingPollingAttemptCount = 60;
 
+    private readonly IAutomationInputController m_AutomationInputController;
     private readonly AsteroidBeltOverviewDetector m_BeltOverviewDetector;
     private readonly MineOverviewDetector m_MineOverviewDetector;
     private readonly Func<int, int> m_NextRandomIndex;
     private readonly ILogger m_Logger;
 
-    public SelectBeltAndWarpState()
+    public SelectBeltAndWarpState(IAutomationInputController automationInputController)
         : this(
+            automationInputController,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             Random.Shared.Next,
@@ -26,11 +29,13 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
     }
 
     internal SelectBeltAndWarpState(
+        IAutomationInputController automationInputController,
         AsteroidBeltOverviewDetector beltOverviewDetector,
         MineOverviewDetector mineOverviewDetector,
         Func<int, int> nextRandomIndex,
         ILogger? logger = null)
     {
+        m_AutomationInputController = automationInputController;
         m_BeltOverviewDetector = beltOverviewDetector;
         m_MineOverviewDetector = mineOverviewDetector;
         m_NextRandomIndex = nextRandomIndex;
@@ -65,14 +70,14 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         if (analysis.HomeStationBounds is null)
         {
             m_Logger.Error("Failed to detect Home Station in the Belt overview");
-            context.AutomationInputController.QuitGame(cancellationToken);
+            m_AutomationInputController.QuitGame(cancellationToken);
             var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
         }
 
         // Select Belt overview tab
-        context.ClickUiElement(Center(analysis.OverviewBeltButtonBounds.Value), cancellationToken);
+        m_AutomationInputController.ClickUiElement(Center(analysis.OverviewBeltButtonBounds.Value), cancellationToken);
         capture.Dispose();
 
         capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
@@ -115,9 +120,9 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         context.SetCurrentAsteroidBelt(selectedAsteroidBelt.Bounds);
 
         // Select asteroid belt
-        context.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
+        m_AutomationInputController.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
         // Warp to asteroid belt
-        context.AutomationInputController.PressKey(VirtualKeys.S, cancellationToken);
+        m_AutomationInputController.PressKey(VirtualKeys.S, cancellationToken);
         capture.Dispose();
 
         m_Logger.Information(
@@ -170,7 +175,7 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             }
 
             capture.Dispose();
-            context.AutomationInputController.Delay(Delays.LandingPollingMs, cancellationToken);
+            m_AutomationInputController.Delay(Delays.LandingPollingMs, cancellationToken);
         }
 
         return new MiningAutomationStateTransition(

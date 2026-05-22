@@ -14,6 +14,14 @@ internal sealed class StubAutomationInputController : IAutomationInputController
     public Action<int>? OnDelay { get; init; }
     public Action<ushort, ushort>? OnPressKeyChord { get; init; }
 
+    public void ClickUiElement(Point point, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        MoveTargets.Add(point);
+        ClickCount++;
+        MoveTargets.Add(new Point(250, 250));
+    }
+
     public void MoveTo(Point point)
     {
         MoveTargets.Add(point);

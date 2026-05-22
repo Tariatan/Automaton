@@ -7,6 +7,7 @@ namespace Automaton;
 
 internal sealed class MiningAutomationService
 {
+    private readonly IAutomationInputController m_AutomationInputController;
     private static readonly ILogger Logger = Log.ForContext<MiningAutomationService>();
 
     private readonly MiningAutomationContext m_Context;
@@ -22,8 +23,9 @@ internal sealed class MiningAutomationService
         IAutomationInputController automationInputController,
         IAutomationClock automationClock)
     {
-        m_Context = new MiningAutomationContext(screenCaptureService, automationInputController, automationClock);
-        m_CurrentState = new StartingGameState();
+        m_AutomationInputController = automationInputController;
+        m_Context = new MiningAutomationContext(screenCaptureService, automationClock);
+        m_CurrentState = new StartingGameState(automationInputController);
     }
 
     public MiningAutomationStepSummary AutomateCurrentScreen(
@@ -32,7 +34,7 @@ internal sealed class MiningAutomationService
     {
         m_CurrentState = CreateState(startingState);
         Logger.Information("Mining automation loop starting. StartingState={StartingState}", startingState);
-        m_Context.AutomationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
+        m_AutomationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         MiningAutomationStepSummary? lastSummary = null;
@@ -52,7 +54,7 @@ internal sealed class MiningAutomationService
                     return lastSummary;
                 }
 
-                m_Context.AutomationInputController.Delay(Delays.StateMachineNextStepDelayMs, cancellationToken);
+                m_AutomationInputController.Delay(Delays.StateMachineNextStepDelayMs, cancellationToken);
             }
         }
         catch (OperationCanceledException) when (lastSummary is not null)
@@ -89,19 +91,19 @@ internal sealed class MiningAutomationService
             transition.CapturePath);
     }
 
-    private static IMiningAutomationState CreateState(MiningAutomationStateKind stateKind)
+    private IMiningAutomationState CreateState(MiningAutomationStateKind stateKind)
     {
         return stateKind switch
         {
-            MiningAutomationStateKind.StartingGame => new StartingGameState(),
-            MiningAutomationStateKind.Login => new LoginState(),
-            MiningAutomationStateKind.Dock => new DockingState(),
-            MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(),
-            MiningAutomationStateKind.Undocking => new UndockingState(),
-            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(),
-            MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(),
-            MiningAutomationStateKind.Mining => new MiningState(),
-            MiningAutomationStateKind.Recovery => new RecoveryState(),
+            MiningAutomationStateKind.StartingGame => new StartingGameState(m_AutomationInputController),
+            MiningAutomationStateKind.Login => new LoginState(m_AutomationInputController),
+            MiningAutomationStateKind.Dock => new DockingState(m_AutomationInputController),
+            MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(m_AutomationInputController),
+            MiningAutomationStateKind.Undocking => new UndockingState(m_AutomationInputController),
+            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(m_AutomationInputController),
+            MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(m_AutomationInputController),
+            MiningAutomationStateKind.Mining => new MiningState(m_AutomationInputController),
+            MiningAutomationStateKind.Recovery => new RecoveryState(m_AutomationInputController),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }

@@ -1,4 +1,6 @@
+using System.IO;
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
@@ -7,20 +9,23 @@ namespace Automaton.MiningStates;
 
 internal sealed class UnloadingCargoState : IMiningAutomationState
 {
+    private readonly IAutomationInputController m_AutomationInputController;
     private readonly InventoryDetector m_InventoryDetector;
     private readonly DowntimeDetector m_DowntimeDetector;
     private readonly ILogger m_Logger;
 
-    public UnloadingCargoState()
-        : this(new InventoryDetector(), new DowntimeDetector(), Log.ForContext<UnloadingCargoState>())
+    public UnloadingCargoState(IAutomationInputController automationInputController)
+        : this(automationInputController, new InventoryDetector(), new DowntimeDetector(), Log.ForContext<UnloadingCargoState>())
     {
     }
 
     internal UnloadingCargoState(
+        IAutomationInputController automationInputController,
         InventoryDetector inventoryDetector,
         DowntimeDetector downtimeDetector,
         ILogger? logger = null)
     {
+        m_AutomationInputController = automationInputController;
         m_InventoryDetector = inventoryDetector;
         m_DowntimeDetector = downtimeDetector;
         m_Logger = logger ?? Log.ForContext<UnloadingCargoState>();
@@ -36,9 +41,9 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         cancellationToken.ThrowIfCancellationRequested();
 
         // Open inventory windows
-        context.AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
-        context.AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
-        context.AutomationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
+        m_AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
+        m_AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
+        m_AutomationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
@@ -74,9 +79,9 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         if (analysis.MiningHoldFirstRowBounds is not null)
         {
             m_Logger.Information("Transferring ore from Mining Hold to Item Hangar");
-            context.ClickUiElement(Center(analysis.MiningHoldFirstRowBounds.Value), cancellationToken);
-            context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.A, cancellationToken);
-            context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.X, cancellationToken);
+            m_AutomationInputController.ClickUiElement(Center(analysis.MiningHoldFirstRowBounds.Value), cancellationToken);
+            m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.A, cancellationToken);
+            m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.X, cancellationToken);
 
             if (analysis.ItemHangarFirstRowBounds is null)
             {
@@ -88,20 +93,20 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
                     capture.CapturePath);
             }
 
-            context.ClickUiElement(Center(analysis.ItemHangarFirstRowBounds.Value), cancellationToken);
-            context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.V, cancellationToken);
-            context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.C, cancellationToken);
-            context.AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.V, cancellationToken);
+            m_AutomationInputController.ClickUiElement(Center(analysis.ItemHangarFirstRowBounds.Value), cancellationToken);
+            m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.V, cancellationToken);
+            m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.C, cancellationToken);
+            m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.V, cancellationToken);
         }
 
         // Close inventory windows
-        context.AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
-        context.AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
+        m_AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
+        m_AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
 
         if (m_DowntimeDetector.IsDowntimeImminent(context.AutomationClock.UtcNow))
         {
             m_Logger.Warning("Downtime imminent => quit game and exit application. Now={Now}", context.AutomationClock.UtcNow);
-            context.AutomationInputController.QuitGame(cancellationToken);
+            m_AutomationInputController.QuitGame(cancellationToken);
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
@@ -122,7 +127,7 @@ internal sealed class UnloadingCargoState : IMiningAutomationState
         Rect? miningHoldFirstRowBounds,
         Rect? itemHangarFirstRowBounds)
     {
-        if (!System.IO.File.Exists(capturePath))
+        if (!File.Exists(capturePath))
         {
             return;
         }

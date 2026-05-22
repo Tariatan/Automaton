@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Helpers;
 using Automaton.Primitives;
 using Serilog;
 
@@ -7,6 +8,7 @@ namespace Automaton.MiningStates;
 internal sealed class MiningState : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-state";
+    private readonly IAutomationInputController m_AutomationInputController;
     private readonly MiningAsteroidDetector m_AsteroidDetector;
     private readonly MiningLaserDetector m_LaserDetector;
     private readonly WarOverviewDetector m_WarOverviewDetector;
@@ -20,8 +22,9 @@ internal sealed class MiningState : IMiningAutomationState
         Gtfo
     }
 
-    public MiningState()
+    public MiningState(IAutomationInputController automationInputController)
         : this(
+            automationInputController,
             new MiningAsteroidDetector(),
             new MiningLaserDetector(),
             new WarOverviewDetector(),
@@ -30,11 +33,13 @@ internal sealed class MiningState : IMiningAutomationState
     }
 
     internal MiningState(
+        IAutomationInputController automationInputController,
         MiningAsteroidDetector asteroidDetector,
         MiningLaserDetector laserDetector,
         WarOverviewDetector warOverviewDetector,
         ILogger? logger = null)
     {
+        m_AutomationInputController = automationInputController;
         m_AsteroidDetector = asteroidDetector;
         m_LaserDetector = laserDetector;
         m_WarOverviewDetector = warOverviewDetector;
@@ -55,7 +60,7 @@ internal sealed class MiningState : IMiningAutomationState
         while (DateTime.UtcNow - loopStart < Delays.MiningLoopDuration)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            context.AutomationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
+            m_AutomationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);

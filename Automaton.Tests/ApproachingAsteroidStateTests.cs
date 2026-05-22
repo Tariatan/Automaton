@@ -1,7 +1,6 @@
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
-using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -24,11 +23,11 @@ public sealed class ApproachingAsteroidStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new ApproachingAsteroidState();
+        var state = new ApproachingAsteroidState(automationInputControllerMock);
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
             CancellationToken.None);
 
         // Assert
@@ -49,15 +48,15 @@ public sealed class ApproachingAsteroidStateTests
     {
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => SyntheticMiningImageFactory.LoadLandedOnEmptyAsteroidBeltImage()),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadLandedOnEmptyAsteroidBeltImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new ApproachingAsteroidState();
+        var state = new ApproachingAsteroidState(automationInputControllerMock);
 
         // Act
         var transition = state.Execute(
-            new MiningAutomationContext(screenCaptureService, automationInputControllerMock, new StubAutomationClock()),
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
             CancellationToken.None);
 
         // Assert
@@ -66,16 +65,5 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal([VirtualKeys.F4], automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
-    }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
-
-    private sealed class StubAutomationClock : IAutomationClock
-    {
-        public DateTime UtcNow { get; } = new(2026, 5, 11, 12, 0, 0, DateTimeKind.Utc);
     }
 }

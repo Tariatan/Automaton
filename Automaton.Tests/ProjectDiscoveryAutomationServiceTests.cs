@@ -1,5 +1,4 @@
 using System.Windows;
-using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
 using Automaton.Primitives;
@@ -1041,24 +1040,6 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(2, automationInputController.KeyInputs.Count);
         AssertKeyChord(automationInputController.KeyInputs[0], VirtualKeys.Control, VirtualKeys.Q);
         AssertKey(automationInputController.KeyInputs[1], VirtualKeys.Enter);
-    }
-
-    private sealed class StubScreenCaptureProvider(Func<Mat> captureFactory)
-        : ScreenCaptureService.IScreenCaptureProvider
-    {
-        public Mat CaptureScreen() => captureFactory();
-    }
-
-    private sealed class StubAutomationClock : IAutomationClock
-    {
-        private DateTime m_UtcNow = new(2026, 4, 22, 12, 0, 0, DateTimeKind.Utc);
-
-        public DateTime UtcNow => m_UtcNow;
-
-        public void AdvanceBy(int milliseconds)
-        {
-            m_UtcNow = m_UtcNow.AddMilliseconds(milliseconds);
-        }
     }
 
     private static int CountMaximumSubmissionsDebugOverlayPixels(string imagePath)
