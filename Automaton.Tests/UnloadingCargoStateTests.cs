@@ -2,6 +2,7 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -62,5 +63,43 @@ public sealed class UnloadingCargoStateTests
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.QuitGameAndExitApplication, transition.Action);
         Assert.True(automationInputController.QuitGameCalled);
+    }
+
+    [Fact]
+    public void Execute_MiningHoldWindowMissingOnFirstAttempt_RetriesAndTransitionsToUndocking()
+    {
+        // Arrange
+        var captureInvocationCount = 0;
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(() =>
+            {
+                captureInvocationCount++;
+                return captureInvocationCount == 1
+                    ? CreateImageWithoutMiningHoldTitle()
+                    : SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
+            }),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var state = new UnloadingCargoState(automationInputController, new InventoryDetector(), new DowntimeDetector());
+
+        // Act
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
+            CancellationToken.None);
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
+        Assert.Equal(4, captureInvocationCount);
+        Assert.Equal(3, automationInputController.KeyInputs.Count(input => input is { ModifierVirtualKey: VirtualKeys.Alt, VirtualKey: VirtualKeys.M }));
+        Assert.Equal(2, automationInputController.KeyInputs.Count(input => input is { ModifierVirtualKey: VirtualKeys.Alt, VirtualKey: VirtualKeys.G }));
+    }
+
+    private static Mat CreateImageWithoutMiningHoldTitle()
+    {
+        var image = SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
+        Cv2.Rectangle(image, Settings.MiningHoldBounds, Scalar.Black, -1);
+        return image;
     }
 }

@@ -14,6 +14,7 @@ internal sealed class UnloadingCargoState(
     ILogger? logger = null)
     : IMiningAutomationState
 {
+    private const int OpenWindowAttemptCount = 5;
     private readonly ILogger m_Logger = logger ?? Log.ForContext<UnloadingCargoState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.UnloadCargo;
@@ -25,11 +26,31 @@ internal sealed class UnloadingCargoState(
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Open inventory windows
-        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
-        automationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
-        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
-        automationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
+        if (!TryOpenInventoryWindow(
+                context,
+                cancellationToken,
+                VirtualKeys.M,
+                analysis => analysis.MiningHoldTitleBounds is not null,
+                "Mining Hold"))
+        {
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Recovery,
+                MiningAutomationActionKind.Recover);
+        }
+
+        if (!TryOpenInventoryWindow(
+                context,
+                cancellationToken,
+                VirtualKeys.G,
+                analysis => analysis.ItemHangarTitleBounds is not null,
+                "Item Hangar"))
+        {
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Recovery,
+                MiningAutomationActionKind.Recover);
+        }
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
@@ -130,6 +151,44 @@ internal sealed class UnloadingCargoState(
         }
 
         Cv2.ImWrite(capturePath, annotated);
+    }
+
+    private bool TryOpenInventoryWindow(
+        MiningAutomationContext context,
+        CancellationToken cancellationToken,
+        ushort inventoryVirtualKey,
+        Func<InventoryAnalysis, bool> isWindowVisible,
+        string windowName)
+    {
+        for (var attempt = 1; attempt <= OpenWindowAttemptCount; attempt++)
+        {
+            automationInputController.PressKeyChord(VirtualKeys.Alt, inventoryVirtualKey, cancellationToken);
+            automationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
+
+            using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
+            var analysis = inventoryDetector.Analyze(capture.Image);
+            if (isWindowVisible(analysis))
+            {
+                m_Logger.Information(
+                    "{WindowName} inventory window opened. Attempt={Attempt}/{MaxAttempts}",
+                    windowName,
+                    attempt,
+                    OpenWindowAttemptCount);
+                return true;
+            }
+
+            m_Logger.Warning(
+                "{WindowName} inventory window not visible after open attempt. Attempt={Attempt}/{MaxAttempts}",
+                windowName,
+                attempt,
+                OpenWindowAttemptCount);
+        }
+
+        m_Logger.Error(
+            "Failed to open {WindowName} inventory window after {AttemptCount} attempts",
+            windowName,
+            OpenWindowAttemptCount);
+        return false;
     }
 
 }
