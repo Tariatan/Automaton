@@ -37,7 +37,7 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
         // Select miner pilot
         m_Logger.Information("Logging in mining pilot {PilotIndex}...", PilotIndex);
 
-        automationInputController.MoveTo(Center(pilotLocation.Bounds));
+        automationInputController.MoveTo(GeometryHelper.Center(pilotLocation.Bounds));
         automationInputController.LeftClick(cancellationToken);
 
         // Wait for the full login
@@ -58,8 +58,4 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
             capture.CapturePath);
     }
 
-    private static Point Center(Rect bounds)
-    {
-        return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
-    }
 }

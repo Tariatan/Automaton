@@ -44,7 +44,7 @@ internal sealed class DockingState(
 
         // Select home station in the belt overview
         m_Logger.Information("Selecting home station");
-        automationInputController.ClickUiElement(Center(analysis.HomeStationBounds.Value), cancellationToken);
+        automationInputController.ClickUiElement(GeometryHelper.Center(analysis.HomeStationBounds.Value), cancellationToken);
         capture.Dispose();
 
         // Wait 1 second
@@ -83,5 +83,4 @@ internal sealed class DockingState(
         return transitionResult;
     }
 
-    private static Point Center(Rect bounds) => new(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }

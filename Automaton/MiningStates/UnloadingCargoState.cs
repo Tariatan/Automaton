@@ -27,6 +27,7 @@ internal sealed class UnloadingCargoState(
 
         // Open inventory windows
         automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
+        automationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
         automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
         automationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
 
@@ -64,7 +65,7 @@ internal sealed class UnloadingCargoState(
         if (analysis.MiningHoldFirstRowBounds is not null)
         {
             m_Logger.Information("Transferring ore from Mining Hold to Item Hangar");
-            automationInputController.ClickUiElement(Center(analysis.MiningHoldFirstRowBounds.Value), cancellationToken);
+            automationInputController.ClickUiElement(GeometryHelper.Center(analysis.MiningHoldFirstRowBounds.Value), cancellationToken);
             automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.A, cancellationToken);
             automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.X, cancellationToken);
 
@@ -78,7 +79,7 @@ internal sealed class UnloadingCargoState(
                     capture.CapturePath);
             }
 
-            automationInputController.ClickUiElement(Center(analysis.ItemHangarFirstRowBounds.Value), cancellationToken);
+            automationInputController.ClickUiElement(GeometryHelper.Center(analysis.ItemHangarFirstRowBounds.Value), cancellationToken);
             automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.V, cancellationToken);
             automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.C, cancellationToken);
             automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.V, cancellationToken);
@@ -131,5 +132,4 @@ internal sealed class UnloadingCargoState(
         Cv2.ImWrite(capturePath, annotated);
     }
 
-    private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }

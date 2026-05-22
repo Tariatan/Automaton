@@ -8,7 +8,7 @@ internal static class AsteroidRowsDetector
     private const int MaximumAsteroidIconWidth = 20;
     private const int MaximumAsteroidIconHeight = 20;
     private const int AsteroidIconGroupMaximumDistance = 18;
-    private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 110;
+    private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 90;
     private const int MinimumDistanceColumnBrightPixelCount = 10;
 
     public static IReadOnlyList<AsteroidOverviewEntry> Locate(Mat screen, Rect mineOverviewBounds)

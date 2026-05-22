@@ -5,7 +5,7 @@ namespace Automaton.Detectors;
 
 internal sealed class FirstAsteroidWithinReachDetector
 {
-    private const double MinimumMetersTemplateMatchScore = 0.27;
+    private const double MinimumMetersTemplateMatchScore = 0.82;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
     private readonly Mat m_DistanceMetersTemplate = EmbeddedResourceLoader.LoadMat("overview.distance_m.png");
 
@@ -63,10 +63,10 @@ internal sealed class FirstAsteroidWithinReachDetector
 
     private static Rect BuildDistanceUnitSearchBounds(Size imageSize, Rect rowSearchBounds)
     {
-        var left = Math.Clamp(rowSearchBounds.Right - 30, 0, Math.Max(0, imageSize.Width));
-        var top = Math.Clamp(rowSearchBounds.Top, 0, Math.Max(0, imageSize.Height));
-        var right = Math.Clamp(rowSearchBounds.Right, left, imageSize.Width);
-        var bottom = Math.Clamp(rowSearchBounds.Bottom, top, imageSize.Height);
+        var left = Math.Clamp(rowSearchBounds.Right - 35, 0, Math.Max(0, imageSize.Width));
+        var top = Math.Clamp(rowSearchBounds.Top - 5, 0, Math.Max(0, imageSize.Height));
+        var right = Math.Clamp(rowSearchBounds.Right + 5, left, imageSize.Width);
+        var bottom = Math.Clamp(rowSearchBounds.Bottom + 5, top, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
 

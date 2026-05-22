@@ -63,7 +63,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         }
 
         Logger.Information("Play button found during startup automation. CapturePath={CapturePath}, Bounds={Bounds}", playButtonCapturePath, playButtonLocation.Bounds);
-        automationInputController.MoveTo(Center(playButtonLocation.Bounds));
+        automationInputController.MoveTo(GeometryHelper.Center(playButtonLocation.Bounds));
         automationInputController.LeftClick(cancellationToken);
         automationInputController.Delay(Delays.ProjectDiscoveryLauncherStartupMs, cancellationToken);
         automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
@@ -83,7 +83,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         }
 
         Logger.Information("Pilot found during startup automation. PilotIndex={PilotIndex}, CapturePath={CapturePath}, Bounds={Bounds}", initialPilotIndex, pilotSelectionCapturePath, pilotLocation.Bounds);
-        automationInputController.MoveTo(Center(pilotLocation.Bounds));
+        automationInputController.MoveTo(GeometryHelper.Center(pilotLocation.Bounds));
         automationInputController.LeftClick(cancellationToken);
         automationInputController.Delay(Delays.ProjectDiscoveryLauncherStartupMs, cancellationToken);
         m_CurrentPilotIndex = initialPilotIndex;
@@ -303,7 +303,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         }
 
         // Login requested pilot
-        automationInputController.MoveTo(Center(location.Bounds));
+        automationInputController.MoveTo(GeometryHelper.Center(location.Bounds));
         automationInputController.LeftClick(cancellationToken);
         automationInputController.Delay(Delays.ProjectDiscoveryPilotLoginMs, cancellationToken);
         m_CurrentPilotIndex = nextPilotIndex;
@@ -524,11 +524,6 @@ internal sealed class ProjectDiscoveryAutomationService(
             DebugOverlayTextThickness,
             LineTypes.AntiAlias);
         Cv2.ImWrite(imagePath, image);
-    }
-
-    private static Point Center(Rect bounds)
-    {
-        return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
     }
 
     internal static Point ScalePointForDpi(Point point, DpiScale dpi)

@@ -55,7 +55,7 @@ internal sealed class SelectBeltAndWarpState(
         }
 
         // Select Belt overview tab
-        automationInputController.ClickUiElement(Center(analysis.OverviewBeltButtonBounds.Value), cancellationToken);
+        automationInputController.ClickUiElement(GeometryHelper.Center(analysis.OverviewBeltButtonBounds.Value), cancellationToken);
         capture.Dispose();
 
         capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
@@ -98,7 +98,7 @@ internal sealed class SelectBeltAndWarpState(
         context.SetCurrentAsteroidBelt(selectedAsteroidBelt.Bounds);
 
         // Select asteroid belt
-        automationInputController.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
+        automationInputController.ClickUiElement(GeometryHelper.Center(selectedAsteroidBelt.Bounds), cancellationToken);
         // Warp to asteroid belt
         automationInputController.PressKey(VirtualKeys.S, cancellationToken);
         capture.Dispose();
@@ -177,5 +177,4 @@ internal sealed class SelectBeltAndWarpState(
             capturePath);
     }
 
-    private static Point Center(Rect bounds) => new(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }

@@ -69,7 +69,7 @@ internal sealed class ApproachingAsteroidState(
         }
 
         // Select nearest asteroid
-        automationInputController.ClickUiElement(Center(asteroids[0].Bounds), cancellationToken);
+        automationInputController.ClickUiElement(GeometryHelper.Center(asteroids[0].Bounds), cancellationToken);
         // Approach
         automationInputController.PressKey(VirtualKeys.A, cancellationToken);
         capture.Dispose();
@@ -158,5 +158,4 @@ internal sealed class ApproachingAsteroidState(
         Cv2.ImWrite(capturePath, annotated);
     }
 
-    private static Point Center(Rect bounds) => new(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }

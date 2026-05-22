@@ -36,7 +36,7 @@ internal sealed class StartingGameState(
                 capture.CapturePath);
         }
 
-        automationInputController.MoveTo(Center(playButtonLocation.Bounds));
+        automationInputController.MoveTo(GeometryHelper.Center(playButtonLocation.Bounds));
         automationInputController.LeftClick(cancellationToken);
         automationInputController.Delay(Delays.MiningLauncherStartupMs, cancellationToken);
         automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
@@ -47,8 +47,4 @@ internal sealed class StartingGameState(
             capture.CapturePath);
     }
 
-    private static Point Center(Rect bounds)
-    {
-        return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
-    }
 }

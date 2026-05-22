@@ -47,7 +47,7 @@ internal sealed class UndockingState(
         }
 
         // Undocking
-        automationInputController.ClickUiElement(Center(undockButtonBounds), cancellationToken);
+        automationInputController.ClickUiElement(GeometryHelper.Center(undockButtonBounds), cancellationToken);
         capture.Dispose();
 
         automationInputController.Delay(Delays.InitialUndockMs, cancellationToken);
@@ -82,5 +82,4 @@ internal sealed class UndockingState(
             capture.CapturePath);
     }
 
-    private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }
