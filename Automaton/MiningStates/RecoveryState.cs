@@ -5,23 +5,15 @@ using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class RecoveryState : IMiningAutomationState
+internal sealed class RecoveryState(
+    IAutomationInputController automationInputController,
+    AsteroidBeltOverviewDetector beltOverviewDetector,
+    ILogger? logger = null)
+    : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-recovery";
 
-    private readonly IAutomationInputController m_AutomationInputController;
-    private readonly AsteroidBeltOverviewDetector m_BeltOverviewDetector;
-    private readonly ILogger m_Logger;
-
-    internal RecoveryState(
-        IAutomationInputController automationInputController,
-        AsteroidBeltOverviewDetector beltOverviewDetector,
-        ILogger? logger = null)
-    {
-        m_AutomationInputController = automationInputController;
-        m_BeltOverviewDetector = beltOverviewDetector;
-        m_Logger = logger ?? Log.ForContext<RecoveryState>();
-    }
+    private readonly ILogger m_Logger = logger ?? Log.ForContext<RecoveryState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Recovery;
 
@@ -33,7 +25,7 @@ internal sealed class RecoveryState : IMiningAutomationState
         cancellationToken.ThrowIfCancellationRequested();
 
         // Debounce
-        m_AutomationInputController.Delay(Delays.RecoveryMs, cancellationToken);
+        automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
@@ -43,13 +35,13 @@ internal sealed class RecoveryState : IMiningAutomationState
         // Try to detect safe haven again
         if (context.LastAction == MiningAutomationActionKind.QuitGameFromSpace)
         {
-            var beltAnalysis = m_BeltOverviewDetector.Analyze(capture.Image);
+            var beltAnalysis = beltOverviewDetector.Analyze(capture.Image);
             if (!beltAnalysis.OverviewLocated || beltAnalysis.HomeStationBounds is null)
             {
                 m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
-                m_AutomationInputController.QuitGame(cancellationToken);
+                automationInputController.QuitGame(cancellationToken);
                 // Debounce
-                m_AutomationInputController.Delay(Delays.RecoveryMs, cancellationToken);
+                automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
                 return new MiningAutomationStateTransition(
                     Kind,
                     MiningAutomationStateKind.StartingGame,
@@ -67,9 +59,9 @@ internal sealed class RecoveryState : IMiningAutomationState
             if (!UndockButtonDetector.TryLocate(capture.Image, out _))
             {
                 m_Logger.Error("Undock button not found while docked. Quit Game since this state is unrecoverable.");
-                m_AutomationInputController.QuitGame(cancellationToken);
+                automationInputController.QuitGame(cancellationToken);
                 // Debounce
-                m_AutomationInputController.Delay(Delays.RecoveryMs, cancellationToken);
+                automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
                 return new MiningAutomationStateTransition(
                     Kind,
                     MiningAutomationStateKind.StartingGame,

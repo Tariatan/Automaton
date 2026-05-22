@@ -25,7 +25,7 @@ internal sealed class MiningAutomationService
     private readonly WarOverviewDetector m_WarOverviewDetector;
     private IMiningAutomationState m_CurrentState;
 
-    internal MiningAutomationService(
+    public MiningAutomationService(
         ScreenCaptureService screenCaptureService,
         IAutomationInputController automationInputController,
         IAutomationClock automationClock,

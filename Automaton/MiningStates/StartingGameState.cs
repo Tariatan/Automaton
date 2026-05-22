@@ -6,23 +6,15 @@ using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class StartingGameState : IMiningAutomationState
+internal sealed class StartingGameState(
+    IAutomationInputController automationInputController,
+    PlayNowButtonLocator playNowButtonLocator,
+    ILogger? logger = null)
+    : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-starting-game";
 
-    private readonly IAutomationInputController m_AutomationInputController;
-    private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
-    private readonly ILogger m_Logger;
-
-    internal StartingGameState(
-        IAutomationInputController automationInputController,
-        PlayNowButtonLocator playNowButtonLocator,
-        ILogger? logger = null)
-    {
-        m_AutomationInputController = automationInputController;
-        m_PlayNowButtonLocator = playNowButtonLocator;
-        m_Logger = logger ?? Log.ForContext<StartingGameState>();
-    }
+    private readonly ILogger m_Logger = logger ?? Log.ForContext<StartingGameState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.StartingGame;
 
@@ -35,7 +27,7 @@ internal sealed class StartingGameState : IMiningAutomationState
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!m_PlayNowButtonLocator.TryLocate(capture.Image, out var playButtonLocation))
+        if (!playNowButtonLocator.TryLocate(capture.Image, out var playButtonLocation))
         {
             return new MiningAutomationStateTransition(
                 Kind,
@@ -44,10 +36,10 @@ internal sealed class StartingGameState : IMiningAutomationState
                 capture.CapturePath);
         }
 
-        m_AutomationInputController.MoveTo(Center(playButtonLocation.Bounds));
-        m_AutomationInputController.LeftClick(cancellationToken);
-        m_AutomationInputController.Delay(Delays.MiningLauncherStartupMs, cancellationToken);
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        automationInputController.MoveTo(Center(playButtonLocation.Bounds));
+        automationInputController.LeftClick(cancellationToken);
+        automationInputController.Delay(Delays.MiningLauncherStartupMs, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Login,

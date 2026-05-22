@@ -5,14 +5,16 @@ using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class MiningState : IMiningAutomationState
+internal sealed class MiningState(
+    IAutomationInputController automationInputController,
+    MiningAsteroidDetector asteroidDetector,
+    MiningLaserDetector laserDetector,
+    WarOverviewDetector warOverviewDetector,
+    ILogger? logger = null)
+    : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-state";
-    private readonly IAutomationInputController m_AutomationInputController;
-    private readonly MiningAsteroidDetector m_AsteroidDetector;
-    private readonly MiningLaserDetector m_LaserDetector;
-    private readonly WarOverviewDetector m_WarOverviewDetector;
-    private readonly ILogger m_Logger;
+    private readonly ILogger m_Logger = logger ?? Log.ForContext<MiningState>();
 
     private enum DockingReason
     {
@@ -20,20 +22,6 @@ internal sealed class MiningState : IMiningAutomationState
         AsteroidDepleted,
         CargoFull,
         Gtfo
-    }
-
-    internal MiningState(
-        IAutomationInputController automationInputController,
-        MiningAsteroidDetector asteroidDetector,
-        MiningLaserDetector laserDetector,
-        WarOverviewDetector warOverviewDetector,
-        ILogger? logger = null)
-    {
-        m_AutomationInputController = automationInputController;
-        m_AsteroidDetector = asteroidDetector;
-        m_LaserDetector = laserDetector;
-        m_WarOverviewDetector = warOverviewDetector;
-        m_Logger = logger ?? Log.ForContext<MiningState>();
     }
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Mining;
@@ -50,7 +38,7 @@ internal sealed class MiningState : IMiningAutomationState
         while (DateTime.UtcNow - loopStart < Delays.MiningLoopDuration)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            m_AutomationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
+            automationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
@@ -61,7 +49,7 @@ internal sealed class MiningState : IMiningAutomationState
                 return Recover(capture.CapturePath);
             }
 
-            if (m_WarOverviewDetector.TryLocate(capture.Image, out var warOverviewBounds))
+            if (warOverviewDetector.TryLocate(capture.Image, out var warOverviewBounds))
             {
                 var warOverviewNothingFound = NothingFoundDetector.Detect(capture.Image, warOverviewBounds);
                 if (!warOverviewNothingFound)
@@ -76,13 +64,13 @@ internal sealed class MiningState : IMiningAutomationState
                 }
             }
 
-            if (!m_AsteroidDetector.TryLocate(capture.Image))
+            if (!asteroidDetector.TryLocate(capture.Image))
             {
                 dockingReason = DockingReason.AsteroidDepleted;
                 break;
             }
 
-            if (!m_LaserDetector.TryLocate(capture.Image))
+            if (!laserDetector.TryLocate(capture.Image))
             {
                 dockingReason = DockingReason.CargoFull;
                 break;

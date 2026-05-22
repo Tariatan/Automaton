@@ -10,7 +10,12 @@ using Rect = OpenCvSharp.Rect;
 
 namespace Automaton;
 
-internal sealed class ProjectDiscoveryAutomationService
+internal sealed class ProjectDiscoveryAutomationService(
+    ScreenCaptureService screenCaptureService,
+    IAutomationInputController automationInputController,
+    IAutomationClock automationClock,
+    ErrorPopupDetector errorPopupDetector,
+    PlayNowButtonLocator playNowButtonLocator)
 {
     private const int MaximumSubmissionsPerWindow = 5;
     private const int MaximumConsecutivePlayfieldMisses = 5;
@@ -25,35 +30,16 @@ internal sealed class ProjectDiscoveryAutomationService
     private static readonly Scalar DebugOverlayTextColor = new(80, 120, 255);
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
 
-    private readonly ScreenCaptureService m_ScreenCaptureService;
-    private readonly IAutomationInputController m_AutomationInputController;
-    private readonly IAutomationClock m_AutomationClock;
-    private readonly ErrorPopupDetector m_ErrorPopupDetector;
-    private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
     private readonly AutomationSubmitRateLimiter m_SubmitRateLimiter = new();
     private readonly Random m_Random = new();
     private int m_CurrentPilotIndex = InitialPilotIndex;
 
     internal bool KeepDebugImages { get; set; } = true;
 
-    internal ProjectDiscoveryAutomationService(
-        ScreenCaptureService screenCaptureService,
-        IAutomationInputController automationInputController,
-        IAutomationClock automationClock,
-        ErrorPopupDetector errorPopupDetector,
-        PlayNowButtonLocator playNowButtonLocator)
-    {
-        m_ScreenCaptureService = screenCaptureService;
-        m_AutomationInputController = automationInputController;
-        m_AutomationClock = automationClock;
-        m_ErrorPopupDetector = errorPopupDetector;
-        m_PlayNowButtonLocator = playNowButtonLocator;
-    }
-
     public void ProcessSamples()
     {
         Logger.Information("Processing samples through automation service.");
-        m_ScreenCaptureService.ProcessSamples();
+        screenCaptureService.ProcessSamples();
     }
 
     internal StartupAutomationSummary PrepareAutomationFromLauncherStartup(
@@ -62,12 +48,12 @@ internal sealed class ProjectDiscoveryAutomationService
     {
         using var traceImages = CreateTraceImageScope();
         Logger.Information("Preparing launcher startup automation. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
-        var playButtonCapturePath = m_ScreenCaptureService.CaptureCurrentScreenTrace(".play");
+        var playButtonCapturePath = screenCaptureService.CaptureCurrentScreenTrace(".play");
         traceImages.Track(playButtonCapturePath);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var playButtonScreen = Cv2.ImRead(playButtonCapturePath);
-        if (!m_PlayNowButtonLocator.TryLocate(playButtonScreen, out var playButtonLocation))
+        if (!playNowButtonLocator.TryLocate(playButtonScreen, out var playButtonLocation))
         {
             DrawDebugOverlay(playButtonCapturePath, NoPlayButtonFoundDebugText);
             Logger.Error("No play button found during startup automation. CapturePath={CapturePath}", playButtonCapturePath);
@@ -77,12 +63,12 @@ internal sealed class ProjectDiscoveryAutomationService
         }
 
         Logger.Information("Play button found during startup automation. CapturePath={CapturePath}, Bounds={Bounds}", playButtonCapturePath, playButtonLocation.Bounds);
-        m_AutomationInputController.MoveTo(Center(playButtonLocation.Bounds));
-        m_AutomationInputController.LeftClick(cancellationToken);
-        m_AutomationInputController.Delay(Delays.ProjectDiscoveryLauncherStartupMs, cancellationToken);
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        automationInputController.MoveTo(Center(playButtonLocation.Bounds));
+        automationInputController.LeftClick(cancellationToken);
+        automationInputController.Delay(Delays.ProjectDiscoveryLauncherStartupMs, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
 
-        var pilotSelectionCapturePath = m_ScreenCaptureService.CaptureCurrentScreenTrace($".startup-pilot-{initialPilotIndex}");
+        var pilotSelectionCapturePath = screenCaptureService.CaptureCurrentScreenTrace($".startup-pilot-{initialPilotIndex}");
         traceImages.Track(pilotSelectionCapturePath);
         cancellationToken.ThrowIfCancellationRequested();
         using var pilotSelectionScreen = Cv2.ImRead(pilotSelectionCapturePath);
@@ -97,14 +83,14 @@ internal sealed class ProjectDiscoveryAutomationService
         }
 
         Logger.Information("Pilot found during startup automation. PilotIndex={PilotIndex}, CapturePath={CapturePath}, Bounds={Bounds}", initialPilotIndex, pilotSelectionCapturePath, pilotLocation.Bounds);
-        m_AutomationInputController.MoveTo(Center(pilotLocation.Bounds));
-        m_AutomationInputController.LeftClick(cancellationToken);
-        m_AutomationInputController.Delay(Delays.ProjectDiscoveryLauncherStartupMs, cancellationToken);
+        automationInputController.MoveTo(Center(pilotLocation.Bounds));
+        automationInputController.LeftClick(cancellationToken);
+        automationInputController.Delay(Delays.ProjectDiscoveryLauncherStartupMs, cancellationToken);
         m_CurrentPilotIndex = initialPilotIndex;
 
         // Hide GUI
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
 
         return new StartupAutomationSummary(playButtonCapturePath, true, pilotSelectionCapturePath, true, pilotLocation.Bounds, true);
     }
@@ -120,7 +106,7 @@ internal sealed class ProjectDiscoveryAutomationService
         CancellationToken cancellationToken)
     {
         Logger.Information("Automation loop starting. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
-        m_AutomationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
+        automationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         AutomationSummary? lastSummary = null;
@@ -132,7 +118,7 @@ internal sealed class ProjectDiscoveryAutomationService
             while (!cancellationToken.IsCancellationRequested)
             {
                 using var traceImages = CreateTraceImageScope();
-                var captureSummary = m_ScreenCaptureService.CaptureAndAnalyzeCurrentScreen();
+                var captureSummary = screenCaptureService.CaptureAndAnalyzeCurrentScreen();
                 traceImages.Track(captureSummary);
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -153,10 +139,10 @@ internal sealed class ProjectDiscoveryAutomationService
                     {
                         case { SlowDownPopupDetected: true, MaximumSubmissionsReached: false, ConnectionLostDetected: false, PopupDetectionAmbiguous: false }:
                             consecutivePlayfieldMisses = 0;
-                            m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+                            automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
                             continue;
                         case { MaximumSubmissionsReached: true, PilotSwitchSucceeded: true }:
-                            m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+                            automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
                             continue;
                         default:
                             return lastSummary;
@@ -184,7 +170,7 @@ internal sealed class ProjectDiscoveryAutomationService
                             consecutivePlayfieldMisses,
                             m_CurrentPilotIndex);
 
-                        m_AutomationInputController.QuitGame(cancellationToken);
+                        automationInputController.QuitGame(cancellationToken);
                         return new AutomationSummary(
                             captureSummary,
                             0,
@@ -205,7 +191,7 @@ internal sealed class ProjectDiscoveryAutomationService
                         Logger.Warning("Automation loop stopped because maximum submissions were reached and pilot switching did not succeed. CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}", lastSummary.CurrentPilotIndex, lastSummary.TargetPilotIndex);
                         return lastSummary;
                     default:
-                        m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+                        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
                         break;
                 }
             }
@@ -229,7 +215,7 @@ internal sealed class ProjectDiscoveryAutomationService
         var clickedPointCount = ClickPolygonPoints(captureSummary.Analysis.Polygons, cancellationToken);
         Logger.Information("Automation cycle analyzed screen. CapturePath={CapturePath}, PlayfieldFound={PlayfieldFound}, ClusterCount={ClusterCount}, ClickedPointCount={ClickedPointCount}", captureSummary.CapturePath, captureSummary.Analysis.Result.PlayfieldFound, captureSummary.Analysis.Result.ClusterCount, clickedPointCount);
 
-        m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         // Focus the known safe control button area.
@@ -238,9 +224,9 @@ internal sealed class ProjectDiscoveryAutomationService
         DelayBeforeRateLimitedSubmit(rateLimiter, cancellationToken);
 
         // Left-click the 'Submit' button.
-        m_AutomationInputController.LeftClick(cancellationToken);
-        rateLimiter.RecordSubmit(m_AutomationClock.UtcNow);
-        m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        automationInputController.LeftClick(cancellationToken);
+        rateLimiter.RecordSubmit(automationClock.UtcNow);
+        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
         var focusedCapturePath = CaptureFocusedScreenTrace(captureSummary, cancellationToken);
         traceImages.Track(focusedCapturePath);
         var focusedPopupState = DetectPopupStateWithLauncherGuard(focusedCapturePath);
@@ -259,11 +245,11 @@ internal sealed class ProjectDiscoveryAutomationService
         }
 
         // Left-click the 'Continue' button.
-        m_AutomationInputController.LeftClick(cancellationToken);
-        m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        automationInputController.LeftClick(cancellationToken);
+        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
 
         // Left-click the next 'Continue' button.
-        m_AutomationInputController.LeftClick(cancellationToken);
+        automationInputController.LeftClick(cancellationToken);
         Logger.Information(
             "Automation cycle submitted and continued. CapturePath={CapturePath}, FocusedCapturePath={FocusedCapturePath}, ClickedPointCount={ClickedPointCount}, CurrentPilotIndex={CurrentPilotIndex}",
             captureSummary.CapturePath,
@@ -288,18 +274,18 @@ internal sealed class ProjectDiscoveryAutomationService
         {
             Logger.Warning("No next pilot is configured => Quit Game. CurrentPilotIndex={CurrentPilotIndex}", m_CurrentPilotIndex);
             // Quit Game
-            m_AutomationInputController.QuitGame(cancellationToken);
+            automationInputController.QuitGame(cancellationToken);
             return new PilotSwitchResult(m_CurrentPilotIndex, Succeeded: false, null);
         }
 
         Logger.Information("Switching pilot. CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}", m_CurrentPilotIndex, nextPilotIndex);
-        m_AutomationInputController.Logout(cancellationToken);
+        automationInputController.Logout(cancellationToken);
 
         // Wait for full logout
-        m_AutomationInputController.Delay(Delays.PilotLogoutMs, cancellationToken);
+        automationInputController.Delay(Delays.PilotLogoutMs, cancellationToken);
 
         // Close any window on login screen
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
 
         // Make screenshot of pilots on login screen
         var pilotSelectionCapturePath = CapturePilotSelectionScreenTrace(captureSummary, nextPilotIndex, cancellationToken);
@@ -317,17 +303,17 @@ internal sealed class ProjectDiscoveryAutomationService
         }
 
         // Login requested pilot
-        m_AutomationInputController.MoveTo(Center(location.Bounds));
-        m_AutomationInputController.LeftClick(cancellationToken);
-        m_AutomationInputController.Delay(Delays.ProjectDiscoveryPilotLoginMs, cancellationToken);
+        automationInputController.MoveTo(Center(location.Bounds));
+        automationInputController.LeftClick(cancellationToken);
+        automationInputController.Delay(Delays.ProjectDiscoveryPilotLoginMs, cancellationToken);
         m_CurrentPilotIndex = nextPilotIndex;
 
         // Close any window after login
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
 
         // Activate Project Discovery window
-        m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
 
         Logger.Information("Pilot switch succeeded. CurrentPilotIndex={CurrentPilotIndex}, CapturePath={CapturePath}, Bounds={Bounds}", m_CurrentPilotIndex, pilotSelectionCapturePath, location.Bounds);
         return new PilotSwitchResult(nextPilotIndex, Succeeded: true, pilotSelectionCapturePath);
@@ -351,8 +337,8 @@ internal sealed class ProjectDiscoveryAutomationService
                 return false;
             case ErrorPopupDetector.PopupState.ConnectionLost:
                 Logger.Error("Connection Lost popup detected during {DetectionStage}. Stopping automation. FocusedCapturePath={FocusedCapturePath}", detectionStage, focusedCapturePath);
-                m_AutomationInputController.Delay(Delays.ConnectionLostExitMs, cancellationToken);
-                m_AutomationInputController.PressKey(VirtualKeys.Enter, cancellationToken);
+                automationInputController.Delay(Delays.ConnectionLostExitMs, cancellationToken);
+                automationInputController.PressKey(VirtualKeys.Enter, cancellationToken);
                 summary = new AutomationSummary(
                     captureSummary,
                     clickedPointCount,
@@ -409,17 +395,17 @@ internal sealed class ProjectDiscoveryAutomationService
             "Slow Down popup detected. FocusedCapturePath={FocusedCapturePath}, RecoveryDelayMilliseconds={RecoveryDelayMilliseconds}",
             focusedCapturePath,
             Delays.SubmissionWindowMs);
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
-        m_AutomationInputController.Delay(Delays.SubmissionWindowMs, cancellationToken);
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        automationInputController.Delay(Delays.SubmissionWindowMs, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
     }
 
     private ErrorPopupDetector.PopupState DetectPopupStateWithLauncherGuard(string capturePath)
     {
         using var image = Cv2.ImRead(capturePath);
-        if (image.Empty() || !m_PlayNowButtonLocator.TryLocate(image, out var playButtonLocation))
+        if (image.Empty() || !playNowButtonLocator.TryLocate(image, out var playButtonLocation))
         {
-            return m_ErrorPopupDetector.DetectPopupStateAndDrawDebugOverlay(capturePath);
+            return errorPopupDetector.DetectPopupStateAndDrawDebugOverlay(capturePath);
         }
 
         Logger.Information(
@@ -437,14 +423,14 @@ internal sealed class ProjectDiscoveryAutomationService
 
     private void DelayBeforeRateLimitedSubmit(AutomationSubmitRateLimiter rateLimiter, CancellationToken cancellationToken)
     {
-        var delay = rateLimiter.GetDelayBeforeNextSubmit(m_AutomationClock.UtcNow);
+        var delay = rateLimiter.GetDelayBeforeNextSubmit(automationClock.UtcNow);
         if (delay <= TimeSpan.Zero)
         {
             return;
         }
 
         Logger.Information("Waiting before submit because of rate limit. DelayMilliseconds={DelayMilliseconds}", (int)Math.Ceiling(delay.TotalMilliseconds));
-        m_AutomationInputController.Delay((int)Math.Ceiling(delay.TotalMilliseconds), cancellationToken);
+        automationInputController.Delay((int)Math.Ceiling(delay.TotalMilliseconds), cancellationToken);
     }
 
     private int ClickPolygonPoints(IReadOnlyList<Point[]> polygons, CancellationToken cancellationToken)
@@ -463,17 +449,17 @@ internal sealed class ProjectDiscoveryAutomationService
             foreach (var point in polygon)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                m_AutomationInputController.MoveTo(point);
-                m_AutomationInputController.LeftClick(cancellationToken);
+                automationInputController.MoveTo(point);
+                automationInputController.LeftClick(cancellationToken);
                 clickedPointCount++;
-                m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+                automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            m_AutomationInputController.MoveTo(polygon[0]);
-            m_AutomationInputController.LeftClick(cancellationToken);
+            automationInputController.MoveTo(polygon[0]);
+            automationInputController.LeftClick(cancellationToken);
             clickedPointCount++;
-            m_AutomationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+            automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
         }
 
         Logger.Debug("Finished clicking polygon points. ClickedPointCount={ClickedPointCount}", clickedPointCount);
@@ -488,8 +474,8 @@ internal sealed class ProjectDiscoveryAutomationService
             m_Random.Next(controlButtonBounds.Y, controlButtonBounds.Bottom));
         var scaledAnchor = ScalePointForDpi(anchor, dpi);
 
-        m_AutomationInputController.MoveTo(scaledAnchor);
-        m_AutomationInputController.Delay(Delays.HoverMs, cancellationToken);
+        automationInputController.MoveTo(scaledAnchor);
+        automationInputController.Delay(Delays.HoverMs, cancellationToken);
     }
 
     private string CaptureFocusedScreenTrace(ScreenCaptureAnalysisSummary captureSummary, CancellationToken cancellationToken)
@@ -498,7 +484,7 @@ internal sealed class ProjectDiscoveryAutomationService
         var focusedCapturePath = Path.Combine(
             captureSummary.CapturesDirectory,
             $"{Path.GetFileNameWithoutExtension(captureSummary.CapturePath)}.focused.png");
-        m_ScreenCaptureService.CaptureCurrentScreenToFile(focusedCapturePath);
+        screenCaptureService.CaptureCurrentScreenToFile(focusedCapturePath);
         return focusedCapturePath;
     }
 
@@ -511,7 +497,7 @@ internal sealed class ProjectDiscoveryAutomationService
         var pilotSelectionCapturePath = Path.Combine(
             captureSummary.CapturesDirectory,
             $"{Path.GetFileNameWithoutExtension(captureSummary.CapturePath)}.pilot-{pilotIndex}.png");
-        m_ScreenCaptureService.CaptureCurrentScreenToFile(pilotSelectionCapturePath);
+        screenCaptureService.CaptureCurrentScreenToFile(pilotSelectionCapturePath);
         return pilotSelectionCapturePath;
     }
 

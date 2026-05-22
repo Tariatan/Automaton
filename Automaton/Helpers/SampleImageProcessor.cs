@@ -5,7 +5,10 @@ using Serilog;
 
 namespace Automaton.Helpers;
 
-internal sealed class SampleImageProcessor
+internal sealed class SampleImageProcessor(
+    PlayfieldDetector playfieldDetector,
+    PlayNowButtonLocator playNowButtonLocator,
+    KnownSampleMatcher? knownSampleMatcher)
 {
     private const string SamplesFolderName = "samples";
     private const int SaturationThreshold = 45;
@@ -94,23 +97,11 @@ internal sealed class SampleImageProcessor
     ];
     private static readonly ILogger Logger = Log.ForContext<SampleImageProcessor>();
 
-    private readonly PlayfieldDetector m_PlayfieldDetector;
-    private readonly PlayNowButtonLocator m_PlayNowButtonLocator;
-    private readonly KnownSampleMatcher m_KnownSampleMatcher;
+    private readonly KnownSampleMatcher m_KnownSampleMatcher = knownSampleMatcher ?? new KnownSampleMatcher(playfieldDetector);
 
     public SampleImageProcessor()
         : this(new PlayfieldDetector(), new PlayNowButtonLocator(), null)
     {
-    }
-
-    internal SampleImageProcessor(
-        PlayfieldDetector playfieldDetector,
-        PlayNowButtonLocator playNowButtonLocator,
-        KnownSampleMatcher? knownSampleMatcher)
-    {
-        m_PlayfieldDetector = playfieldDetector;
-        m_PlayNowButtonLocator = playNowButtonLocator;
-        m_KnownSampleMatcher = knownSampleMatcher ?? new KnownSampleMatcher(playfieldDetector);
     }
 
     private static int ReadInt32FromEnvironment(string variableName, int fallbackValue)
@@ -131,37 +122,33 @@ internal sealed class SampleImageProcessor
 
     public SampleProcessingSummary ProcessSamples()
     {
-        var samplesDirectory = SamplesFolderName;
-        Logger.Information("Sample processing started. SamplesDirectory={SamplesDirectory}", samplesDirectory);
-        if (!Directory.Exists(samplesDirectory))
+        Logger.Information("Sample processing started. SamplesDirectory={SamplesDirectory}", SamplesFolderName);
+        if (!Directory.Exists(SamplesFolderName))
         {
-            throw new DirectoryNotFoundException($"Samples folder was not found: {samplesDirectory}");
+            throw new DirectoryNotFoundException($"Samples folder was not found: {SamplesFolderName}");
         }
 
         var sampleFiles = Directory
-            .EnumerateFiles(samplesDirectory, "*.*", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(SamplesFolderName, "*.*", SearchOption.TopDirectoryOnly)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (sampleFiles.Length == 0)
         {
-            throw new InvalidOperationException($"No files were found in {samplesDirectory}.");
+            throw new InvalidOperationException($"No files were found in {SamplesFolderName}.");
         }
 
         var results = new List<SampleProcessingResult>(sampleFiles.Length);
+        results.AddRange(sampleFiles.Select(ProcessImageFile));
 
         // Each sample goes through the full pipeline: detect the playfield, isolate
         // the colored density cloud inside it, then annotate the original screenshot.
-        foreach (var sampleFile in sampleFiles)
-        {
-            results.Add(ProcessImageFile(sampleFile));
-        }
 
         Logger.Information(
             "Sample processing finished. SamplesDirectory={SamplesDirectory}, ResultCount={ResultCount}",
-            samplesDirectory,
+            SamplesFolderName,
             results.Count);
-        return new SampleProcessingSummary(samplesDirectory, results);
+        return new SampleProcessingSummary(SamplesFolderName, results);
     }
 
     private SampleProcessingResult ProcessImageFile(string imagePath)
@@ -183,11 +170,11 @@ internal sealed class SampleImageProcessor
 
     internal SampleImageAnalysisResult AnalyzeImage(Mat image, string imagePath, bool writeAnnotatedOutput = true)
     {
-        var playfieldDetection = m_PlayfieldDetector.Detect(image);
+        var playfieldDetection = playfieldDetector.Detect(image);
         IReadOnlyList<Point[]> polygons;
         var usedKnownSampleTemplate = false;
         string? matchedSampleFileName = null;
-        var popupDetection = m_PlayNowButtonLocator.TryLocate(image, out _)
+        var popupDetection = playNowButtonLocator.TryLocate(image, out _)
             ? new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect())
             : ErrorPopupDetector.DetectPopup(image);
 
@@ -1348,9 +1335,7 @@ internal sealed class SampleImageProcessor
             RetrievalModes.External,
             ContourApproximationModes.ApproxSimple);
 
-        var expandedContour = contours
-            .OrderByDescending(points => Math.Abs(Cv2.ContourArea(points)))
-            .FirstOrDefault();
+        var expandedContour = contours.MaxBy(points => Math.Abs(Cv2.ContourArea(points)));
         if (expandedContour is null || expandedContour.Length < 3)
         {
             return [];
@@ -2304,7 +2289,7 @@ internal sealed class SampleImageProcessor
         }
 
         var t = -(((start.X - midpoint.X) * normal.X) + ((start.Y - midpoint.Y) * normal.Y)) / denominator;
-        if (t < 0.0 || t > 1.0)
+        if (t is < 0.0 or > 1.0)
         {
             return null;
         }

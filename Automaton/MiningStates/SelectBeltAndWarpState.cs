@@ -6,31 +6,19 @@ using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class SelectBeltAndWarpState : IMiningAutomationState
+internal sealed class SelectBeltAndWarpState(
+    IAutomationInputController automationInputController,
+    AsteroidBeltOverviewDetector beltOverviewDetector,
+    MineOverviewDetector mineOverviewDetector,
+    Func<int, int> nextRandomIndex,
+    ILogger? logger = null)
+    : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-select-belt-and-warp";
     private const string LandingCaptureSuffix = ".mining-landed-on-asteroid-belt";
     private const int LandingPollingAttemptCount = 60;
 
-    private readonly IAutomationInputController m_AutomationInputController;
-    private readonly AsteroidBeltOverviewDetector m_BeltOverviewDetector;
-    private readonly MineOverviewDetector m_MineOverviewDetector;
-    private readonly Func<int, int> m_NextRandomIndex;
-    private readonly ILogger m_Logger;
-
-    internal SelectBeltAndWarpState(
-        IAutomationInputController automationInputController,
-        AsteroidBeltOverviewDetector beltOverviewDetector,
-        MineOverviewDetector mineOverviewDetector,
-        Func<int, int> nextRandomIndex,
-        ILogger? logger = null)
-    {
-        m_AutomationInputController = automationInputController;
-        m_BeltOverviewDetector = beltOverviewDetector;
-        m_MineOverviewDetector = mineOverviewDetector;
-        m_NextRandomIndex = nextRandomIndex;
-        m_Logger = logger ?? Log.ForContext<SelectBeltAndWarpState>();
-    }
+    private readonly ILogger m_Logger = logger ?? Log.ForContext<SelectBeltAndWarpState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.SelectBeltAndWarp;
 
@@ -60,14 +48,14 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
         if (analysis.HomeStationBounds is null)
         {
             m_Logger.Error("Failed to detect Home Station in the Belt overview");
-            m_AutomationInputController.QuitGame(cancellationToken);
+            automationInputController.QuitGame(cancellationToken);
             var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
         }
 
         // Select Belt overview tab
-        m_AutomationInputController.ClickUiElement(Center(analysis.OverviewBeltButtonBounds.Value), cancellationToken);
+        automationInputController.ClickUiElement(Center(analysis.OverviewBeltButtonBounds.Value), cancellationToken);
         capture.Dispose();
 
         capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
@@ -103,16 +91,16 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             return result;
         }
 
-        var requestedAsteroidBeltIndex = m_NextRandomIndex(availableAsteroidBelts.Length);
+        var requestedAsteroidBeltIndex = nextRandomIndex(availableAsteroidBelts.Length);
         var selectedAsteroidBeltIndex = Math.Clamp(requestedAsteroidBeltIndex, 0, availableAsteroidBelts.Length - 1);
         var selectedAsteroidBeltDisplayIndex = selectedAsteroidBeltIndex + 1;
         var selectedAsteroidBelt = availableAsteroidBelts[selectedAsteroidBeltIndex];
         context.SetCurrentAsteroidBelt(selectedAsteroidBelt.Bounds);
 
         // Select asteroid belt
-        m_AutomationInputController.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
+        automationInputController.ClickUiElement(Center(selectedAsteroidBelt.Bounds), cancellationToken);
         // Warp to asteroid belt
-        m_AutomationInputController.PressKey(VirtualKeys.S, cancellationToken);
+        automationInputController.PressKey(VirtualKeys.S, cancellationToken);
         capture.Dispose();
 
         m_Logger.Information(
@@ -136,7 +124,7 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             {
                 m_Logger.Information("Landed on asteroid belt");
 
-                var mineOverviewLocated = m_MineOverviewDetector.TryLocate(capture.Image, out var mineOverviewBounds);
+                var mineOverviewLocated = mineOverviewDetector.TryLocate(capture.Image, out var mineOverviewBounds);
                 var nothingFoundDetected = mineOverviewLocated &&
                                            NothingFoundDetector.Detect(capture.Image, mineOverviewBounds);
                 if (nothingFoundDetected)
@@ -165,7 +153,7 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             }
 
             capture.Dispose();
-            m_AutomationInputController.Delay(Delays.LandingPollingMs, cancellationToken);
+            automationInputController.Delay(Delays.LandingPollingMs, cancellationToken);
         }
 
         return new MiningAutomationStateTransition(
@@ -177,7 +165,7 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
 
     private AsteroidBeltOverviewAnalysis Analyze(Mat screen)
     {
-        return m_BeltOverviewDetector.Analyze(screen);
+        return beltOverviewDetector.Analyze(screen);
     }
 
     private MiningAutomationStateTransition Recover(string capturePath)
@@ -189,5 +177,5 @@ internal sealed class SelectBeltAndWarpState : IMiningAutomationState
             capturePath);
     }
 
-    private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
+    private static Point Center(Rect bounds) => new(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }

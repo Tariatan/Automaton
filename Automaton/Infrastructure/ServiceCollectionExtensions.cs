@@ -27,13 +27,8 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<MiningLaserDetector>();
         services.AddSingleton<WarOverviewDetector>();
 
-        services.AddSingleton<SampleImageProcessor>(sp => new SampleImageProcessor(
-            sp.GetRequiredService<PlayfieldDetector>(),
-            sp.GetRequiredService<PlayNowButtonLocator>(),
-            sp.GetRequiredService<KnownSampleMatcher>()));
-        services.AddSingleton<ScreenCaptureService>(sp => new ScreenCaptureService(
-            sp.GetRequiredService<IScreenCaptureProvider>(),
-            sp.GetRequiredService<SampleImageProcessor>()));
+        services.AddSingleton<SampleImageProcessor>();
+        services.AddSingleton<ScreenCaptureService>();
 
         services.AddSingleton<ProjectDiscoveryAutomationService>();
         services.AddSingleton<MiningAutomationService>();

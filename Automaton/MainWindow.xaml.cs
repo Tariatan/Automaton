@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Automaton;
 
-public partial class MainWindow
+internal partial class MainWindow
 {
     private const int HotKeyId = 1;
     private const int WindowMessageHotKey = 0x0312;
@@ -32,7 +32,7 @@ public partial class MainWindow
     private int m_DefaultPilotIndex = 1;
     private MiningAutomationStateKind m_SelectedMiningStartState = MiningAutomationStateKind.StartingGame;
 
-    internal MainWindow(
+    public MainWindow(
         ApplicationStartupOptions startupOptions,
         ProjectDiscoveryAutomationService projectDiscoveryAutomationService,
         MiningAutomationService miningAutomationService)
@@ -187,9 +187,9 @@ public partial class MainWindow
 
                 if (summary.NoFurtherPilotsAvailable)
                 {
-                    Logger.Information("No further pilots are available. Switching to mining automation from Login state.");
+                    Logger.Information("No further pilots are available. Switching to mining automation from StartingGame state.");
                     m_AutomationMode = ApplicationAutomationMode.Mining;
-                    SetMiningStartState(MiningAutomationStateKind.Login);
+                    SetMiningStartState(MiningAutomationStateKind.StartingGame);
                     ApplyAutomationMode();
                     await StartMiningAutomationAsync(new CancellationTokenSource());
                     return;

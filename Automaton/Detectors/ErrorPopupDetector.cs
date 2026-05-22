@@ -33,7 +33,6 @@ internal sealed class ErrorPopupDetector
     private const int DebugOverlayTopPadding = 40;
     private static readonly Scalar DebugOverlayTextColor = new(80, 120, 255);
     private static readonly ILogger Logger = Log.ForContext<ErrorPopupDetector>();
-    private static readonly PopupDetectorOptions SOptions = new();
     private static readonly Lazy<PopupTemplates> SPopupTemplates = new(PopupTemplates.Load);
 
     public PopupState DetectPopupStateAndDrawDebugOverlay(string imagePath)
@@ -96,10 +95,10 @@ internal sealed class ErrorPopupDetector
     {
         var bestButton = Math.Max(score.ButtonOk, score.ButtonQuit);
         var bestIcon = Math.Max(score.IconInfo, score.IconWarning);
-        var popupExists = (bestButton >= SOptions.ButtonThreshold &&
-                           bestIcon >= SOptions.IconThreshold) ||
-                          bestButton >= SOptions.StrongThreshold ||
-                          bestIcon >= SOptions.StrongThreshold;
+        var popupExists = (bestButton >= PopupDetectorOptions.ButtonThreshold &&
+                           bestIcon >= PopupDetectorOptions.IconThreshold) ||
+                          bestButton >= PopupDetectorOptions.StrongThreshold ||
+                          bestIcon >= PopupDetectorOptions.StrongThreshold;
         if (!popupExists)
         {
             return PopupState.None;
@@ -108,15 +107,15 @@ internal sealed class ErrorPopupDetector
         var buttonKind = ResolveBinarySignal(
             score.ButtonOk,
             score.ButtonQuit,
-            SOptions.ButtonThreshold,
-            SOptions.MinimumSignalGap,
+            PopupDetectorOptions.ButtonThreshold,
+            PopupDetectorOptions.MinimumSignalGap,
             BinarySignalKind.Ok,
             BinarySignalKind.Quit);
         var iconKind = ResolveBinarySignal(
             score.IconInfo,
             score.IconWarning,
-            SOptions.IconThreshold,
-            SOptions.MinimumSignalGap,
+            PopupDetectorOptions.IconThreshold,
+            PopupDetectorOptions.MinimumSignalGap,
             BinarySignalKind.Info,
             BinarySignalKind.Warning);
         var titleKind = ResolveTitleSignal(score);
@@ -129,7 +128,7 @@ internal sealed class ErrorPopupDetector
         {
             var okAggregate = score.ButtonOk + score.IconInfo + Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
             var connectionAggregate = score.ButtonQuit + score.IconWarning + score.TitleConnectionLost;
-            if (Math.Abs(okAggregate - connectionAggregate) < SOptions.MinimumAggregateGap)
+            if (Math.Abs(okAggregate - connectionAggregate) < PopupDetectorOptions.MinimumAggregateGap)
             {
                 return PopupState.Unknown;
             }
@@ -142,7 +141,7 @@ internal sealed class ErrorPopupDetector
         {
             var okAggregate = score.ButtonOk + score.IconInfo + Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
             var connectionAggregate = score.ButtonQuit + score.IconWarning + score.TitleConnectionLost;
-            if (Math.Abs(okAggregate - connectionAggregate) < SOptions.MinimumAggregateGap)
+            if (Math.Abs(okAggregate - connectionAggregate) < PopupDetectorOptions.MinimumAggregateGap)
             {
                 return PopupState.Unknown;
             }
@@ -179,7 +178,7 @@ internal sealed class ErrorPopupDetector
         }
 
         var bestOkTitle = Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
-        if (bestOkTitle >= SOptions.TitleThreshold * 0.85)
+        if (bestOkTitle >= PopupDetectorOptions.TitleThreshold * 0.85)
         {
             return score.TitleSlowDown >= score.TitleMaxSubmissions
                 ? PopupState.SlowDown
@@ -227,12 +226,12 @@ internal sealed class ErrorPopupDetector
         };
         var best = candidates.MaxBy(candidate => candidate.Score);
         var second = candidates.OrderByDescending(candidate => candidate.Score).Skip(1).First();
-        if (best.Score < SOptions.TitleThreshold)
+        if (best.Score < PopupDetectorOptions.TitleThreshold)
         {
             return TitleSignalKind.None;
         }
 
-        return (best.Score - second.Score) < SOptions.MinimumTitleScoreGap
+        return (best.Score - second.Score) < PopupDetectorOptions.MinimumTitleScoreGap
             ? TitleSignalKind.Ambiguous
             : best.Kind;
     }
@@ -357,13 +356,13 @@ internal sealed class ErrorPopupDetector
 
     private sealed class PopupDetectorOptions
     {
-        public double ButtonThreshold { get; init; } = 0.58;
-        public double IconThreshold { get; init; } = 0.58;
-        public double TitleThreshold { get; init; } = 0.50;
-        public double StrongThreshold { get; init; } = 0.78;
-        public double MinimumTitleScoreGap { get; init; } = 0.005;
-        public double MinimumSignalGap { get; init; } = 0.02;
-        public double MinimumAggregateGap { get; init; } = 0.08;
+        public static double ButtonThreshold => 0.58;
+        public static double IconThreshold => 0.58;
+        public static double TitleThreshold => 0.50;
+        public static double StrongThreshold => 0.78;
+        public static double MinimumTitleScoreGap => 0.005;
+        public static double MinimumSignalGap => 0.02;
+        public static double MinimumAggregateGap => 0.08;
     }
 
     private enum BinarySignalKind

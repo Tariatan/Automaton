@@ -17,7 +17,7 @@ internal static class Delays
 
     // Project Discovery: launcher & login
     public const int ProjectDiscoveryLauncherStartupMs = 30_000;
-    public const int ProjectDiscoveryPilotLoginMs = 600_000;
+    public const int ProjectDiscoveryPilotLoginMs = 60_000;
     public const int PilotLogoutMs = 30_000;
     public const int SubmissionWindowMs = 70_000;
     public const int ConnectionLostExitMs = 1_000;

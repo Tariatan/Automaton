@@ -3,22 +3,16 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class HomeStationDetector
+internal sealed class HomeStationDetector(AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
 {
     private const double MinimumMatchScore = 0.76;
     private static readonly double[] TemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20, 1.30];
 
-    private readonly AsteroidBeltOverviewDetector m_AsteroidBeltOverviewDetector;
     private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
-
-    internal HomeStationDetector(AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
-    {
-        m_AsteroidBeltOverviewDetector = asteroidBeltOverviewDetector;
-    }
 
     public HomeStationAnalysis Analyze(Mat screen)
     {
-        var overviewAnalysis = m_AsteroidBeltOverviewDetector.Analyze(screen);
+        var overviewAnalysis = asteroidBeltOverviewDetector.Analyze(screen);
         if (!overviewAnalysis.OverviewLocated || overviewAnalysis.OverviewBounds is null)
         {
             return new HomeStationAnalysis(false, null, 0, overviewAnalysis);

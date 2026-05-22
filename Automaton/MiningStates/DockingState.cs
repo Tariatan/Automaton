@@ -6,24 +6,16 @@ using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class DockingState : IMiningAutomationState
+internal sealed class DockingState(
+    IAutomationInputController automationInputController,
+    HomeStationDetector homeStationDetector,
+    ILogger? logger = null)
+    : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-dock";
     private const string DockedCaptureSuffix = ".mining-docked-polling";
 
-    private readonly IAutomationInputController m_AutomationInputController;
-    private readonly HomeStationDetector m_HomeStationDetector;
-    private readonly ILogger m_Logger;
-
-    internal DockingState(
-        IAutomationInputController automationInputController,
-        HomeStationDetector homeStationDetector,
-        ILogger? logger = null)
-    {
-        m_AutomationInputController = automationInputController;
-        m_HomeStationDetector = homeStationDetector;
-        m_Logger = logger ?? Log.ForContext<DockingState>();
-    }
+    private readonly ILogger m_Logger = logger ?? Log.ForContext<DockingState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Dock;
 
@@ -33,7 +25,7 @@ internal sealed class DockingState : IMiningAutomationState
         cancellationToken.ThrowIfCancellationRequested();
 
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-        var analysis = m_HomeStationDetector.Analyze(capture.Image);
+        var analysis = homeStationDetector.Analyze(capture.Image);
         if (!analysis.HomeStationLocated || analysis.HomeStationBounds is null)
         {
             m_Logger.Error(
@@ -52,20 +44,20 @@ internal sealed class DockingState : IMiningAutomationState
 
         // Select home station in the belt overview
         m_Logger.Information("Selecting home station");
-        m_AutomationInputController.ClickUiElement(Center(analysis.HomeStationBounds.Value), cancellationToken);
+        automationInputController.ClickUiElement(Center(analysis.HomeStationBounds.Value), cancellationToken);
         capture.Dispose();
 
         // Wait 1 second
-        m_AutomationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
+        automationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
 
         // Warping home
         m_Logger.Information("Warping home");
-        m_AutomationInputController.PressKey(VirtualKeys.D, cancellationToken);
+        automationInputController.PressKey(VirtualKeys.D, cancellationToken);
 
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            m_AutomationInputController.Delay(Delays.DockedPollingMs, cancellationToken);
+            automationInputController.Delay(Delays.DockedPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             capture = context.ScreenCaptureService.CaptureCurrentScreen(DockedCaptureSuffix);
@@ -80,7 +72,7 @@ internal sealed class DockingState : IMiningAutomationState
             capture.Dispose();
         }
 
-        m_AutomationInputController.Delay(Delays.DockedBounceMs, cancellationToken);
+        automationInputController.Delay(Delays.DockedBounceMs, cancellationToken);
 
         var transitionResult = new MiningAutomationStateTransition(
             Kind,
@@ -91,5 +83,5 @@ internal sealed class DockingState : IMiningAutomationState
         return transitionResult;
     }
 
-    private static Point Center(Rect bounds) => new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
+    private static Point Center(Rect bounds) => new(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 }

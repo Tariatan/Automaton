@@ -6,19 +6,13 @@ using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class LoginState : IMiningAutomationState
+internal sealed class LoginState(IAutomationInputController automationInputController, ILogger? logger = null)
+    : IMiningAutomationState
 {
     private const int PilotIndex = 2;
     private const string CaptureSuffix = ".mining-login";
 
-    private readonly IAutomationInputController m_AutomationInputController;
-    private readonly ILogger m_Logger;
-
-    internal LoginState(IAutomationInputController automationInputController, ILogger? logger = null)
-    {
-        m_AutomationInputController = automationInputController;
-        m_Logger = logger ?? Log.ForContext<LoginState>();
-    }
+    private readonly ILogger m_Logger = logger ?? Log.ForContext<LoginState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Login;
 
@@ -43,19 +37,19 @@ internal sealed class LoginState : IMiningAutomationState
         // Select miner pilot
         m_Logger.Information("Logging in mining pilot {PilotIndex}...", PilotIndex);
 
-        m_AutomationInputController.MoveTo(Center(pilotLocation.Bounds));
-        m_AutomationInputController.LeftClick(cancellationToken);
+        automationInputController.MoveTo(Center(pilotLocation.Bounds));
+        automationInputController.LeftClick(cancellationToken);
 
         // Wait for the full login
-        m_AutomationInputController.Delay(Delays.MiningPilotLoginMs, cancellationToken);
+        automationInputController.Delay(Delays.MiningPilotLoginMs, cancellationToken);
 
         // Close any potential spam window
         m_Logger.Information("Close any potential spam window");
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
 
         // Hide GUI
         m_Logger.Information("Hide UI");
-        m_AutomationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
 
         return new MiningAutomationStateTransition(
             Kind,
