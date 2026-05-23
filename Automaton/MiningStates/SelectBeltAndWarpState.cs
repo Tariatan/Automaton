@@ -86,7 +86,11 @@ internal sealed class SelectBeltAndWarpState(
                 "No asteroid belts available after blacklist filtering. TotalBelts={TotalBelts}, BlacklistedBeltCount={BlacklistedBeltCount}",
                 analysis.AsteroidBelts.Count,
                 context.BlacklistedAsteroidBeltCount);
-            var result = Recover(capture.CapturePath);
+            var result = new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Recovery,
+                MiningAutomationActionKind.QuitGameAndExitApplication,
+                capture.CapturePath);
             capture.Dispose();
             return result;
         }
@@ -156,11 +160,7 @@ internal sealed class SelectBeltAndWarpState(
             automationInputController.Delay(Delays.LandingPollingMs, cancellationToken);
         }
 
-        return new MiningAutomationStateTransition(
-            Kind,
-            MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.Recover,
-            capture.CapturePath);
+        return Recover(capture.CapturePath);
     }
 
     private AsteroidBeltOverviewAnalysis Analyze(Mat screen)

@@ -40,7 +40,7 @@ internal sealed class UndockingState(
             var result = new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
+                MiningAutomationActionKind.QuitGameFromSpace,
                 capture.CapturePath);
             capture.Dispose();
             return result;
@@ -78,7 +78,7 @@ internal sealed class UndockingState(
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.Recover,
+            MiningAutomationActionKind.QuitGameFromDock,
             capture.CapturePath);
     }
 

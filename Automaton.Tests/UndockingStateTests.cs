@@ -72,7 +72,7 @@ public sealed class UndockingStateTests
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationActionKind.QuitGameFromDock, transition.Action);
         Assert.Equal(16, captureInvocationCount);
         Assert.Equal(17, automationInputController.Delays.Count);
         Assert.Equal(Delays.UndockingWindowActivationMs, automationInputController.Delays[0]);

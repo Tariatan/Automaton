@@ -132,7 +132,7 @@ internal sealed class MiningAutomationService
             MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(m_AutomationInputController, m_AsteroidBeltOverviewDetector, m_MineOverviewDetector, Random.Shared.Next),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(m_AutomationInputController, m_MineOverviewDetector, m_FirstAsteroidWithinReachDetector),
             MiningAutomationStateKind.Mining => new MiningState(m_AutomationInputController, m_MiningAsteroidDetector, m_MiningLaserDetector, m_WarOverviewDetector),
-            MiningAutomationStateKind.Recovery => new RecoveryState(m_AutomationInputController, m_AsteroidBeltOverviewDetector),
+            MiningAutomationStateKind.Recovery => new RecoveryState(m_AutomationInputController, m_AsteroidBeltOverviewDetector, m_HomeStationDetector, m_PlayNowButtonLocator),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }

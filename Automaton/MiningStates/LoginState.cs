@@ -27,11 +27,7 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
 
         if (!PilotAvatarLocator.TryLocate(capture.Image, PilotIndex, out var pilotLocation))
         {
-            return new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+            return Recover(capture.CapturePath);
         }
 
         // Select miner pilot
@@ -58,4 +54,12 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
             capture.CapturePath);
     }
 
+    private MiningAutomationStateTransition Recover(string capturePath)
+    {
+        return new MiningAutomationStateTransition(
+            Kind,
+            MiningAutomationStateKind.Recovery,
+            MiningAutomationActionKind.QuitGameFromSpace,
+            capturePath);
+    }
 }

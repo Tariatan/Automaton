@@ -105,7 +105,7 @@ internal sealed class MiningState(
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.Recover,
+            MiningAutomationActionKind.QuitGameFromSpace,
             capturePath);
     }
 }

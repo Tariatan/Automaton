@@ -33,11 +33,7 @@ internal sealed class DockingState(
                 analysis.BestMatchScore,
                 analysis.OverviewAnalysis.OverviewLocated,
                 analysis.OverviewAnalysis.OverviewBounds);
-            var result = new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+            var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
         }
@@ -83,4 +79,12 @@ internal sealed class DockingState(
         return transitionResult;
     }
 
+    private MiningAutomationStateTransition Recover(string capturePath)
+    {
+        return new MiningAutomationStateTransition(
+            Kind,
+            MiningAutomationStateKind.Recovery,
+            MiningAutomationActionKind.QuitGameFromSpace,
+            capturePath);
+    }
 }

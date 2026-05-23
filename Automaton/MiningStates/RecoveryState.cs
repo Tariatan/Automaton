@@ -8,6 +8,8 @@ namespace Automaton.MiningStates;
 internal sealed class RecoveryState(
     IAutomationInputController automationInputController,
     AsteroidBeltOverviewDetector beltOverviewDetector,
+    HomeStationDetector homeStationDetector,
+    PlayNowButtonLocator playNowButtonLocator,
     ILogger? logger = null)
     : IMiningAutomationState
 {
@@ -30,13 +32,12 @@ internal sealed class RecoveryState(
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
 
-        var nextState = MiningAutomationStateKind.None;
-
         // Try to detect safe haven again
         if (context.LastAction == MiningAutomationActionKind.QuitGameFromSpace)
         {
             var beltAnalysis = beltOverviewDetector.Analyze(capture.Image);
-            if (!beltAnalysis.OverviewLocated || beltAnalysis.HomeStationBounds is null)
+            var homeStationAnalysis = homeStationDetector.Analyze(capture.Image);
+            if (!beltAnalysis.OverviewLocated || !homeStationAnalysis.HomeStationLocated)
             {
                 m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
                 automationInputController.QuitGame(cancellationToken);
@@ -50,7 +51,11 @@ internal sealed class RecoveryState(
             }
 
             // We are still in space and docking is possible
-            nextState = MiningAutomationStateKind.Dock;
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Dock,
+                MiningAutomationActionKind.Recover,
+                capture.CapturePath);
         }
 
         // Try to detect Undock button again
@@ -70,12 +75,27 @@ internal sealed class RecoveryState(
             }
 
             // Docked and Undock button found
-            nextState = MiningAutomationStateKind.UnloadCargo;
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.UnloadCargo,
+                MiningAutomationActionKind.Recover,
+                capture.CapturePath);
+        }
+
+        // Game crashed?
+        if (playNowButtonLocator.TryLocate(capture.Image, out _))
+        {
+            m_Logger.Error("Game crashed => Restarting...");
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.StartingGame,
+                MiningAutomationActionKind.Recover,
+                capture.CapturePath);
         }
 
         return new MiningAutomationStateTransition(
             Kind,
-            nextState,
+            MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
             capture.CapturePath);
     }

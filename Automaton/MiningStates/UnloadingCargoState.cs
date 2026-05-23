@@ -33,10 +33,7 @@ internal sealed class UnloadingCargoState(
                 analysis => analysis.MiningHoldTitleBounds is not null,
                 "Mining Hold"))
         {
-            return new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover);
+            return Recover(null);
         }
 
         if (!TryOpenInventoryWindow(
@@ -46,10 +43,7 @@ internal sealed class UnloadingCargoState(
                 analysis => analysis.ItemHangarTitleBounds is not null,
                 "Item Hangar"))
         {
-            return new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover);
+            return Recover(null);
         }
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
@@ -60,11 +54,7 @@ internal sealed class UnloadingCargoState(
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort unloading");
-            return new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.QuitGameFromDock,
-                capture.CapturePath);
+            return Recover(capture.CapturePath);
         }
 
         var analysis = inventoryDetector.Analyze(capture.Image);
@@ -76,11 +66,7 @@ internal sealed class UnloadingCargoState(
         if (analysis.MiningHoldTitleBounds is null || analysis.ItemHangarTitleBounds is null)
         {
             m_Logger.Error("Failed to detect Item Hangar and/or Mining Hold");
-            return new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+            return Recover(capture.CapturePath);
         }
 
         if (analysis.MiningHoldFirstRowBounds is not null)
@@ -93,11 +79,7 @@ internal sealed class UnloadingCargoState(
             if (analysis.ItemHangarFirstRowBounds is null)
             {
                 m_Logger.Error("Failed to detect Item Hangar first row");
-                return new MiningAutomationStateTransition(
-                    Kind,
-                    MiningAutomationStateKind.Recovery,
-                    MiningAutomationActionKind.Recover,
-                    capture.CapturePath);
+                return Recover(capture.CapturePath);
             }
 
             automationInputController.ClickUiElement(GeometryHelper.Center(analysis.ItemHangarFirstRowBounds.Value), cancellationToken);
@@ -160,6 +142,18 @@ internal sealed class UnloadingCargoState(
         Func<InventoryAnalysis, bool> isWindowVisible,
         string windowName)
     {
+        using (var initialCapture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix))
+        {
+            var initialAnalysis = inventoryDetector.Analyze(initialCapture.Image);
+            if (isWindowVisible(initialAnalysis))
+            {
+                m_Logger.Information(
+                    "{WindowName} inventory window already visible. No open action required.",
+                    windowName);
+                return true;
+            }
+        }
+
         for (var attempt = 1; attempt <= OpenWindowAttemptCount; attempt++)
         {
             automationInputController.PressKeyChord(VirtualKeys.Alt, inventoryVirtualKey, cancellationToken);
@@ -191,4 +185,12 @@ internal sealed class UnloadingCargoState(
         return false;
     }
 
+    private MiningAutomationStateTransition Recover(string? capturePath)
+    {
+        return new MiningAutomationStateTransition(
+            Kind,
+            MiningAutomationStateKind.Recovery,
+            MiningAutomationActionKind.QuitGameFromDock,
+            capturePath);
+    }
 }

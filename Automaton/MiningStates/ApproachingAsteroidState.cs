@@ -33,11 +33,7 @@ internal sealed class ApproachingAsteroidState(
         if (!mineOverviewDetector.TryLocate(capture.Image, out var mineOverviewBounds))
         {
             m_Logger.Error("Failed to detect Mine overview tab");
-            var result = new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+            var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
         }
@@ -46,11 +42,7 @@ internal sealed class ApproachingAsteroidState(
         if (NothingFoundDetector.Detect(capture.Image, mineOverviewBounds))
         {
             m_Logger.Error("Asteroid belt is empty");
-            var result = new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+            var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
         }
@@ -59,11 +51,7 @@ internal sealed class ApproachingAsteroidState(
         if (asteroids.Count == 0)
         {
             m_Logger.Error("Failed to detect asteroid rows in MINE overview");
-            var result = new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+            var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
         }
@@ -131,11 +119,16 @@ internal sealed class ApproachingAsteroidState(
             automationInputController.Delay(Delays.ApproachAsteroidDistancePollingMs, cancellationToken);
         }
 
+        return Recover(capture.CapturePath);
+    }
+
+    private MiningAutomationStateTransition Recover(string capturePath)
+    {
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.Recover,
-            capture.CapturePath);
+            MiningAutomationActionKind.QuitGameFromSpace,
+            capturePath);
     }
 
     private static void AnnotateDistanceDetectionCapture(
