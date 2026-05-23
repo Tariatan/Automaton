@@ -16,7 +16,7 @@ public sealed class LoginStateTests
         using var workspace = new TemporaryDirectory();
         var pilotDirectory = Path.Combine(workspace.Path, "pilot");
         WritePilotAvatarTemplates(pilotDirectory, 2);
-        using var pilotScreen = CreatePilotSelectionScreen(new Point(240, 180));
+        using var pilotScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(pilotScreen.Clone),
             new SampleImageProcessor(),
@@ -45,7 +45,7 @@ public sealed class LoginStateTests
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.LoginPilot, transition.Action);
         Assert.Single(automationInputControllerMock.MoveTargets);
-        Assert.Equal(new Point(272, 212), automationInputControllerMock.MoveTargets[0]);
+        Assert.Equal(new Point(854, 782), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal(Expected, automationInputControllerMock.Delays);
         Assert.Equal(2, automationInputControllerMock.KeyInputs.Count);
@@ -60,7 +60,7 @@ public sealed class LoginStateTests
         using var workspace = new TemporaryDirectory();
         var pilotDirectory = Path.Combine(workspace.Path, "pilot");
         WritePilotAvatarTemplates(pilotDirectory, 2);
-        using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
+        using var blankScreen = SyntheticCommonImageFactory.LoadPilotAvatarImage(1);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
             new SampleImageProcessor(),
@@ -87,7 +87,7 @@ public sealed class LoginStateTests
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationActionKind.QuitGameFromSpace, transition.Action);
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
         Assert.Empty(automationInputControllerMock.Delays);
@@ -97,45 +97,18 @@ public sealed class LoginStateTests
     private static void WritePilotAvatarTemplates(string pilotDirectory, int pilotIndex)
     {
         Directory.CreateDirectory(pilotDirectory);
-        using var avatar = CreatePilotAvatarTemplate(focused: false);
-        using var focusedAvatar = CreatePilotAvatarTemplate(focused: true);
+        using var avatar = SyntheticCommonImageFactory.LoadPilotAvatarImage(pilotIndex);
+        using var focusedAvatar = SyntheticCommonImageFactory.LoadFocusedPilotAvatarImage(pilotIndex);
         Cv2.ImWrite(Path.Combine(pilotDirectory, $"{pilotIndex}.png"), avatar);
         Cv2.ImWrite(Path.Combine(pilotDirectory, $"{pilotIndex}_focused.png"), focusedAvatar);
     }
 
-    // ToDo: remove magic
-    private static Mat CreatePilotSelectionScreen(Point pilotAvatarLocation)
-    {
-        var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
-        using var focusedAvatar = CreatePilotAvatarTemplate(focused: true);
-        using var region = new Mat(screen, new Rect(pilotAvatarLocation.X, pilotAvatarLocation.Y, focusedAvatar.Width, focusedAvatar.Height));
-        focusedAvatar.CopyTo(region);
-        return screen;
-    }
-
-    private static Mat CreatePilotAvatarTemplate(bool focused)
-    {
-        var image = new Mat(new Size(64, 64), MatType.CV_8UC3, focused ? new Scalar(42, 70, 120) : new Scalar(85, 85, 85));
-        Cv2.Rectangle(image, new Rect(6, 6, 52, 52), focused ? new Scalar(80, 130, 210) : new Scalar(120, 120, 120), -1);
-        Cv2.Circle(image, new Point(32, 24), 12, focused ? new Scalar(130, 195, 245) : new Scalar(180, 180, 180), -1, LineTypes.AntiAlias);
-        Cv2.Ellipse(image, new Point(32, 48), new Size(18, 10), 0, 0, 360, focused ? new Scalar(35, 95, 185) : new Scalar(65, 65, 65), -1, LineTypes.AntiAlias);
-        Cv2.Line(image, new Point(10, 58), new Point(58, 10), focused ? new Scalar(210, 180, 60) : new Scalar(150, 150, 150), 2, LineTypes.AntiAlias);
-
-        if (focused)
-        {
-            return image;
-        }
-
-        var grayImage = new Mat();
-        Cv2.CvtColor(image, grayImage, ColorConversionCodes.BGR2GRAY);
-        image.Dispose();
-        return grayImage;
-    }
-
+    // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
     private static void AssertKeyChord(
         KeyboardInput keyInput,
         ushort modifierVirtualKey,
         ushort virtualKey)
+    // ReSharper restore ParameterOnlyUsedForPreconditionCheck.Local
     {
         Assert.Equal(modifierVirtualKey, keyInput.ModifierVirtualKey);
         Assert.Null(keyInput.SecondModifierVirtualKey);

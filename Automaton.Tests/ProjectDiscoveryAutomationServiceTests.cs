@@ -1142,6 +1142,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(virtualKey, keyInput.VirtualKey);
     }
 
+    // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
     private static void AssertKeyChord(
         KeyboardInput keyInput,
         ushort modifierVirtualKey,
@@ -1162,6 +1163,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         Assert.Equal(secondModifierVirtualKey, keyInput.SecondModifierVirtualKey);
         Assert.Equal(virtualKey, keyInput.VirtualKey);
     }
+    // ReSharper restore ParameterOnlyUsedForPreconditionCheck.Local
 
     private static void AssertNoMoreThanFiveSubmissionsPerMinute(IReadOnlyList<DateTime> submitTimes)
     {

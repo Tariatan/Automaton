@@ -1,6 +1,5 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
-using Automaton.Infrastructure;
 using Automaton.MiningStates;
 using Automaton.Primitives;
 using OpenCvSharp;
@@ -13,7 +12,7 @@ public sealed class StartingGameStateTests
     public void Execute_PlayNowButtonPresent_StartsGameAndTransitionsToLogin()
     {
         // Arrange
-        using var screen = CreatePlayButtonScreen(new Point(260, 340));
+        using var screen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(screen.Clone),
             new SampleImageProcessor(),
@@ -62,20 +61,12 @@ public sealed class StartingGameStateTests
         Assert.Empty(automationInputControllerMock.KeyInputs);
     }
 
-    // ToDo: remove magic
-    private static Mat CreatePlayButtonScreen(Point playButtonLocation)
-    {
-        var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
-        using var playButton = EmbeddedResourceLoader.LoadMat("play.png");
-        using var region = new Mat(screen, new Rect(playButtonLocation.X, playButtonLocation.Y, playButton.Width, playButton.Height));
-        playButton.CopyTo(region);
-        return screen;
-    }
-
+    // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
     private static void AssertKeyChord(
         KeyboardInput keyInput,
         ushort modifierVirtualKey,
         ushort virtualKey)
+    // ReSharper restore ParameterOnlyUsedForPreconditionCheck.Local
     {
         Assert.Equal(modifierVirtualKey, keyInput.ModifierVirtualKey);
         Assert.Null(keyInput.SecondModifierVirtualKey);
