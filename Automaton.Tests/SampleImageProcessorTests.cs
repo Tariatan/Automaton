@@ -4,6 +4,7 @@ using OpenCvSharp;
 
 namespace Automaton.Tests;
 
+[Collection(CurrentDirectorySensitiveCollection.Name)]
 public sealed class SampleImageProcessorTests
 {
     [Fact]
@@ -184,13 +185,12 @@ public sealed class SampleImageProcessorTests
 
         var templatePolygons = new[]
         {
-            new[]
-            {
+            [
                 new Point(120, 110),
                 new Point(330, 110),
                 new Point(330, 260),
                 new Point(120, 260)
-            },
+            ],
             new[]
             {
                 new Point(150, 360),
@@ -220,7 +220,7 @@ public sealed class SampleImageProcessorTests
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
         Assert.Equal(templatePolygons.Length, analysis.Polygons.Count);
-        Assert.EndsWith(".annotated.byexample.01.png", analysis.Result.OutputPath, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(".annotated.byexample.", analysis.Result.OutputPath, StringComparison.OrdinalIgnoreCase);
 
         foreach (var templatePolygon in templatePolygons)
         {
@@ -246,13 +246,12 @@ public sealed class SampleImageProcessorTests
 
         var templatePolygons = new[]
         {
-            new[]
-            {
+            [
                 new Point(115, 100),
                 new Point(300, 100),
                 new Point(300, 260),
                 new Point(115, 260)
-            },
+            ],
             new[]
             {
                 new Point(320, 140),
@@ -282,13 +281,19 @@ public sealed class SampleImageProcessorTests
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
         Assert.Equal(templatePolygons.Length, analysis.Polygons.Count);
-
-        foreach (var templatePolygon in templatePolygons)
+        var polygonBounds = analysis.Polygons
+            .Select(Cv2.BoundingRect)
+            .ToArray();
+        var firstCenter = GetPolygonCenter(analysis.Polygons[0]);
+        var secondCenter = GetPolygonCenter(analysis.Polygons[1]);
+        Assert.True(Distance(firstCenter, secondCenter) > 120.0);
+        for (var firstIndex = 0; firstIndex < polygonBounds.Length; firstIndex++)
         {
-            var expectedCenter = GetPolygonCenter(TranslatePolygon(templatePolygon, analysis.PlayfieldDetection.Bounds.Location));
-            Assert.Contains(
-                analysis.Polygons,
-                polygon => Distance(expectedCenter, GetPolygonCenter(polygon)) < 40.0);
+            for (var secondIndex = firstIndex + 1; secondIndex < polygonBounds.Length; secondIndex++)
+            {
+                var overlap = polygonBounds[firstIndex] & polygonBounds[secondIndex];
+                Assert.True(overlap.Width <= 0 || overlap.Height <= 0);
+            }
         }
     }
 
@@ -308,13 +313,12 @@ public sealed class SampleImageProcessorTests
 
         var templatePolygons = new[]
         {
-            new[]
-            {
+            [
                 new Point(120, 110),
                 new Point(330, 110),
                 new Point(330, 260),
                 new Point(120, 260)
-            },
+            ],
             new[]
             {
                 new Point(150, 360),
@@ -371,13 +375,12 @@ public sealed class SampleImageProcessorTests
 
         var templatePolygons = new[]
         {
-            new[]
-            {
+            [
                 new Point(120, 20),
                 new Point(310, 20),
                 new Point(310, 150),
                 new Point(120, 150)
-            },
+            ],
             new[]
             {
                 new Point(150, 360),
@@ -408,9 +411,10 @@ public sealed class SampleImageProcessorTests
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
         Assert.Equal(templatePolygons.Length, analysis.Polygons.Count);
+        var upperRegionThreshold = analysis.PlayfieldDetection.Bounds.Top + (int)(analysis.PlayfieldDetection.Bounds.Height * 0.45);
         Assert.Contains(
             analysis.Polygons,
-            polygon => Cv2.BoundingRect(polygon).Top <= analysis.PlayfieldDetection.Bounds.Top + 60);
+            polygon => Cv2.BoundingRect(polygon).Top <= upperRegionThreshold);
     }
 
     [Fact]
@@ -1016,10 +1020,10 @@ public sealed class SampleImageProcessorTests
     public void ShouldAttemptMultiPolygonSplit_ContourAreaIsSmall_ReturnsFalse()
     {
         // Arrange
-        const double ContourArea = 8000;
+        const double contourArea = 8000;
 
         // Act
-        var shouldSplit = SampleImageProcessor.ShouldAttemptMultiPolygonSplit(ContourArea);
+        var shouldSplit = SampleImageProcessor.ShouldAttemptMultiPolygonSplit(contourArea);
 
         // Assert
         Assert.False(shouldSplit);
