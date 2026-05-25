@@ -68,6 +68,11 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         LogoutCalled = true;
     }
 
+    public void Delay(TimeSpan milliseconds, CancellationToken cancellationToken)
+    {
+        Delay((int)Math.Round(milliseconds.TotalMilliseconds), cancellationToken);
+    }
+
     public void Delay(int milliseconds, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

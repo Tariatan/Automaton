@@ -123,6 +123,11 @@ internal sealed class AutomationInputController : IAutomationInputController
         PressKey(VirtualKeys.Enter, cancellationToken);
     }
 
+    public void Delay(TimeSpan milliseconds, CancellationToken cancellationToken)
+    {
+        Delay((int)Math.Round(milliseconds.TotalMilliseconds), cancellationToken);
+    }
+
     public void Delay(int milliseconds, CancellationToken cancellationToken)
     {
         cancellationToken.WaitHandle.WaitOne(milliseconds);

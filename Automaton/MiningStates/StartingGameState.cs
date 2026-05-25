@@ -1,20 +1,19 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
-using Automaton.Primitives;
-using OpenCvSharp;
+using Automaton.CommonAutomationStates;
 using Serilog;
 
 namespace Automaton.MiningStates;
 
 internal sealed class StartingGameState(
     IAutomationInputController automationInputController,
-    PlayNowButtonLocator playNowButtonLocator,
-    ILogger? logger = null)
+    PlayNowButtonLocator playNowButtonLocator)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-starting-game";
+    private readonly CommonStartGameState m_CommonStartGameState = new(automationInputController, playNowButtonLocator);
 
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<StartingGameState>();
+    private readonly ILogger m_Logger = Log.ForContext<StartingGameState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.StartingGame;
 
@@ -27,7 +26,7 @@ internal sealed class StartingGameState(
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!playNowButtonLocator.TryLocate(capture.Image, out var playButtonLocation))
+        if (!m_CommonStartGameState.TryStartGame(capture.CapturePath, cancellationToken, out _))
         {
             return new MiningAutomationStateTransition(
                 Kind,
@@ -36,10 +35,6 @@ internal sealed class StartingGameState(
                 capture.CapturePath);
         }
 
-        automationInputController.MoveTo(GeometryHelper.Center(playButtonLocation.Bounds));
-        automationInputController.LeftClick(cancellationToken);
-        automationInputController.Delay(Delays.MiningLauncherStartupMs, cancellationToken);
-        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Login,

@@ -1,21 +1,19 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
-using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.MiningStates;
 
 internal sealed class UndockingState(
     IAutomationInputController automationInputController,
-    LocationChangeTimerDetector detector,
-    ILogger? logger = null)
+    LocationChangeTimerDetector detector)
     : IMiningAutomationState
 {
     private const int LocationChangeTimerPollingAttemptCount = 15;
     private const string CaptureSuffix = ".mining-undocking";
 
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<UndockingState>();
+    private readonly ILogger m_Logger = Log.ForContext<UndockingState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Undocking;
 

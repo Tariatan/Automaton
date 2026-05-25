@@ -1,5 +1,6 @@
 using System.IO;
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.Detectors;
 
@@ -7,7 +8,13 @@ internal sealed class PilotAvatarLocator
 {
     private const string PilotFolderName = "pilot";
     private const double MinimumMatchScore = 0.90;
+    private const double DebugOverlayTextScale = 0.8;
+    private const int DebugOverlayTextThickness = 2;
+    private const int DebugOverlayLeftPadding = 30;
+    private const int DebugOverlayTopPadding = 40;
+    private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10];
+    private static readonly ILogger Logger = Log.ForContext<PilotAvatarLocator>();
 
     public static bool TryGetNextPilotIndex(int currentPilotIndex, out int nextPilotIndex)
     {
@@ -25,39 +32,25 @@ internal sealed class PilotAvatarLocator
         return false;
     }
 
-    public static bool TryLocate(Mat screen, int pilotIndex, out PilotAvatarLocation location)
+    public static bool TryLocateAndDrawDebugOverlay(string imagePath, int requestedPilotIndex, out PilotAvatarLocation location)
     {
-        location = default;
-        if (screen.Empty() || !Directory.Exists(PilotFolderName))
+        using var image = Cv2.ImRead(imagePath);
+        var requestedMatch = TryLocateBest(image, requestedPilotIndex);
+        var matchedRequestedPilot = requestedMatch is not null && requestedMatch.Value.Location.Score >= MinimumMatchScore;
+        var foundPilotIndex = matchedRequestedPilot
+            ? requestedPilotIndex
+            : TryFindBestPilotIndex(image, requestedPilotIndex);
+
+        DrawDebugOverlay(image, requestedPilotIndex, foundPilotIndex, requestedMatch);
+        Cv2.ImWrite(imagePath, image);
+
+        if (!matchedRequestedPilot)
         {
+            location = default;
             return false;
         }
 
-        PilotAvatarLocation? bestLocation = null;
-        foreach (var candidate in BuildCandidates(PilotFolderName, pilotIndex))
-        {
-            if (!File.Exists(candidate.Path))
-            {
-                continue;
-            }
-
-            if (!TryMatchTemplate(screen, candidate, out var candidateLocation))
-            {
-                continue;
-            }
-
-            if (bestLocation is null || candidateLocation.Score > bestLocation.Value.Score)
-            {
-                bestLocation = candidateLocation;
-            }
-        }
-
-        if (bestLocation is null || bestLocation.Value.Score < MinimumMatchScore)
-        {
-            return false;
-        }
-
-        location = bestLocation.Value;
+        location = requestedMatch!.Value.Location;
         return true;
     }
 
@@ -145,6 +138,102 @@ internal sealed class PilotAvatarLocator
         return true;
     }
 
+    private static PilotMatchResult? TryLocateBest(Mat screen, int pilotIndex)
+    {
+        if (screen.Empty() || !Directory.Exists(PilotFolderName))
+        {
+            return null;
+        }
+
+        PilotAvatarLocation? bestLocation = null;
+        foreach (var candidate in BuildCandidates(PilotFolderName, pilotIndex))
+        {
+            if (!File.Exists(candidate.Path))
+            {
+                continue;
+            }
+
+            if (!TryMatchTemplate(screen, candidate, out var candidateLocation))
+            {
+                continue;
+            }
+
+            if (bestLocation is null || candidateLocation.Score > bestLocation.Value.Score)
+            {
+                bestLocation = candidateLocation;
+            }
+        }
+
+        return bestLocation is null
+            ? null
+            : new PilotMatchResult(pilotIndex, bestLocation.Value);
+    }
+
+    private static int? TryFindBestPilotIndex(Mat screen, int requestedPilotIndex)
+    {
+        PilotMatchResult? bestMatch = null;
+        foreach (var pilotIndex in GetAvailablePilotIndices())
+        {
+            if (pilotIndex == requestedPilotIndex)
+            {
+                continue;
+            }
+
+            var candidateMatch = TryLocateBest(screen, pilotIndex);
+            if (candidateMatch is null || candidateMatch.Value.Location.Score < MinimumMatchScore)
+            {
+                continue;
+            }
+
+            if (bestMatch is null || candidateMatch.Value.Location.Score > bestMatch.Value.Location.Score)
+            {
+                bestMatch = candidateMatch;
+            }
+        }
+
+        return bestMatch?.PilotIndex;
+    }
+
+    private static void DrawDebugOverlay(
+        Mat image,
+        int requestedPilotIndex,
+        int? foundPilotIndex,
+        PilotMatchResult? requestedMatch)
+    {
+        if (image.Empty())
+        {
+            return;
+        }
+
+        if (requestedMatch is not null)
+        {
+            Cv2.Rectangle(image, requestedMatch.Value.Location.Bounds, DebugOverlayColor, 2);
+        }
+
+        var overlayText = foundPilotIndex is null
+            ? $"Requested pilot: {requestedPilotIndex}; Found pilot: none"
+            : $"Requested pilot: {requestedPilotIndex}; Found pilot: {foundPilotIndex.Value}";
+
+        Cv2.PutText(
+            image,
+            overlayText,
+            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
+            HersheyFonts.HersheySimplex,
+            DebugOverlayTextScale,
+            DebugOverlayColor,
+            DebugOverlayTextThickness,
+            LineTypes.AntiAlias);
+
+        if (foundPilotIndex != null)
+        {
+            Logger.Information("RequestedPilotIndex={RequestedPilotIndex}, FoundPilotIndex={FoundPilotIndex}", requestedPilotIndex, foundPilotIndex);
+        }
+        else
+        {
+            Logger.Error("RequestedPilotIndex={RequestedPilotIndex} not found!", requestedPilotIndex);
+        }
+    }
+
     private static Mat BuildSearchableScreen(Mat screen, bool useColor)
     {
         if (useColor)
@@ -184,6 +273,7 @@ internal sealed class PilotAvatarLocator
     }
 
     private readonly record struct PilotAvatarCandidate(string Path, bool UsesColor);
+    private readonly record struct PilotMatchResult(int PilotIndex, PilotAvatarLocation Location);
 }
 
 internal readonly record struct PilotAvatarLocation(

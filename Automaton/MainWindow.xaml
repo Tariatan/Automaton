@@ -19,8 +19,7 @@
                 <MenuItem x:Name="DebugMenuItem"
                           Header="Debug"
                           IsCheckable="True"
-                          IsChecked="True"
-                          Click="DebugMenuItem_Click" />
+                          IsChecked="True" />
                 <MenuItem x:Name="TelemetryMenuItem"
                           Header="Telemetry"
                           Click="TelemetryMenuItem_Click" />
@@ -40,6 +39,14 @@
             </MenuItem>
             <MenuItem x:Name="DiscoveryMenuItem"
                       Header="Discovery">
+                <MenuItem x:Name="DiscoveryStartingGameMenuItem" Header="StartingGame" IsCheckable="True" IsChecked="True" Click="DiscoveryStartingGameMenuItem_Click" />
+                <MenuItem x:Name="DiscoveryLoginMenuItem" Header="Login" IsCheckable="True" Click="DiscoveryLoginMenuItem_Click" />
+                <MenuItem x:Name="DiscoveryDiscoverMenuItem" Header="Discover" IsCheckable="True" Click="DiscoveryDiscoverMenuItem_Click" />
+                <MenuItem x:Name="DiscoveryRecoveryMenuItem" Header="Recovery" IsCheckable="True" Click="DiscoveryRecoveryMenuItem_Click" />
+                <MenuItem x:Name="DiscoveryRecoverSlowDownPopupMenuItem" Header="RecoverSlowDownPopup" IsCheckable="True" Click="DiscoveryRecoverSlowDownPopupMenuItem_Click" />
+                <MenuItem x:Name="DiscoveryRecoverConnectionLostPopupMenuItem" Header="RecoverConnectionLostPopup" IsCheckable="True" Click="DiscoveryRecoverConnectionLostPopupMenuItem_Click" />
+                <MenuItem x:Name="DiscoveryRecoverMaxSubmissionsPopupMenuItem" Header="RecoverMaxSubmissionsPopup" IsCheckable="True" Click="DiscoveryRecoverMaxSubmissionsPopupMenuItem_Click" />
+                <Separator />
                 <MenuItem x:Name="Pilot1MenuItem"
                           Header="Pilot 1"
                           IsCheckable="True"

@@ -10,15 +10,14 @@ internal sealed class SelectBeltAndWarpState(
     IAutomationInputController automationInputController,
     AsteroidBeltOverviewDetector beltOverviewDetector,
     MineOverviewDetector mineOverviewDetector,
-    Func<int, int> nextRandomIndex,
-    ILogger? logger = null)
+    Func<int, int> nextRandomIndex)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-select-belt-and-warp";
     private const string LandingCaptureSuffix = ".mining-landed-on-asteroid-belt";
     private const int LandingPollingAttemptCount = 60;
 
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<SelectBeltAndWarpState>();
+    private readonly ILogger m_Logger = Log.ForContext<SelectBeltAndWarpState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.SelectBeltAndWarp;
 
@@ -97,7 +96,6 @@ internal sealed class SelectBeltAndWarpState(
 
         var requestedAsteroidBeltIndex = nextRandomIndex(availableAsteroidBelts.Length);
         var selectedAsteroidBeltIndex = Math.Clamp(requestedAsteroidBeltIndex, 0, availableAsteroidBelts.Length - 1);
-        var selectedAsteroidBeltDisplayIndex = selectedAsteroidBeltIndex + 1;
         var selectedAsteroidBelt = availableAsteroidBelts[selectedAsteroidBeltIndex];
         context.SetCurrentAsteroidBelt(selectedAsteroidBelt.Bounds);
 
@@ -107,14 +105,7 @@ internal sealed class SelectBeltAndWarpState(
         automationInputController.PressKey(VirtualKeys.S, cancellationToken);
         capture.Dispose();
 
-        m_Logger.Information(
-            "Warp to asteroid belt. RequestedIndexZeroBased={RequestedIndexZeroBased}, SelectedIndexZeroBased={SelectedIndexZeroBased}, SelectedIndexOneBased={SelectedIndexOneBased}, DetectedBeltCount={DetectedBeltCount}, MinIndexZeroBased={MinIndexZeroBased}, MaxIndexZeroBased={MaxIndexZeroBased}",
-            requestedAsteroidBeltIndex,
-            selectedAsteroidBeltIndex,
-            selectedAsteroidBeltDisplayIndex,
-            availableAsteroidBelts.Length,
-            0,
-            availableAsteroidBelts.Length - 1);
+        m_Logger.Information("Warp to asteroid belt {SelectedIndexBased} / {DetectedBeltCount}", selectedAsteroidBeltIndex + 1, availableAsteroidBelts.Length);
 
         // Wait until landed on asteroid belt with 1 second interval
         for (var attempt = 0; attempt < LandingPollingAttemptCount; attempt++)

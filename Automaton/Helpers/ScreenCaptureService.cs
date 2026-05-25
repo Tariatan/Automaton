@@ -44,12 +44,6 @@ internal sealed class ScreenCaptureService(
         var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
         using var capture = CaptureCurrentScreen();
         var analysis = sampleImageProcessor.AnalyzeImage(capture.Image, capture.CapturePath);
-        Logger.Information(
-            "Captured and analyzed current screen. CapturePath={CapturePath}, PlayfieldFound={PlayfieldFound}, ClusterCount={ClusterCount}, OutputPath={OutputPath}",
-            capture.CapturePath,
-            analysis.Result.PlayfieldFound,
-            analysis.Result.ClusterCount,
-            analysis.Result.OutputPath);
 
         return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysis);
     }
@@ -70,12 +64,6 @@ internal sealed class ScreenCaptureService(
         }
 
         return new ScreenCaptureResult(image, capturePath);
-    }
-
-    internal string CaptureCurrentScreenTrace(string suffix = "")
-    {
-        using var capture = CaptureCurrentScreen(suffix);
-        return capture.CapturePath;
     }
 
     internal void CaptureCurrentScreenToFile(string outputPath)

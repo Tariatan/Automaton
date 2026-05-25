@@ -9,12 +9,11 @@ internal sealed class MiningState(
     IAutomationInputController automationInputController,
     MiningAsteroidDetector asteroidDetector,
     MiningLaserDetector laserDetector,
-    WarOverviewDetector warOverviewDetector,
-    ILogger? logger = null)
+    WarOverviewDetector warOverviewDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-state";
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<MiningState>();
+    private readonly ILogger m_Logger = Log.ForContext<MiningState>();
 
     private enum DockingReason
     {

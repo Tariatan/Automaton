@@ -7,7 +7,6 @@ namespace Automaton.Helpers;
 
 internal sealed class SampleImageProcessor(
     PlayfieldDetector playfieldDetector,
-    PlayNowButtonLocator playNowButtonLocator,
     KnownSampleMatcher? knownSampleMatcher)
 {
     private const string SamplesFolderName = "samples";
@@ -100,7 +99,7 @@ internal sealed class SampleImageProcessor(
     private readonly KnownSampleMatcher m_KnownSampleMatcher = knownSampleMatcher ?? new KnownSampleMatcher(playfieldDetector);
 
     public SampleImageProcessor()
-        : this(new PlayfieldDetector(), new PlayNowButtonLocator(), null)
+        : this(new PlayfieldDetector(), null)
     {
     }
 
@@ -174,16 +173,13 @@ internal sealed class SampleImageProcessor(
         IReadOnlyList<Point[]> polygons;
         var usedKnownSampleTemplate = false;
         string? matchedSampleFileName = null;
-        var popupDetection = playNowButtonLocator.TryLocate(image, out _)
-            ? new ErrorPopupDetector.PopupDetection(ErrorPopupDetector.PopupState.None, new Rect())
-            : ErrorPopupDetector.DetectPopup(image);
+        using var launcherProbe = image.Clone();
 
-        if (popupDetection.State != ErrorPopupDetector.PopupState.None)
+        if (!playfieldDetection.IsFound)
         {
-            polygons = [];
-            playfieldDetection = PlayfieldDetectionResult.NotFound;
+            polygons = BuildDefaultFallbackPolygons();
         }
-        else if (playfieldDetection.IsFound)
+        else
         {
             using var playfieldImage = new Mat(image, playfieldDetection.Bounds);
             if (m_KnownSampleMatcher.TryMatch(playfieldImage, out var matchedPolygons, out matchedSampleFileName))
@@ -211,23 +207,12 @@ internal sealed class SampleImageProcessor(
             FinalizeDetectedPolygons(mutablePolygons, playfieldDetection.MarkerBounds);
             polygons = mutablePolygons.ToArray();
         }
-        else
-        {
-            polygons = BuildDefaultFallbackPolygons();
-        }
 
         var outputPath = imagePath;
         if (writeAnnotatedOutput)
         {
             using var annotated = image.Clone();
-            if (popupDetection.State != ErrorPopupDetector.PopupState.None)
-            {
-                DrawPopupDebugOverlay(annotated, popupDetection);
-            }
-            else
-            {
-                DrawDebugOverlay(annotated, playfieldDetection, polygons);
-            }
+            DrawDebugOverlay(annotated, playfieldDetection, polygons);
 
             var outputSuffix = usedKnownSampleTemplate
                 ? $".annotated.byexample{BuildMatchedExampleSuffix(matchedSampleFileName)}.png"
@@ -242,8 +227,7 @@ internal sealed class SampleImageProcessor(
             polygons.Count,
             outputPath);
         Logger.Information(
-            "Analyzed image. ImagePath={ImagePath}, PlayfieldFound={PlayfieldFound}, ClusterCount={ClusterCount}, OutputPath={OutputPath}, UsedKnownSampleTemplate={UsedKnownSampleTemplate}, MatchedSampleFileName={MatchedSampleFileName}",
-            imagePath,
+            "Analyzed image. PlayfieldFound={PlayfieldFound}, ClusterCount={ClusterCount}, OutputPath={OutputPath}, UsedKnownSampleTemplate={UsedKnownSampleTemplate}, MatchedSampleFileName={MatchedSampleFileName}",
             result.PlayfieldFound,
             result.ClusterCount,
             result.OutputPath,
@@ -2364,33 +2348,6 @@ internal sealed class SampleImageProcessor(
             HersheyFonts.HersheySimplex,
             OverlayTextScale,
             playfieldDetection.IsFound ? new Scalar(80, 220, 120) : new Scalar(80, 120, 255),
-            OverlayTextThickness,
-            LineTypes.AntiAlias);
-    }
-
-    private static void DrawPopupDebugOverlay(Mat annotated, ErrorPopupDetector.PopupDetection popupDetection)
-    {
-        var label = popupDetection.State switch
-        {
-            ErrorPopupDetector.PopupState.ConnectionLost => "Connection Lost popup detected",
-            ErrorPopupDetector.PopupState.MaximumSubmissions => "Maximum submissions popup detected",
-            ErrorPopupDetector.PopupState.SlowDown => "Slow Down popup detected",
-            ErrorPopupDetector.PopupState.Unknown => "Popup detected but ambiguous",
-            _ => "Popup detected"
-        };
-
-        if (popupDetection.Bounds is { Width: > 0, Height: > 0 })
-        {
-            Cv2.Rectangle(annotated, popupDetection.Bounds, new Scalar(70, 150, 255), OverlayStrokeThickness);
-        }
-
-        Cv2.PutText(
-            annotated,
-            label,
-            new Point(OverlayLeftPadding, OverlayTopPadding),
-            HersheyFonts.HersheySimplex,
-            OverlayTextScale,
-            new Scalar(80, 120, 255),
             OverlayTextThickness,
             LineTypes.AntiAlias);
     }

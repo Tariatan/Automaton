@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Automaton.Infrastructure;
+using Automaton.ProjectDiscoveryStates;
 using Automaton.Properties;
 using Microsoft.Win32;
 using Serilog;
@@ -31,6 +32,7 @@ internal partial class MainWindow
     private readonly bool m_AutoStartAutomation;
     private int m_DefaultPilotIndex = 1;
     private MiningAutomationStateKind m_SelectedMiningStartState = MiningAutomationStateKind.StartingGame;
+    private DiscoveryAutomationStateKind m_SelectedDiscoveryStartState = DiscoveryAutomationStateKind.StartingGame;
 
     public MainWindow(
         ApplicationStartupOptions startupOptions,
@@ -77,7 +79,7 @@ internal partial class MainWindow
         }
 
         var initialPilotIndex = GetPilotIndex();
-        Logger.Information("Start requested from automation button. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
+        Logger.Information("Start requested from automation button. InitialPilotIndex={InitialPilotIndex}, SelectedDiscoveryStartState={SelectedDiscoveryStartState}", initialPilotIndex, m_SelectedDiscoveryStartState);
         await StartProjectDiscoveryAutomationAsync(initialPilotIndex, new CancellationTokenSource());
     }
 
@@ -99,135 +101,70 @@ internal partial class MainWindow
             return;
         }
 
-        if (m_AutomationMode == ApplicationAutomationMode.Mining)
+        switch (m_AutomationMode)
         {
-            Logger.Information("Starting mining automation from startup argument.");
-            await StartMiningAutomationAsync(new CancellationTokenSource());
-            return;
-        }
-
-        var initialPilotIndex = GetPilotIndex();
-        var cancellationSource = new CancellationTokenSource();
-        var sessionId = BeginAutomationSession(cancellationSource);
-        var startedDiscoveryLoop = false;
-        try
-        {
-            Logger.Information("Checking launcher startup automation. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
-            var startupSummary = await Task.Run(
-                () => m_ProjectDiscoveryAutomationService.PrepareAutomationFromLauncherStartup(initialPilotIndex, cancellationSource.Token),
-                cancellationSource.Token);
-            Logger.Information(
-                "Launcher startup automation prepared. ShouldStartAutomation={ShouldStartAutomation}, PlayButtonFound={PlayButtonFound}, PilotLocated={PilotLocated}, PlayCapturePath={PlayCapturePath}, PilotCapturePath={PilotCapturePath}",
-                startupSummary.ShouldStartAutomation,
-                startupSummary.PlayButtonFound,
-                startupSummary.PilotLocated,
-                startupSummary.PlayButtonCapturePath,
-                startupSummary.PilotCapturePath);
-            if (!startupSummary.ShouldStartAutomation)
+            case ApplicationAutomationMode.Mining:
+                Logger.Information("Starting mining automation from startup argument.");
+                await StartMiningAutomationAsync(new CancellationTokenSource());
+                break;
+            case ApplicationAutomationMode.ProjectDiscovery:
             {
-                return;
-            }
-
-            startedDiscoveryLoop = true;
-            await StartProjectDiscoveryAutomationAsync(initialPilotIndex, cancellationSource, sessionId);
-        }
-        catch (OperationCanceledException)
-        {
-            Logger.Information("Launcher startup automation was canceled.");
-        }
-        finally
-        {
-            if (!startedDiscoveryLoop)
-            {
-                EndAutomationSession(cancellationSource, sessionId, disposeCancellationSource: true);
+                Logger.Information("Starting project discovery automation from startup argument.");
+                var initialPilotIndex = GetPilotIndex();
+                await StartProjectDiscoveryAutomationAsync(initialPilotIndex, new CancellationTokenSource());
+                break;
             }
         }
     }
 
     private async Task StartProjectDiscoveryAutomationAsync(int initialPilotIndex, CancellationTokenSource cancellationSource, long? sessionId = null)
     {
-        ApplyDebugImageRetention();
         var effectiveSessionId = sessionId ?? BeginAutomationSession(cancellationSource);
-        var dpi = VisualTreeHelper.GetDpi(this);
-        Logger.Information(
-            "Automation started. InitialPilotIndex={InitialPilotIndex}, DpiScaleX={DpiScaleX}, DpiScaleY={DpiScaleY}",
-            initialPilotIndex,
-            dpi.DpiScaleX,
-            dpi.DpiScaleY);
+        var keepDebugImages = DebugMenuItem.IsChecked;
 
         try
         {
-            var pilotIndex = initialPilotIndex;
-            while (!cancellationSource.Token.IsCancellationRequested)
+            var automationTask = Task.Run(
+                () => m_ProjectDiscoveryAutomationService.Automate(
+                    cancellationSource.Token,
+                    m_SelectedDiscoveryStartState,
+                    initialPilotIndex,
+                    keepDebugImages),
+                cancellationSource.Token);
+            var (discoveryAutomationStateKind, nextState, discoveryAutomationActionKind, _) = await automationTask;
+            Logger.Information(
+                "Discovery automation completed. State={State}, NextState={NextState}, Action={Action}",
+                discoveryAutomationStateKind,
+                nextState,
+                discoveryAutomationActionKind);
+
+            // ToDo: handle in corresponding states
+            /*
+            if (summary.ConnectionLostDetected)
             {
-                var automationTask = Task.Run(
-                    () => m_ProjectDiscoveryAutomationService.AutomateCurrentScreen(dpi, pilotIndex, cancellationSource.Token),
-                    cancellationSource.Token);
-                var summary = await automationTask;
-                Logger.Information(
-                    "Automation completed. CapturePath={CapturePath}, FocusedCapturePath={FocusedCapturePath}, ClickedPointCount={ClickedPointCount}, MaximumSubmissionsReached={MaximumSubmissionsReached}, SlowDownPopupDetected={SlowDownPopupDetected}, ConnectionLostDetected={ConnectionLostDetected}, PlayfieldMissingLimitReached={PlayfieldMissingLimitReached}, RestartFromLauncherRequested={RestartFromLauncherRequested}, NoFurtherPilotsAvailable={NoFurtherPilotsAvailable}, CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}, PilotSwitchSucceeded={PilotSwitchSucceeded}",
-                    summary.CaptureSummary.CapturePath,
-                    summary.FocusedCapturePath,
-                    summary.ClickedPointCount,
-                    summary.MaximumSubmissionsReached,
-                    summary.SlowDownPopupDetected,
-                    summary.ConnectionLostDetected,
-                    summary.PlayfieldMissingLimitReached,
-                    summary.RestartFromLauncherRequested,
-                    summary.NoFurtherPilotsAvailable,
-                    summary.CurrentPilotIndex,
-                    summary.TargetPilotIndex,
-                    summary.PilotSwitchSucceeded);
-                if (summary.ConnectionLostDetected)
-                {
-                    Logger.Error("Connection Lost popup detected. Exiting process.");
-                    Application.Current.Shutdown();
-                    Environment.Exit(0);
-                }
+                Logger.Error("Connection Lost popup detected. Exiting process.");
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
+            */
 
-                if (summary.NoFurtherPilotsAvailable)
-                {
-                    Logger.Information("No further pilots are available. Switching to mining automation from StartingGame state.");
-                    m_AutomationMode = ApplicationAutomationMode.Mining;
-                    SetMiningStartState(MiningAutomationStateKind.StartingGame);
-                    ApplyAutomationMode();
-                    await StartMiningAutomationAsync(new CancellationTokenSource());
-                    return;
-                }
-
-                if (!summary.RestartFromLauncherRequested)
-                {
-                    break;
-                }
-
-                pilotIndex = summary.CurrentPilotIndex;
-                Logger.Warning(
-                    "Restarting launcher startup automation after repeated playfield misses. PilotIndex={PilotIndex}",
-                    pilotIndex);
-                var startupSummary = await Task.Run(
-                    () => m_ProjectDiscoveryAutomationService.PrepareAutomationFromLauncherStartup(pilotIndex, cancellationSource.Token),
-                    cancellationSource.Token);
-                Logger.Information(
-                    "Launcher startup automation prepared after restart request. ShouldStartAutomation={ShouldStartAutomation}, PlayButtonFound={PlayButtonFound}, PilotLocated={PilotLocated}, PlayCapturePath={PlayCapturePath}, PilotCapturePath={PilotCapturePath}",
-                    startupSummary.ShouldStartAutomation,
-                    startupSummary.PlayButtonFound,
-                    startupSummary.PilotLocated,
-                    startupSummary.PlayButtonCapturePath,
-                    startupSummary.PilotCapturePath);
-                if (!startupSummary.ShouldStartAutomation)
-                {
-                    Logger.Warning("Launcher startup automation could not continue after restart request.");
-                    break;
-                }
+            if (discoveryAutomationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
+            {
+                const MiningAutomationStateKind desiredMiningAutomationInitialState = MiningAutomationStateKind.Login;
+                Logger.Information("No further pilots are available. Switching to mining automation from {State} state.", desiredMiningAutomationInitialState);
+                m_AutomationMode = ApplicationAutomationMode.Mining;
+                m_SelectedMiningStartState = desiredMiningAutomationInitialState;
+                ApplyAutomationMode();
+                await StartMiningAutomationAsync(new CancellationTokenSource());
             }
         }
         catch (OperationCanceledException)
         {
-            Logger.Information("Automation was canceled.");
+            Logger.Information("Automation was canceled");
         }
         catch (Exception exception)
         {
-            Logger.Error(exception, "Automation failed.");
+            Logger.Error(exception, "Automation failed");
             throw;
         }
         finally
@@ -239,16 +176,12 @@ internal partial class MainWindow
     private async Task StartMiningAutomationAsync(CancellationTokenSource cancellationSource)
     {
         var sessionId = BeginAutomationSession(cancellationSource);
-        var dpi = VisualTreeHelper.GetDpi(this);
-        Logger.Information(
-            "Mining automation started. DpiScaleX={DpiScaleX}, DpiScaleY={DpiScaleY}",
-            dpi.DpiScaleX,
-            dpi.DpiScaleY);
+        Logger.Information("Mining automation started");
 
         try
         {
             var automationTask = Task.Run(
-                () => m_MiningAutomationService.AutomateCurrentScreen(m_SelectedMiningStartState, cancellationSource.Token),
+                () => m_MiningAutomationService.Automate(m_SelectedMiningStartState, cancellationSource.Token),
                 cancellationSource.Token);
             var summary = await automationTask;
             Logger.Information(
@@ -374,7 +307,6 @@ internal partial class MainWindow
 
     private long BeginAutomationSession(CancellationTokenSource cancellationSource)
     {
-        ApplyDebugImageRetention();
         m_CurrentAutomationSessionId++;
         m_IsAutomationRunning = true;
         m_AutomationCancellationSource = cancellationSource;
@@ -414,18 +346,6 @@ internal partial class MainWindow
         DiscoveryMenuItem.IsEnabled = projectDiscoveryControlsEnabled;
         SamplesMenuItem.IsEnabled = projectDiscoveryControlsEnabled;
         MiningMenuItem.IsEnabled = miningControlsEnabled;
-    }
-
-    private void ApplyDebugImageRetention()
-    {
-        var keepDebugImages = DebugMenuItem.IsChecked;
-        m_ProjectDiscoveryAutomationService.KeepDebugImages = keepDebugImages;
-        Logger.Information("Debug image retention set. KeepDebugImages={KeepDebugImages}", keepDebugImages);
-    }
-
-    private void DebugMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        ApplyDebugImageRetention();
     }
 
     private void TelemetryMenuItem_Click(object sender, RoutedEventArgs e)
@@ -539,6 +459,41 @@ internal partial class MainWindow
         m_ProjectDiscoveryAutomationService.ProcessSamples();
     }
 
+    private void DiscoveryStartingGameMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetDiscoveryStartState(DiscoveryAutomationStateKind.StartingGame);
+    }
+
+    private void DiscoveryLoginMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetDiscoveryStartState(DiscoveryAutomationStateKind.Login);
+    }
+
+    private void DiscoveryDiscoverMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetDiscoveryStartState(DiscoveryAutomationStateKind.Discover);
+    }
+
+    private void DiscoveryRecoveryMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetDiscoveryStartState(DiscoveryAutomationStateKind.Recovery);
+    }
+
+    private void DiscoveryRecoverSlowDownPopupMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetDiscoveryStartState(DiscoveryAutomationStateKind.RecoverSlowDownPopup);
+    }
+
+    private void DiscoveryRecoverConnectionLostPopupMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetDiscoveryStartState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
+    }
+
+    private void DiscoveryRecoverMaxSubmissionsPopupMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetDiscoveryStartState(DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup);
+    }
+
     private void MiningStartingGameMenuItem_Click(object sender, RoutedEventArgs e)
     {
         SetMiningStartState(MiningAutomationStateKind.StartingGame);
@@ -605,15 +560,29 @@ internal partial class MainWindow
         Logger.Information("Mining start state changed. MiningStartState={MiningStartState}", m_SelectedMiningStartState);
     }
 
+    private void SetDiscoveryStartState(DiscoveryAutomationStateKind stateKind)
+    {
+        m_SelectedDiscoveryStartState = stateKind;
+        DiscoveryStartingGameMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.StartingGame;
+        DiscoveryLoginMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.Login;
+        DiscoveryDiscoverMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.Discover;
+        DiscoveryRecoveryMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.Recovery;
+        DiscoveryRecoverSlowDownPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverSlowDownPopup;
+        DiscoveryRecoverConnectionLostPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverConnectionLostPopup;
+        DiscoveryRecoverMaxSubmissionsPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup;
+        Logger.Information("Discovery start state changed. DiscoveryStartState={DiscoveryStartState}", m_SelectedDiscoveryStartState);
+    }
+
     private void ApplyAutomationMode()
     {
         Title = m_AutomationMode == ApplicationAutomationMode.Mining
             ? "Automaton - Miner"
-            : "Automaton";
+            : "Automaton - Discovery";
         SettingsDiscoveryModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.ProjectDiscovery;
         SettingsMiningModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.Mining;
 
         SetMiningStartState(m_SelectedMiningStartState);
+        SetDiscoveryStartState(m_SelectedDiscoveryStartState);
         SetPilotIndexControlsEnabled(isEnabled: true);
     }
 

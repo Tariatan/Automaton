@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace Automaton.Tests;
 
 [CollectionDefinition(Name, DisableParallelization = true)]

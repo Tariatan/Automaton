@@ -10,12 +10,11 @@ namespace Automaton.MiningStates;
 internal sealed class UnloadingCargoState(
     IAutomationInputController automationInputController,
     InventoryDetector inventoryDetector,
-    DowntimeDetector downtimeDetector,
-    ILogger? logger = null)
+    DowntimeDetector downtimeDetector)
     : IMiningAutomationState
 {
     private const int OpenWindowAttemptCount = 5;
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<UnloadingCargoState>();
+    private readonly ILogger m_Logger = Log.ForContext<UnloadingCargoState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.UnloadCargo;
 
@@ -157,7 +156,7 @@ internal sealed class UnloadingCargoState(
         for (var attempt = 1; attempt <= OpenWindowAttemptCount; attempt++)
         {
             automationInputController.PressKeyChord(VirtualKeys.Alt, inventoryVirtualKey, cancellationToken);
-            automationInputController.Delay(Delays.OpenHoldMs, cancellationToken);
+            automationInputController.Delay(Delays.LoadWindowMs, cancellationToken);
 
             using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
             var analysis = inventoryDetector.Analyze(capture.Image);

@@ -1,0 +1,36 @@
+using Automaton.Helpers;
+using Automaton.Primitives;
+using Serilog;
+
+namespace Automaton.ProjectDiscoveryStates;
+
+internal sealed class RecoverMaxSubmissionsPopupState(
+    IAutomationInputController automationInputController) : IProjectDiscoveryAutomationState
+{
+    private readonly ILogger m_Logger = Log.ForContext<RecoverMaxSubmissionsPopupState>();
+    public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup;
+
+    public DiscoveryAutomationStateTransition Execute(ProjectDiscoveryAutomationContext context, CancellationToken cancellationToken)
+    {
+        m_Logger.Warning("Maximum submissions popup detected during {DetectionStage}, CurrentPilotIndex={CurrentPilotIndex}",
+            context.LastAction,
+            context.CurrentPilotIndex);
+
+        // Logout current pilot
+        var delay = TimeSpan.FromMilliseconds(Delays.PilotLogoutMs);
+        m_Logger.Information("Logging out pilot {CurrentPilotIndex} for {DelaySeconds:0.###} seconds...", context.CurrentPilotIndex, delay.TotalSeconds);
+        automationInputController.Logout(cancellationToken);
+
+        // Wait for full logout
+        automationInputController.Delay(delay, cancellationToken);
+
+        // Close any window on login screen
+        m_Logger.Information("Hide any active window on login screen");
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+
+        return new DiscoveryAutomationStateTransition(
+            Kind,
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationActionKind.LoginNextPilot);
+    }
+}

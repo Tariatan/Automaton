@@ -1,21 +1,19 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
-using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.MiningStates;
 
 internal sealed class DockingState(
     IAutomationInputController automationInputController,
-    HomeStationDetector homeStationDetector,
-    ILogger? logger = null)
+    HomeStationDetector homeStationDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-dock";
     private const string DockedCaptureSuffix = ".mining-docked-polling";
 
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<DockingState>();
+    private readonly ILogger m_Logger = Log.ForContext<DockingState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Dock;
 

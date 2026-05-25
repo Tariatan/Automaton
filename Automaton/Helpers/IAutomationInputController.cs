@@ -24,5 +24,6 @@ internal interface IAutomationInputController
 
     void ClickUiElement(Point point, CancellationToken cancellationToken);
 
+    void Delay(TimeSpan milliseconds, CancellationToken cancellationToken);
     void Delay(int milliseconds, CancellationToken cancellationToken);
 }

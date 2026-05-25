@@ -9,13 +9,12 @@ internal sealed class RecoveryState(
     IAutomationInputController automationInputController,
     AsteroidBeltOverviewDetector beltOverviewDetector,
     HomeStationDetector homeStationDetector,
-    PlayNowButtonLocator playNowButtonLocator,
-    ILogger? logger = null)
+    PlayNowButtonLocator playNowButtonLocator)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-recovery";
 
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<RecoveryState>();
+    private readonly ILogger m_Logger = Log.ForContext<RecoveryState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.Recovery;
 
@@ -83,7 +82,7 @@ internal sealed class RecoveryState(
         }
 
         // Game crashed?
-        if (playNowButtonLocator.TryLocate(capture.Image, out _))
+        if (playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.CapturePath, out _))
         {
             m_Logger.Error("Game crashed => Restarting...");
             return new MiningAutomationStateTransition(

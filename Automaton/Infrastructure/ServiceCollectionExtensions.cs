@@ -1,5 +1,7 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
+using Automaton.CommonAutomationStates;
+using Automaton.ProjectDiscoveryStates;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Automaton.Infrastructure;
@@ -15,7 +17,9 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<PlayfieldDetector>();
         services.AddSingleton<PlayNowButtonLocator>();
         services.AddSingleton<KnownSampleMatcher>();
-        services.AddSingleton<ErrorPopupDetector>();
+        services.AddSingleton<MaxSubmissionsPopupDetector>();
+        services.AddSingleton<SlowDownPopupDetector>();
+        services.AddSingleton<ConnectionLostPopupDetector>();
         services.AddSingleton<AsteroidBeltOverviewDetector>();
         services.AddSingleton<HomeStationDetector>();
         services.AddSingleton<LocationChangeTimerDetector>();
@@ -29,6 +33,17 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<SampleImageProcessor>();
         services.AddSingleton<ScreenCaptureService>();
+
+        services.AddSingleton<CommonStartGameState>();
+        services.AddSingleton<CommonExitState>();
+        services.AddTransient<StartingGameState>();
+        services.AddTransient<LoginState>();
+        services.AddTransient<DiscoverState>();
+        services.AddTransient<RecoveryState>();
+        services.AddTransient<RecoverSlowDownPopupState>();
+        services.AddTransient<RecoverConnectionLostPopupState>();
+        services.AddTransient<RecoverMaxSubmissionsPopupState>();
+        services.AddSingleton<IDiscoveryAutomationStateFactory, DiscoveryAutomationStateFactory>();
 
         services.AddSingleton<ProjectDiscoveryAutomationService>();
         services.AddSingleton<MiningAutomationService>();

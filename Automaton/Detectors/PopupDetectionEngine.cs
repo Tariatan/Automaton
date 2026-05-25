@@ -4,64 +4,15 @@ using Serilog;
 
 namespace Automaton.Detectors;
 
-internal sealed class ErrorPopupDetector
+internal static class PopupDetectionEngine
 {
-    internal readonly record struct PopupDetection(PopupState State, Rect Bounds);
-
-    internal enum PopupState
-    {
-        None,
-        MaximumSubmissions,
-        SlowDown,
-        ConnectionLost,
-        Unknown
-    }
-
-    private const string MaxSubmissionsOverlayText = "Maximum submissions popup detected";
-    private const string SlowDownDebugOverlayText = "Slow down popup detected";
-    private const string ConnectionLostDebugOverlayText = "Connection lost popup detected";
-    private const string AmbiguousPopupDebugOverlayText = "Popup detected but ambiguous";
     private const int ExpectedPopupLeft = 960;
     private const int ExpectedPopupTop = 830;
     private const int ExpectedPopupWidth = 630;
     private const int ExpectedPopupHeight = 390;
     private const int PopupSearchMarginX = 190;
     private const int PopupSearchMarginY = 130;
-    private const double DebugOverlayTextScale = 0.8;
-    private const int DebugOverlayTextThickness = 2;
-    private const int DebugOverlayLeftPadding = 30;
-    private const int DebugOverlayTopPadding = 40;
-    private static readonly Scalar DebugOverlayTextColor = new(80, 120, 255);
-    private static readonly ILogger Logger = Log.ForContext<ErrorPopupDetector>();
     private static readonly Lazy<PopupTemplates> SPopupTemplates = new(PopupTemplates.Load);
-
-    public PopupState DetectPopupStateAndDrawDebugOverlay(string imagePath)
-    {
-        using var image = Cv2.ImRead(imagePath);
-        var detection = DetectPopup(image);
-        var overlayText = detection.State switch
-        {
-            PopupState.MaximumSubmissions => MaxSubmissionsOverlayText,
-            PopupState.SlowDown => SlowDownDebugOverlayText,
-            PopupState.ConnectionLost => ConnectionLostDebugOverlayText,
-            PopupState.Unknown => AmbiguousPopupDebugOverlayText,
-            _ => null
-        };
-
-        if (!string.IsNullOrWhiteSpace(overlayText))
-        {
-            Cv2.Rectangle(image, detection.Bounds, DebugOverlayTextColor, 2);
-            DrawDebugOverlay(image, overlayText);
-            Cv2.ImWrite(imagePath, image);
-        }
-
-        return detection.State;
-    }
-
-    public static PopupState DetectPopupState(Mat image)
-    {
-        return DetectPopup(image).State;
-    }
 
     public static PopupDetection DetectPopup(Mat image)
     {
@@ -85,90 +36,41 @@ internal sealed class ErrorPopupDetector
             image.Size());
 
         var score = ScorePopup(image, searchBounds, popupBounds);
-        LogScores(score);
-
         var state = Classify(score);
-        return new PopupDetection(state, popupBounds);
+        if (state != PopupState.None)
+        {
+            return new PopupDetection(state, popupBounds);
+        }
+
+        if (!TryFindPopupBoundsByTitleAnchor(image, searchBounds, out var anchoredPopupBounds))
+        {
+            return new PopupDetection(PopupState.None, popupBounds);
+        }
+
+        var anchoredScore = ScorePopup(image, searchBounds, anchoredPopupBounds);
+        var anchoredState = Classify(anchoredScore);
+        return new PopupDetection(anchoredState, anchoredPopupBounds);
     }
 
     private static PopupState Classify(PopupScore score)
     {
-        var bestButton = Math.Max(score.ButtonOk, score.ButtonQuit);
-        var bestIcon = Math.Max(score.IconInfo, score.IconWarning);
-        var popupExists = (bestButton >= PopupDetectorOptions.ButtonThreshold &&
-                           bestIcon >= PopupDetectorOptions.IconThreshold) ||
-                          bestButton >= PopupDetectorOptions.StrongThreshold ||
-                          bestIcon >= PopupDetectorOptions.StrongThreshold;
+        var bestTitle = Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
+        var popupExists = (score.ButtonOk >= PopupDetectorOptions.ButtonThreshold &&
+                           score.IconInfo >= PopupDetectorOptions.IconThreshold) ||
+                          score.ButtonOk >= PopupDetectorOptions.StrongThreshold ||
+                          score.IconInfo >= PopupDetectorOptions.StrongThreshold ||
+                          bestTitle >= PopupDetectorOptions.StrongTitleThreshold;
         if (!popupExists)
         {
             return PopupState.None;
         }
 
-        var buttonKind = ResolveBinarySignal(
-            score.ButtonOk,
-            score.ButtonQuit,
-            PopupDetectorOptions.ButtonThreshold,
-            PopupDetectorOptions.MinimumSignalGap,
-            BinarySignalKind.Ok,
-            BinarySignalKind.Quit);
-        var iconKind = ResolveBinarySignal(
-            score.IconInfo,
-            score.IconWarning,
-            PopupDetectorOptions.IconThreshold,
-            PopupDetectorOptions.MinimumSignalGap,
-            BinarySignalKind.Info,
-            BinarySignalKind.Warning);
         var titleKind = ResolveTitleSignal(score);
-
-        var prefersConnection = buttonKind == BinarySignalKind.Quit ||
-                                iconKind == BinarySignalKind.Warning;
-        var prefersOk = buttonKind == BinarySignalKind.Ok ||
-                        iconKind == BinarySignalKind.Info;
-        if (prefersConnection && prefersOk)
-        {
-            var okAggregate = score.ButtonOk + score.IconInfo + Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
-            var connectionAggregate = score.ButtonQuit + score.IconWarning + score.TitleConnectionLost;
-            if (Math.Abs(okAggregate - connectionAggregate) < PopupDetectorOptions.MinimumAggregateGap)
-            {
-                return PopupState.Unknown;
-            }
-
-            prefersConnection = connectionAggregate > okAggregate;
-            prefersOk = okAggregate > connectionAggregate;
-        }
-
-        if (!prefersConnection && !prefersOk)
-        {
-            var okAggregate = score.ButtonOk + score.IconInfo + Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
-            var connectionAggregate = score.ButtonQuit + score.IconWarning + score.TitleConnectionLost;
-            if (Math.Abs(okAggregate - connectionAggregate) < PopupDetectorOptions.MinimumAggregateGap)
-            {
-                return PopupState.Unknown;
-            }
-
-            prefersConnection = connectionAggregate > okAggregate;
-            prefersOk = okAggregate > connectionAggregate;
-        }
-
-        if (prefersConnection)
-        {
-            return titleKind switch
-            {
-                TitleSignalKind.ConnectionLost => PopupState.ConnectionLost,
-                TitleSignalKind.None => PopupState.ConnectionLost,
-                _ => PopupState.Unknown
-            };
-        }
-
-        if (!prefersOk)
-        {
-            return PopupState.Unknown;
-        }
 
         var titleResult = titleKind switch
         {
             TitleSignalKind.SlowDown => PopupState.SlowDown,
-            TitleSignalKind.MaximumSubmissions => PopupState.MaximumSubmissions,
+            TitleSignalKind.MaximumSubmissions => PopupState.MaxSubmissions,
             _ => PopupState.Unknown
         };
 
@@ -182,45 +84,16 @@ internal sealed class ErrorPopupDetector
         {
             return score.TitleSlowDown >= score.TitleMaxSubmissions
                 ? PopupState.SlowDown
-                : PopupState.MaximumSubmissions;
+                : PopupState.MaxSubmissions;
         }
 
         return PopupState.Unknown;
-    }
-
-    private static BinarySignalKind ResolveBinarySignal(
-        double primaryScore,
-        double secondaryScore,
-        double threshold,
-        double minimumGap,
-        BinarySignalKind primaryKind,
-        BinarySignalKind secondaryKind)
-    {
-        var primaryMatched = primaryScore >= threshold;
-        var secondaryMatched = secondaryScore >= threshold;
-        switch (primaryMatched)
-        {
-            case false when !secondaryMatched:
-                return BinarySignalKind.None;
-            case true when !secondaryMatched:
-                return primaryKind;
-            case false when secondaryMatched:
-                return secondaryKind;
-        }
-
-        if (Math.Abs(primaryScore - secondaryScore) < minimumGap)
-        {
-            return BinarySignalKind.Ambiguous;
-        }
-
-        return primaryScore > secondaryScore ? primaryKind : secondaryKind;
     }
 
     private static TitleSignalKind ResolveTitleSignal(PopupScore score)
     {
         var candidates = new[]
         {
-            (Kind: TitleSignalKind.ConnectionLost, Score: score.TitleConnectionLost),
             (Kind: TitleSignalKind.SlowDown, Score: score.TitleSlowDown),
             (Kind: TitleSignalKind.MaximumSubmissions, Score: score.TitleMaxSubmissions)
         };
@@ -258,14 +131,9 @@ internal sealed class ErrorPopupDetector
 
         using var titleRoiBinary = ToBinaryMask(titleRoi);
 
-        var score = new PopupScore(
+        return new PopupScore(
             ButtonOk: MatchTemplateScore(buttonRoi, templates.ButtonOkGray),
-            ButtonQuit: MatchTemplateScore(buttonRoi, templates.ButtonQuitGray),
             IconInfo: MatchTemplateScore(iconRoi, templates.IconInfoGray),
-            IconWarning: MatchTemplateScore(iconRoi, templates.IconWarningGray),
-            TitleConnectionLost: Math.Max(
-                MatchTemplateScore(titleRoi, templates.TitleConnectionLostGray),
-                MatchTemplateScore(titleRoiBinary, templates.TitleConnectionLostBinary)),
             TitleSlowDown: Math.Max(
                 MatchTemplateScore(titleRoi, templates.TitleSlowDownGray),
                 MatchTemplateScore(titleRoiBinary, templates.TitleSlowDownBinary)),
@@ -273,21 +141,44 @@ internal sealed class ErrorPopupDetector
                 MatchTemplateScore(titleRoi, templates.TitleMaxSubmissionsGray),
                 MatchTemplateScore(titleRoiBinary, templates.TitleMaxSubmissionsBinary)),
             PopupBounds: popupBounds);
-        return score;
     }
 
-    private static void LogScores(PopupScore score)
+    private static bool TryFindPopupBoundsByTitleAnchor(Mat image, Rect searchBounds, out Rect popupBounds)
     {
-        Logger.Debug(
-            "Popup scores => button_ok: {ButtonOk:F4}, button_quit: {ButtonQuit:F4}, icon_info: {IconInfo:F4}, icon_warning: {IconWarning:F4}, title_connection_lost: {TitleConnectionLost:F4}, title_slow_down: {TitleSlowDown:F4}, title_max_submissions: {TitleMaxSubmissions:F4}, popup_bounds: {PopupBounds}",
-            score.ButtonOk,
-            score.ButtonQuit,
-            score.IconInfo,
-            score.IconWarning,
-            score.TitleConnectionLost,
-            score.TitleSlowDown,
-            score.TitleMaxSubmissions,
-            score.PopupBounds);
+        using var searchRegion = new Mat(image, searchBounds);
+        using var searchGray = new Mat();
+        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
+        using var searchBinary = ToBinaryMask(searchGray);
+
+        var templates = SPopupTemplates.Value;
+        var maxGray = MatchTemplate(searchGray, templates.TitleMaxSubmissionsGray);
+        var maxBinary = MatchTemplate(searchBinary, templates.TitleMaxSubmissionsBinary);
+        var slowGray = MatchTemplate(searchGray, templates.TitleSlowDownGray);
+        var slowBinary = MatchTemplate(searchBinary, templates.TitleSlowDownBinary);
+
+        var candidates = new[]
+        {
+            maxGray,
+            maxBinary,
+            slowGray,
+            slowBinary
+        };
+        var best = candidates.MaxBy(candidate => candidate.Score);
+        if (best.Score < PopupDetectorOptions.TitleAnchorThreshold)
+        {
+            popupBounds = default;
+            return false;
+        }
+
+        var estimatedPopupX = searchBounds.X + best.Location.X - (int)Math.Round(ExpectedPopupWidth * 0.20);
+        var estimatedPopupY = searchBounds.Y + best.Location.Y - (int)Math.Round(ExpectedPopupHeight * 0.06);
+        popupBounds = BuildClampedBounds(
+            estimatedPopupX,
+            estimatedPopupY,
+            ExpectedPopupWidth,
+            ExpectedPopupHeight,
+            image.Size());
+        return true;
     }
 
     private static Mat ToBinaryMask(Mat gray)
@@ -317,12 +208,27 @@ internal sealed class ErrorPopupDetector
         return maxValue;
     }
 
-    private static Rect BuildRelativeBounds(
-        Rect bounds,
-        double leftRatio,
-        double topRatio,
-        double widthRatio,
-        double heightRatio)
+    private static TemplateMatchResult MatchTemplate(Mat searchRoi, Mat template)
+    {
+        if (searchRoi.Empty() || template.Empty())
+        {
+            return new TemplateMatchResult(0.0, new Point(0, 0));
+        }
+
+        if (template.Width > searchRoi.Width || template.Height > searchRoi.Height)
+        {
+            return new TemplateMatchResult(0.0, new Point(0, 0));
+        }
+
+        var resultWidth = searchRoi.Width - template.Width + 1;
+        var resultHeight = searchRoi.Height - template.Height + 1;
+        using var result = new Mat(new Size(resultWidth, resultHeight), MatType.CV_32FC1);
+        Cv2.MatchTemplate(searchRoi, template, result, TemplateMatchModes.CCoeffNormed);
+        Cv2.MinMaxLoc(result, out _, out var maxValue, out _, out var maxLocation);
+        return new TemplateMatchResult(maxValue, maxLocation);
+    }
+
+    private static Rect BuildRelativeBounds(Rect bounds, double leftRatio, double topRatio, double widthRatio, double heightRatio)
     {
         return BuildClampedBounds(
             bounds.X + (int)Math.Round(bounds.Width * leftRatio),
@@ -341,55 +247,30 @@ internal sealed class ErrorPopupDetector
         return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
     }
 
-    private static void DrawDebugOverlay(Mat image, string text)
-    {
-        Cv2.PutText(
-            image,
-            text,
-            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
-            HersheyFonts.HersheySimplex,
-            DebugOverlayTextScale,
-            DebugOverlayTextColor,
-            DebugOverlayTextThickness,
-            LineTypes.AntiAlias);
-    }
-
     private sealed class PopupDetectorOptions
     {
         public static double ButtonThreshold => 0.58;
         public static double IconThreshold => 0.58;
         public static double TitleThreshold => 0.50;
         public static double StrongThreshold => 0.78;
+        public static double StrongTitleThreshold => 0.62;
+        public static double TitleAnchorThreshold => 0.52;
         public static double MinimumTitleScoreGap => 0.005;
-        public static double MinimumSignalGap => 0.02;
-        public static double MinimumAggregateGap => 0.08;
     }
 
-    private enum BinarySignalKind
-    {
-        None,
-        Ambiguous,
-        Ok,
-        Quit,
-        Info,
-        Warning
-    }
+    private readonly record struct TemplateMatchResult(double Score, Point Location);
 
     private enum TitleSignalKind
     {
         None,
         Ambiguous,
-        ConnectionLost,
         SlowDown,
         MaximumSubmissions
     }
 
     private readonly record struct PopupScore(
         double ButtonOk,
-        double ButtonQuit,
         double IconInfo,
-        double IconWarning,
-        double TitleConnectionLost,
         double TitleSlowDown,
         double TitleMaxSubmissions,
         Rect PopupBounds);
@@ -398,36 +279,24 @@ internal sealed class ErrorPopupDetector
     {
         private PopupTemplates(
             Mat buttonOkGray,
-            Mat buttonQuitGray,
             Mat iconInfoGray,
-            Mat iconWarningGray,
-            Mat titleConnectionLostGray,
             Mat titleSlowDownGray,
             Mat titleMaxSubmissionsGray,
-            Mat titleConnectionLostBinary,
             Mat titleSlowDownBinary,
             Mat titleMaxSubmissionsBinary)
         {
             ButtonOkGray = buttonOkGray;
-            ButtonQuitGray = buttonQuitGray;
             IconInfoGray = iconInfoGray;
-            IconWarningGray = iconWarningGray;
-            TitleConnectionLostGray = titleConnectionLostGray;
             TitleSlowDownGray = titleSlowDownGray;
             TitleMaxSubmissionsGray = titleMaxSubmissionsGray;
-            TitleConnectionLostBinary = titleConnectionLostBinary;
             TitleSlowDownBinary = titleSlowDownBinary;
             TitleMaxSubmissionsBinary = titleMaxSubmissionsBinary;
         }
 
         public Mat ButtonOkGray { get; }
-        public Mat ButtonQuitGray { get; }
         public Mat IconInfoGray { get; }
-        public Mat IconWarningGray { get; }
-        public Mat TitleConnectionLostGray { get; }
         public Mat TitleSlowDownGray { get; }
         public Mat TitleMaxSubmissionsGray { get; }
-        public Mat TitleConnectionLostBinary { get; }
         public Mat TitleSlowDownBinary { get; }
         public Mat TitleMaxSubmissionsBinary { get; }
 
@@ -435,13 +304,9 @@ internal sealed class ErrorPopupDetector
         {
             return new PopupTemplates(
                 LoadGrayTemplate("popups.button_ok.png"),
-                LoadGrayTemplate("popups.button_quit.png"),
                 LoadGrayTemplate("popups.icon_info.png"),
-                LoadGrayTemplate("popups.icon_warning.png"),
-                LoadGrayTemplate("popups.title_connection_lost.png"),
                 LoadGrayTemplate("popups.title_slow_down.png"),
                 LoadGrayTemplate("popups.title_max_submissions.png"),
-                LoadBinaryTemplate("popups.title_connection_lost.png"),
                 LoadBinaryTemplate("popups.title_slow_down.png"),
                 LoadBinaryTemplate("popups.title_max_submissions.png"));
         }
@@ -449,13 +314,9 @@ internal sealed class ErrorPopupDetector
         public void Dispose()
         {
             ButtonOkGray.Dispose();
-            ButtonQuitGray.Dispose();
             IconInfoGray.Dispose();
-            IconWarningGray.Dispose();
-            TitleConnectionLostGray.Dispose();
             TitleSlowDownGray.Dispose();
             TitleMaxSubmissionsGray.Dispose();
-            TitleConnectionLostBinary.Dispose();
             TitleSlowDownBinary.Dispose();
             TitleMaxSubmissionsBinary.Dispose();
         }

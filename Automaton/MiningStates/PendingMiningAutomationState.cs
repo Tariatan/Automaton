@@ -2,10 +2,10 @@ using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class PendingMiningAutomationState(MiningAutomationStateKind kind, ILogger? logger = null)
+internal sealed class PendingMiningAutomationState(MiningAutomationStateKind kind)
     : IMiningAutomationState
 {
-    private readonly ILogger m_Logger = logger ?? Log.ForContext<PendingMiningAutomationState>();
+    private readonly ILogger m_Logger = Log.ForContext<PendingMiningAutomationState>();
 
     public MiningAutomationStateKind Kind { get; } = kind;
 

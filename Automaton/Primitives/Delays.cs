@@ -10,21 +10,19 @@ internal static class Delays
     // General automation
     public const int AutomationStartupDelayMs = 3_000;
     public const int StateMachineNextStepDelayMs = 500;
+    public const int LauncherStartupMs = 30_000;
+    public const int PilotLoginMs = 20_000;
+    public const int PilotLogoutMs = 30_000;
+    public const int LoadWindowMs = 3_000;
+    
+    public const int ConnectionLostExitMs = 1_000;
 
     // Quit game / window control
     public const int QuitGameConfirmMs = 2_000;
     public const int WindowActivationMs = 1_000;
 
     // Project Discovery: launcher & login
-    public const int ProjectDiscoveryLauncherStartupMs = 30_000;
-    public const int ProjectDiscoveryPilotLoginMs = 60_000;
-    public const int PilotLogoutMs = 30_000;
     public const int SubmissionWindowMs = 70_000;
-    public const int ConnectionLostExitMs = 1_000;
-
-    // Mining: starting game & login
-    public const int MiningLauncherStartupMs = 20_000;
-    public const int MiningPilotLoginMs = 20_000;
 
     // Mining: docking
     public const int BeforeDockMs = 1_000;
@@ -49,7 +47,4 @@ internal static class Delays
 
     // Mining: recovery
     public const int RecoveryMs = 60_000;
-
-    // Mining: unloading cargo
-    public const int OpenHoldMs = 3_000;
 }

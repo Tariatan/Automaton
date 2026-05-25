@@ -57,7 +57,7 @@ internal sealed class MiningAutomationService
         m_CurrentState = CreateState(MiningAutomationStateKind.StartingGame);
     }
 
-    public MiningAutomationStepSummary AutomateCurrentScreen(
+    public MiningAutomationStepSummary Automate(
         MiningAutomationStateKind startingState,
         CancellationToken cancellationToken)
     {

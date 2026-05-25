@@ -10,33 +10,33 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     public void DetectPopupState_ImageContainsMaximumSubmissionsPopup_ReturnsMaximumSubmissions()
     {
         // Arrange
-        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.MaximumSubmissions);
+        using var image = CreateTemplateComposedPopupImage(PopupState.MaxSubmissions);
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.MaximumSubmissions, popupState);
+        Assert.Equal(PopupState.MaxSubmissions, popupState);
     }
 
     [Fact]
     public void DetectPopupState_ImageContainsSlowDownPopup_ReturnsSlowDown()
     {
         // Arrange
-        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.SlowDown);
+        using var image = CreateTemplateComposedPopupImage(PopupState.SlowDown);
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.SlowDown, popupState);
+        Assert.Equal(PopupState.SlowDown, popupState);
     }
 
     [Fact]
     public void DetectPopupState_SlowDownPopupWithStaleOverlayText_ReturnsSlowDown()
     {
         // Arrange
-        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.SlowDown);
+        using var image = CreateTemplateComposedPopupImage(PopupState.SlowDown);
         Cv2.PutText(
             image,
             "Maximum submissions popup detected",
@@ -48,23 +48,23 @@ public sealed class MaximumSubmissionsPopupDetectorTests
             LineTypes.AntiAlias);
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.SlowDown, popupState);
+        Assert.Equal(PopupState.SlowDown, popupState);
     }
 
     [Fact]
     public void DetectPopupState_ImageContainsConnectionLostPopup_ReturnsConnectionLost()
     {
         // Arrange
-        using var image = CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState.ConnectionLost);
+        using var image = CreateTemplateComposedPopupImage(PopupState.ConnectionLost);
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.ConnectionLost, popupState);
+        Assert.Equal(PopupState.ConnectionLost, popupState);
     }
 
     [Fact]
@@ -74,10 +74,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = CreateCompactDimMaximumSubmissionsPopupImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.NotEqual(ErrorPopupDetector.PopupState.MaximumSubmissions, popupState);
+        Assert.NotEqual(PopupState.MaxSubmissions, popupState);
     }
 
     [Fact]
@@ -87,10 +87,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = SyntheticDiscoveryImageFactory.CreateTwoClusterImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+        Assert.Equal(PopupState.None, popupState);
     }
 
     [Fact]
@@ -100,10 +100,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = CreateBusyPilotSelectionImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+        Assert.Equal(PopupState.None, popupState);
     }
 
     [Fact]
@@ -113,10 +113,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = CreateProjectDiscoveryInstructionImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+        Assert.Equal(PopupState.None, popupState);
     }
 
     [Fact]
@@ -126,10 +126,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = CreateSubmissionResultImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+        Assert.Equal(PopupState.None, popupState);
     }
 
     [Fact]
@@ -139,10 +139,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = CreateBottomInventoryGridImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+        Assert.Equal(PopupState.None, popupState);
     }
 
     [Fact]
@@ -152,10 +152,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = CreateLauncherPlayNowImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.None, popupState);
+        Assert.Equal(PopupState.None, popupState);
     }
 
     [Fact]
@@ -165,10 +165,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = SyntheticDiscoveryImageFactory.CreateSlowDownPopupImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.SlowDown, popupState);
+        Assert.Equal(PopupState.SlowDown, popupState);
     }
 
     [Fact]
@@ -178,10 +178,10 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         using var image = SyntheticDiscoveryImageFactory.CreateMaximumSubmissionsPopupImage();
 
         // Act
-        var popupState = ErrorPopupDetector.DetectPopupState(image);
+        var popupState = DetectPopupState(image);
 
         // Assert
-        Assert.Equal(ErrorPopupDetector.PopupState.MaximumSubmissions, popupState);
+        Assert.Equal(PopupState.MaxSubmissions, popupState);
     }
 
     private static Mat CreateBusyPilotSelectionImage()
@@ -391,7 +391,7 @@ public sealed class MaximumSubmissionsPopupDetectorTests
         return image;
     }
 
-    private static Mat CreateTemplateComposedPopupImage(ErrorPopupDetector.PopupState popupState)
+    private static Mat CreateTemplateComposedPopupImage(PopupState popupState)
     {
         var image = new Mat(new Size(2551, 2008), MatType.CV_8UC3, new Scalar(18, 24, 26));
         var popup = new Rect(960, 830, 630, 390);
@@ -400,17 +400,17 @@ public sealed class MaximumSubmissionsPopupDetectorTests
 
         switch (popupState)
         {
-            case ErrorPopupDetector.PopupState.ConnectionLost:
+            case PopupState.ConnectionLost:
                 PastePopupTemplate(image, popup, "popups.icon_warning.png", 0.06, 0.05);
                 PastePopupTemplate(image, popup, "popups.title_connection_lost.png", 0.20, 0.06);
                 PastePopupTemplate(image, popup, "popups.button_quit.png", 0.04, 0.84);
                 break;
-            case ErrorPopupDetector.PopupState.SlowDown:
+            case PopupState.SlowDown:
                 PastePopupTemplate(image, popup, "popups.icon_info.png", 0.06, 0.06);
                 PastePopupTemplate(image, popup, "popups.title_slow_down.png", 0.20, 0.06);
                 PastePopupTemplate(image, popup, "popups.button_ok.png", 0.04, 0.80);
                 break;
-            case ErrorPopupDetector.PopupState.MaximumSubmissions:
+            case PopupState.MaxSubmissions:
                 PastePopupTemplate(image, popup, "popups.icon_info.png", 0.06, 0.06);
                 PastePopupTemplate(image, popup, "popups.title_max_submissions.png", 0.20, 0.05);
                 PastePopupTemplate(image, popup, "popups.button_ok.png", 0.04, 0.80);
@@ -437,5 +437,16 @@ public sealed class MaximumSubmissionsPopupDetectorTests
     private static Mat LoadPlayButtonImage()
     {
         return EmbeddedResourceLoader.LoadMat("play.png");
+    }
+
+    private static PopupState DetectPopupState(Mat image)
+    {
+        var connectionLostDetection = ConnectionLostPopupDetectionEngine.DetectPopup(image);
+        if (connectionLostDetection.State == PopupState.ConnectionLost)
+        {
+            return PopupState.ConnectionLost;
+        }
+
+        return PopupDetectionEngine.DetectPopup(image).State;
     }
 }

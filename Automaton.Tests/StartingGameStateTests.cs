@@ -30,7 +30,7 @@ public sealed class StartingGameStateTests
         Assert.Equal(MiningAutomationActionKind.StartGame, transition.Action);
         Assert.Single(automationInputControllerMock.MoveTargets);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal([Delays.MiningLauncherStartupMs], automationInputControllerMock.Delays);
+        Assert.Equal([Delays.LauncherStartupMs], automationInputControllerMock.Delays);
         Assert.Single(automationInputControllerMock.KeyInputs);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
     }

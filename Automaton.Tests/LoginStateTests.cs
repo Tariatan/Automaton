@@ -7,8 +7,6 @@ namespace Automaton.Tests;
 
 public sealed class LoginStateTests
 {
-    private static readonly int[] Expected = [20_000];
-
     [Fact]
     public void Execute_PilotTwoFound_LogsInPilotAndTransitionsToDocked()
     {
@@ -19,8 +17,7 @@ public sealed class LoginStateTests
         using var pilotScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(pilotScreen.Clone),
-            new SampleImageProcessor(),
-            persistCaptures: false);
+            new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new LoginState(automationInputControllerMock);
 
@@ -47,7 +44,7 @@ public sealed class LoginStateTests
         Assert.Single(automationInputControllerMock.MoveTargets);
         Assert.Equal(new Point(854, 782), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal(Expected, automationInputControllerMock.Delays);
+        Assert.Equal([Delays.PilotLoginMs, Delays.MinimumClickMs], automationInputControllerMock.Delays);
         Assert.Equal(2, automationInputControllerMock.KeyInputs.Count);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
         AssertTripleKeyChord(automationInputControllerMock.KeyInputs[1], VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9);
@@ -63,8 +60,7 @@ public sealed class LoginStateTests
         using var blankScreen = SyntheticCommonImageFactory.LoadPilotAvatarImage(1);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
-            persistCaptures: false);
+            new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new LoginState(automationInputControllerMock);
 
