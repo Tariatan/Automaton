@@ -3,6 +3,7 @@ using Automaton.Helpers;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
+using System.IO;
 
 namespace Automaton.MiningStates;
 
@@ -27,15 +28,17 @@ internal sealed class ApproachingAsteroidState(
         automationInputController.PressKey(VirtualKeys.F4, cancellationToken);
 
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.ApproachingAsteroidCaptureSuffix);
+        var mineOverviewAnalysis = AnalyzeMineOverview(capture.CapturePath, capture.Image);
 
         // Failed to detect Mine overview tab
-        if (!mineOverviewDetector.TryLocate(capture.Image, out var mineOverviewBounds))
+        if (!mineOverviewAnalysis.MineOverviewLocated || mineOverviewAnalysis.MineOverviewBounds is null)
         {
             m_Logger.Error("Failed to detect Mine overview tab");
             var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
         }
+        var mineOverviewBounds = mineOverviewAnalysis.MineOverviewBounds.Value;
 
         // Asteroid belt is empty
         if (NothingFoundDetector.Detect(capture.Image, mineOverviewBounds))
@@ -78,18 +81,7 @@ internal sealed class ApproachingAsteroidState(
                 firstAsteroidRowBounds,
                 out var distanceTelemetry);
             AnnotateDistanceDetectionCapture(capture.CapturePath, capture.Image, distanceTelemetry.RowSearchBounds, distanceTelemetry.SearchBounds);
-            m_Logger.Information(
-                "Distance unit detection. Attempt={Attempt}/{MaxAttempts}, CurrentAsteroidCount={CurrentAsteroidCount}, FirstAsteroidRowBounds={FirstAsteroidRowBounds}, RowSearchBounds={RowSearchBounds}, UnitSearchBounds={UnitSearchBounds}, IsMetersTemplateMatch={IsMetersTemplateMatch}, BestMetersScore={BestMetersScore}, MatchedMetersScale={MatchedMetersScale}, nearestAsteroidWithinReach={NearestAsteroidWithinReach}",
-                attempt + 1,
-                Settings.ApproachingAsteroidDistancePollingAttemptCount,
-                currentAsteroids.Count,
-                firstAsteroidRowBounds,
-                distanceTelemetry.RowSearchBounds,
-                distanceTelemetry.SearchBounds,
-                distanceTelemetry.IsMetersTemplateMatch,
-                distanceTelemetry.BestMetersScore,
-                distanceTelemetry.MatchedMetersScale,
-                nearestAsteroidWithinReach);
+            m_Logger.Information("Asteroid within reach detection. Attempt={Attempt}/{MaxAttempts}", attempt + 1, Settings.ApproachingAsteroidDistancePollingAttemptCount);
 
             // Nearest asteroid is within reach
             if (nearestAsteroidWithinReach)
@@ -148,6 +140,28 @@ internal sealed class ApproachingAsteroidState(
         }
 
         Cv2.ImWrite(capturePath, annotated);
+    }
+
+    private MineOverviewAnalysis AnalyzeMineOverview(string capturePath, Mat screen)
+    {
+        if (File.Exists(capturePath))
+        {
+            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+        }
+
+        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-approaching-mine-overview-{Guid.NewGuid():N}.png");
+        try
+        {
+            Cv2.ImWrite(tempPath, screen);
+            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
     }
 
 }

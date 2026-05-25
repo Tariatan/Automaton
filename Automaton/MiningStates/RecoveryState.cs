@@ -1,7 +1,9 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
+using OpenCvSharp;
 using Serilog;
+using System.IO;
 
 namespace Automaton.MiningStates;
 
@@ -25,6 +27,17 @@ internal sealed class RecoveryState(
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
+        if (context.LastAction == MiningAutomationActionKind.Relogin)
+        {
+            m_Logger.Error("Logging out...");
+            automationInputController.Logout(cancellationToken);
+
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Login,
+                MiningAutomationActionKind.None);
+        }
+
         // Debounce
         automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -34,7 +47,7 @@ internal sealed class RecoveryState(
         // Try to detect safe haven again
         if (context.LastAction == MiningAutomationActionKind.QuitGameFromSpace)
         {
-            var beltAnalysis = beltOverviewDetector.Analyze(capture.Image);
+            var beltAnalysis = AnalyzeBeltOverview(capture.CapturePath, capture.Image);
             var homeStationAnalysis = homeStationDetector.Analyze(capture.Image);
             if (!beltAnalysis.OverviewLocated || !homeStationAnalysis.HomeStationLocated)
             {
@@ -73,6 +86,7 @@ internal sealed class RecoveryState(
                     capture.CapturePath);
             }
 
+            m_Logger.Error("Undock button found during recovery => try unloading cargo again");
             // Docked and Undock button found
             return new MiningAutomationStateTransition(
                 Kind,
@@ -82,7 +96,10 @@ internal sealed class RecoveryState(
         }
 
         // Game crashed?
-        if (playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.CapturePath, out _))
+        var playNowFound = File.Exists(capture.CapturePath)
+            ? playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.CapturePath, out _)
+            : playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.Image, out _);
+        if (playNowFound)
         {
             m_Logger.Error("Game crashed => Restarting...");
             return new MiningAutomationStateTransition(
@@ -97,5 +114,27 @@ internal sealed class RecoveryState(
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
             capture.CapturePath);
+    }
+
+    private AsteroidBeltOverviewAnalysis AnalyzeBeltOverview(string capturePath, Mat screen)
+    {
+        if (File.Exists(capturePath))
+        {
+            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+        }
+
+        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-recovery-belt-overview-{Guid.NewGuid():N}.png");
+        try
+        {
+            Cv2.ImWrite(tempPath, screen);
+            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
     }
 }

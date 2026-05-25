@@ -1,38 +1,88 @@
 using Automaton.Infrastructure;
 using Automaton.Primitives;
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.Detectors;
 
 internal sealed class MineOverviewDetector
 {
     private const double MinimumHeaderMatchScore = 0.90;
+    private const double DebugOverlayTextScale = 0.8;
+    private const int DebugOverlayTextThickness = 2;
+    private const int DebugOverlayLeftPadding = 30;
+    private const int DebugOverlayTopPadding = 40;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
+    private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
+    private static readonly Scalar SearchBoundsColor = new(255, 200, 120);
+    private static readonly Scalar HeaderBoundsColor = new(120, 255, 120);
+    private static readonly Scalar MineOverviewBoundsColor = new(120, 220, 255);
+    private static readonly ILogger Logger = Log.ForContext<MineOverviewDetector>();
 
     private readonly Mat m_OverviewMineTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_mine.png");
 
-    public bool TryLocate(Mat screen, out Rect mineOverviewBounds)
+    public MineOverviewAnalysis AnalyzeAndDrawDebugOverlay(string imagePath)
     {
-        mineOverviewBounds = default;
+        using var screen = Cv2.ImRead(imagePath);
         if (screen.Empty())
         {
-            return false;
+            return MineOverviewAnalysis.NotFound;
         }
 
-        var searchBounds = BuildFallbackSearchBounds(screen.Size());
-        return TryLocateByTemplate(screen, searchBounds, out mineOverviewBounds);
+        var analysis = AnalyzeCore(screen);
+        DrawDebugOverlay(screen, analysis);
+        Cv2.ImWrite(imagePath, screen);
+        return analysis;
     }
 
-    private bool TryLocateByTemplate(Mat screen, Rect searchBounds, out Rect mineOverviewBounds)
+    private MineOverviewAnalysis AnalyzeCore(Mat screen)
     {
-        mineOverviewBounds = default;
+        var searchBounds = BuildFallbackSearchBounds(screen.Size());
         if (!TryMatchTemplate(screen, m_OverviewMineTemplate, searchBounds, out var headerLocation))
         {
-            return false;
+            return new MineOverviewAnalysis(false, searchBounds, null, null, 0);
         }
 
-        mineOverviewBounds = BuildMineOverviewBounds(screen.Size(), headerLocation.Bounds);
-        return true;
+        var mineOverviewBounds = BuildMineOverviewBounds(screen.Size(), headerLocation.Bounds);
+        return new MineOverviewAnalysis(true, searchBounds, headerLocation.Bounds, mineOverviewBounds, headerLocation.Score);
+    }
+
+    private static void DrawDebugOverlay(Mat image, MineOverviewAnalysis analysis)
+    {
+        if (image.Empty())
+        {
+            return;
+        }
+
+        Cv2.Rectangle(image, analysis.SearchBounds, SearchBoundsColor, 2);
+        if (analysis.HeaderBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.HeaderBounds.Value, HeaderBoundsColor, 2);
+        }
+
+        if (analysis.MineOverviewBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.MineOverviewBounds.Value, MineOverviewBoundsColor, 2);
+        }
+
+        Cv2.PutText(
+            image,
+            analysis.MineOverviewLocated ? "MINE overview found" : "MINE overview not found",
+            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
+            HersheyFonts.HersheySimplex,
+            DebugOverlayTextScale,
+            DebugOverlayColor,
+            DebugOverlayTextThickness,
+            LineTypes.AntiAlias);
+
+        if (analysis.MineOverviewLocated)
+        {
+            Logger.Information("Mine overview located" );
+        }
+        else
+        {
+            Logger.Error("Failed to detect Mine overview");
+        }
     }
 
     private static bool TryMatchTemplate(Mat screen, Mat template, Rect searchBounds, out TemplateLocation location)
@@ -120,4 +170,14 @@ internal sealed class MineOverviewDetector
     }
 
     private readonly record struct TemplateLocation(Rect Bounds, double Score);
+}
+
+internal sealed record MineOverviewAnalysis(
+    bool MineOverviewLocated,
+    Rect SearchBounds,
+    Rect? HeaderBounds,
+    Rect? MineOverviewBounds,
+    double BestMatchScore)
+{
+    public static MineOverviewAnalysis NotFound { get; } = new(false, new Rect(0, 0, 1, 1), null, null, 0);
 }

@@ -228,12 +228,6 @@ internal sealed class ProjectDiscoveryAutomationService(
         Logger.Information("Switching pilot. CurrentPilotIndex={CurrentPilotIndex}, TargetPilotIndex={TargetPilotIndex}", CurrentPilotIndex, nextPilotIndex);
         automationInputController.Logout(cancellationToken);
 
-        // Wait for full logout
-        automationInputController.Delay(Delays.PilotLogoutMs, cancellationToken);
-
-        // Close any window on login screen
-        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
-
         // Make screenshot of pilots on login screen
         var pilotSelectionCapturePath = CapturePilotSelectionScreenTrace(captureSummary, nextPilotIndex, cancellationToken);
         traceImages.Track(pilotSelectionCapturePath);

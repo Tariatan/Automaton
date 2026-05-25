@@ -1,8 +1,9 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
-using OpenCvSharp;
 using Serilog;
+using OpenCvSharp;
+using System.IO;
 
 namespace Automaton.MiningStates;
 
@@ -26,14 +27,8 @@ internal sealed class SelectBeltAndWarpState(
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-        var analysis = Analyze(capture.Image);
-        m_Logger.Information(
-            "Belt overview analysis (initial). OverviewLocated={OverviewLocated}, OverviewBounds={OverviewBounds}, OverviewBeltButtonBounds={OverviewBeltButtonBounds}, HomeStationBounds={HomeStationBounds}, BeltCount={BeltCount}",
-            analysis.OverviewLocated,
-            analysis.OverviewBounds,
-            analysis.OverviewBeltButtonBounds,
-            analysis.HomeStationBounds,
-            analysis.AsteroidBelts.Count);
+        var analysis = Analyze(capture.CapturePath, capture.Image);
+
         // Failed to detect Belt overview tab
         if (!analysis.OverviewLocated || analysis.OverviewBeltButtonBounds is null)
         {
@@ -58,14 +53,8 @@ internal sealed class SelectBeltAndWarpState(
         capture.Dispose();
 
         capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-        analysis = Analyze(capture.Image);
-        m_Logger.Information(
-            "Belt overview analysis (after tab click). OverviewLocated={OverviewLocated}, OverviewBounds={OverviewBounds}, OverviewBeltButtonBounds={OverviewBeltButtonBounds}, HomeStationBounds={HomeStationBounds}, BeltCount={BeltCount}",
-            analysis.OverviewLocated,
-            analysis.OverviewBounds,
-            analysis.OverviewBeltButtonBounds,
-            analysis.HomeStationBounds,
-            analysis.AsteroidBelts.Count);
+        analysis = Analyze(capture.CapturePath, capture.Image);
+        m_Logger.Information("Belt overview detected with {BeltCount} belts", analysis.AsteroidBelts.Count);
 
         // Failed to detect any belts
         if (analysis.AsteroidBelts.Count == 0)
@@ -119,9 +108,9 @@ internal sealed class SelectBeltAndWarpState(
             {
                 m_Logger.Information("Landed on asteroid belt");
 
-                var mineOverviewLocated = mineOverviewDetector.TryLocate(capture.Image, out var mineOverviewBounds);
-                var nothingFoundDetected = mineOverviewLocated &&
-                                           NothingFoundDetector.Detect(capture.Image, mineOverviewBounds);
+                var mineOverviewAnalysis = AnalyzeMineOverview(capture.CapturePath, capture.Image);
+                var nothingFoundDetected = mineOverviewAnalysis is { MineOverviewLocated: true, MineOverviewBounds: not null } &&
+                                           NothingFoundDetector.Detect(capture.Image, mineOverviewAnalysis.MineOverviewBounds.Value);
                 if (nothingFoundDetected)
                 {
                     context.BlacklistAsteroidBelt(selectedAsteroidBelt.Bounds);
@@ -154,9 +143,48 @@ internal sealed class SelectBeltAndWarpState(
         return Recover(capture.CapturePath);
     }
 
-    private AsteroidBeltOverviewAnalysis Analyze(Mat screen)
+    private AsteroidBeltOverviewAnalysis Analyze(string capturePath, Mat screen)
     {
-        return beltOverviewDetector.Analyze(screen);
+        if (File.Exists(capturePath))
+        {
+            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+        }
+
+        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-select-belt-overview-{Guid.NewGuid():N}.png");
+        try
+        {
+            Cv2.ImWrite(tempPath, screen);
+            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
+
+    private MineOverviewAnalysis AnalyzeMineOverview(string capturePath, Mat screen)
+    {
+        if (File.Exists(capturePath))
+        {
+            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+        }
+
+        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-select-belt-mine-overview-{Guid.NewGuid():N}.png");
+        try
+        {
+            Cv2.ImWrite(tempPath, screen);
+            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
     }
 
     private MiningAutomationStateTransition Recover(string capturePath)

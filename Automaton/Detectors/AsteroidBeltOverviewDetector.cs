@@ -1,5 +1,6 @@
 using Automaton.Infrastructure;
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.Detectors;
 
@@ -18,8 +19,18 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
     private const int OverviewRegionTop = 280;
     private const int OverviewRegionWidth = 580;
     private const int OverviewRegionHeight = 1330;
+    private const double DebugOverlayTextScale = 0.8;
+    private const int DebugOverlayTextThickness = 2;
+    private const int DebugOverlayLeftPadding = 30;
+    private const int DebugOverlayTopPadding = 40;
     private static readonly double[] OverviewBeltTemplateScales = [1.0, 0.95, 1.05];
     private static readonly double[] HomeStationTemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20, 1.30];
+    private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
+    private static readonly Scalar OverviewBoundsColor = new(255, 200, 120);
+    private static readonly Scalar BeltButtonBoundsColor = new(80, 120, 255);
+    private static readonly Scalar HomeStationBoundsColor = new(120, 255, 120);
+    private static readonly Scalar AsteroidBeltBoundsColor = new(120, 220, 255);
+    private static readonly ILogger Logger = Log.ForContext<AsteroidBeltOverviewDetector>();
 
     private readonly Mat m_OverviewBeltTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_belt.png");
     private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
@@ -30,7 +41,21 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
         m_HomeStationTemplate.Dispose();
     }
 
-    public AsteroidBeltOverviewAnalysis Analyze(Mat screen)
+    public AsteroidBeltOverviewAnalysis AnalyzeAndDrawDebugOverlay(string imagePath)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (image.Empty())
+        {
+            return AsteroidBeltOverviewAnalysis.NotFound;
+        }
+
+        var analysis = AnalyzeCore(image);
+        DrawDebugOverlay(image, analysis);
+        Cv2.ImWrite(imagePath, image);
+        return analysis;
+    }
+
+    private AsteroidBeltOverviewAnalysis AnalyzeCore(Mat screen)
     {
         if (screen.Empty())
         {
@@ -73,6 +98,51 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
             overviewBeltButtonBounds,
             homeStationBounds,
             asteroidBelts);
+    }
+
+    private static void DrawDebugOverlay(Mat image, AsteroidBeltOverviewAnalysis analysis)
+    {
+        if (image.Empty())
+        {
+            return;
+        }
+
+        if (analysis.OverviewBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.OverviewBounds.Value, OverviewBoundsColor, 2);
+        }
+
+        if (analysis.OverviewBeltButtonBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.OverviewBeltButtonBounds.Value, BeltButtonBoundsColor, 2);
+        }
+
+        if (analysis.HomeStationBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.HomeStationBounds.Value, HomeStationBoundsColor, 2);
+        }
+
+        foreach (var asteroidBelt in analysis.AsteroidBelts)
+        {
+            Cv2.Rectangle(image, asteroidBelt.Bounds, AsteroidBeltBoundsColor, 2);
+        }
+
+        var overlayText =
+            $"Overview {(analysis.OverviewLocated ? "found" : "not found")}; Belts: {analysis.AsteroidBelts.Count}";
+        Cv2.PutText(
+            image,
+            overlayText,
+            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
+            HersheyFonts.HersheySimplex,
+            DebugOverlayTextScale,
+            DebugOverlayColor,
+            DebugOverlayTextThickness,
+            LineTypes.AntiAlias);
+
+        Logger.Information(
+            "Asteroid belt overview: OverviewLocated={OverviewLocated}, BeltCount={BeltCount}",
+            analysis.OverviewLocated,
+            analysis.AsteroidBelts.Count);
     }
 
     private static List<AsteroidBeltOverviewEntry> LocateAsteroidBelts(

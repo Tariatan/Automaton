@@ -105,11 +105,10 @@ internal sealed class MiningAutomationService
         cancellationToken.ThrowIfCancellationRequested();
         var transition = m_CurrentState.Execute(m_Context, cancellationToken);
         Logger.Information(
-            "Mining automation step executed. State={State}, NextState={NextState}, Action={Action}, CapturePath={CapturePath}",
+            "Mining automation step executed. State={State}, NextState={NextState}, Action={Action}",
             transition.State,
             transition.NextState,
-            transition.Action,
-            transition.CapturePath);
+            transition.Action);
         m_Context.LastAction = transition.Action;
         m_CurrentState = CreateState(transition.NextState);
 
@@ -175,5 +174,6 @@ internal enum MiningAutomationActionKind
     QuitGameFromSpace,
     QuitGameFromDock,
     QuitGameAndExitApplication,
+    Relogin,
     Recover
 }

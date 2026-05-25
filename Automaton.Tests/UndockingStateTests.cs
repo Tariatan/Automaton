@@ -39,7 +39,7 @@ public sealed class UndockingStateTests
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(
         [
-            Delays.UndockingWindowActivationMs,
+            Delays.UndockingBounceMs,
             Delays.InitialUndockMs,
             Delays.LocationChangeTimerPollingMs,
             Delays.LocationChangeTimerPollingMs,
@@ -75,7 +75,7 @@ public sealed class UndockingStateTests
         Assert.Equal(MiningAutomationActionKind.QuitGameFromDock, transition.Action);
         Assert.Equal(16, captureInvocationCount);
         Assert.Equal(17, automationInputController.Delays.Count);
-        Assert.Equal(Delays.UndockingWindowActivationMs, automationInputController.Delays[0]);
+        Assert.Equal(Delays.UndockingBounceMs, automationInputController.Delays[0]);
         Assert.Equal(Delays.InitialUndockMs, automationInputController.Delays[1]);
         Assert.All(automationInputController.Delays.Skip(2), delay => Assert.Equal(Delays.LocationChangeTimerPollingMs, delay));
     }

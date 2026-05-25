@@ -31,7 +31,7 @@ internal static class Delays
 
     // Mining: undocking
     public const int InitialUndockMs = 15_000;
-    public const int UndockingWindowActivationMs = 2_000;
+    public const int UndockingBounceMs = 2_000;
     public const int LocationChangeTimerPollingMs = 1_000;
 
     // Mining: select belt & warp

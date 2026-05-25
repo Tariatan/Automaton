@@ -118,9 +118,19 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void Logout(CancellationToken cancellationToken)
     {
         Delay(Delays.WindowActivationMs, cancellationToken);
+
+        // Activate Logout window
         PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
         Delay(Delays.WindowActivationMs, cancellationToken);
+
+        // Confirm Logout
         PressKey(VirtualKeys.Enter, cancellationToken);
+
+        // Wait for full logout
+        Delay(Delays.PilotLogoutMs, cancellationToken);
+
+        // Close any window on login screen
+        PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
     }
 
     public void Delay(TimeSpan milliseconds, CancellationToken cancellationToken)

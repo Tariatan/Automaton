@@ -32,7 +32,10 @@ internal sealed class UnloadingCargoState(
                 analysis => analysis.MiningHoldTitleBounds is not null,
                 "Mining Hold"))
         {
-            return Recover(null);
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Recovery,
+                MiningAutomationActionKind.Relogin);
         }
 
         if (!TryOpenInventoryWindow(
@@ -42,7 +45,10 @@ internal sealed class UnloadingCargoState(
                 analysis => analysis.ItemHangarTitleBounds is not null,
                 "Item Hangar"))
         {
-            return Recover(null);
+            return new MiningAutomationStateTransition(
+                Kind,
+                MiningAutomationStateKind.Recovery,
+                MiningAutomationActionKind.Relogin);
         }
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);

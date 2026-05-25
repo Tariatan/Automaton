@@ -10,7 +10,7 @@ internal sealed class UndockingState(
     LocationChangeTimerDetector detector)
     : IMiningAutomationState
 {
-    private const int LocationChangeTimerPollingAttemptCount = 15;
+    private const int LocationChangeTimerPollingAttemptCount = 30;
     private const string CaptureSuffix = ".mining-undocking";
 
     private readonly ILogger m_Logger = Log.ForContext<UndockingState>();
@@ -27,7 +27,7 @@ internal sealed class UndockingState(
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        automationInputController.Delay(Delays.UndockingWindowActivationMs, cancellationToken);
+        automationInputController.Delay(Delays.UndockingBounceMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         // TryLocate Undock button
