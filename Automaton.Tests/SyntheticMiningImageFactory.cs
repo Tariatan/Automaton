@@ -27,4 +27,7 @@ internal static class SyntheticMiningImageFactory
 
     public static Mat LoadLandedOnAsteroidBeltImageWithMetersDistance()
         => ScreenshotLoader.LoadOrSkip("Mining/landed_on_asteroid_belt_meters_distance.png");
+
+    public static Mat LoadMiningGtfoImage()
+        => ScreenshotLoader.LoadOrSkip("Mining/mining_gtfo.png");
 }

@@ -1,24 +1,21 @@
-using Automaton.Helpers;
-using Automaton.Primitives;
+using Automaton.CommonAutomationStates;
 using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class RecoverConnectionLostPopupState(
-    IAutomationInputController automationInputController) : IProjectDiscoveryAutomationState
+    ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior) : IProjectDiscoveryAutomationState
 {
     private readonly ILogger m_Logger = Log.ForContext<RecoverConnectionLostPopupState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.RecoverConnectionLostPopup;
 
     public DiscoveryAutomationStateTransition Execute(ProjectDiscoveryAutomationContext context, CancellationToken cancellationToken)
     {
-        m_Logger.Error("Connection Lost popup detected during {DetectionStage}. Stopping automation",
-            context.LastAction);
-        automationInputController.Delay(Delays.ConnectionLostExitMs, cancellationToken);
-        automationInputController.PressKey(VirtualKeys.Enter, cancellationToken);
+        connectionLostPopupRecoveryBehavior.Execute(context.LastAction, m_Logger, cancellationToken);
+
         return new DiscoveryAutomationStateTransition(
             Kind,
-            Kind,
+            DiscoveryAutomationStateKind.StartingGame,
             DiscoveryAutomationActionKind.RecoverConnectionLostPopup);
     }
 }

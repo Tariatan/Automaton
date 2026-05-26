@@ -44,7 +44,20 @@ internal static class ConnectionLostPopupDetectionEngine
             score.TitleConnectionLost,
             score.PopupBounds);
 
-        return new PopupDetection(Classify(score), popupBounds);
+        var state = Classify(score);
+        if (state != PopupState.None)
+        {
+            return new PopupDetection(state, popupBounds);
+        }
+
+        if (!TryFindPopupBoundsByTitleAnchor(image, searchBounds, out var anchoredPopupBounds))
+        {
+            return new PopupDetection(PopupState.None, popupBounds);
+        }
+
+        var anchoredScore = ScorePopup(image, searchBounds, anchoredPopupBounds);
+        var anchoredState = Classify(anchoredScore);
+        return new PopupDetection(anchoredState, anchoredPopupBounds);
     }
 
     private static PopupState Classify(PopupScore score)
@@ -124,6 +137,54 @@ internal static class ConnectionLostPopupDetectionEngine
         return maxValue;
     }
 
+    private static TemplateMatchResult MatchTemplate(Mat searchRoi, Mat template)
+    {
+        if (searchRoi.Empty() || template.Empty())
+        {
+            return new TemplateMatchResult(0.0, new Point(0, 0));
+        }
+
+        if (template.Width > searchRoi.Width || template.Height > searchRoi.Height)
+        {
+            return new TemplateMatchResult(0.0, new Point(0, 0));
+        }
+
+        var resultWidth = searchRoi.Width - template.Width + 1;
+        var resultHeight = searchRoi.Height - template.Height + 1;
+        using var result = new Mat(new Size(resultWidth, resultHeight), MatType.CV_32FC1);
+        Cv2.MatchTemplate(searchRoi, template, result, TemplateMatchModes.CCoeffNormed);
+        Cv2.MinMaxLoc(result, out _, out var maxValue, out _, out var maxLocation);
+        return new TemplateMatchResult(maxValue, maxLocation);
+    }
+
+    private static bool TryFindPopupBoundsByTitleAnchor(Mat image, Rect searchBounds, out Rect popupBounds)
+    {
+        using var searchRegion = new Mat(image, searchBounds);
+        using var searchGray = new Mat();
+        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
+        using var searchBinary = ToBinaryMask(searchGray);
+
+        var templates = SPopupTemplates.Value;
+        var titleGrayMatch = MatchTemplate(searchGray, templates.TitleConnectionLostGray);
+        var titleBinaryMatch = MatchTemplate(searchBinary, templates.TitleConnectionLostBinary);
+        var best = titleGrayMatch.Score >= titleBinaryMatch.Score ? titleGrayMatch : titleBinaryMatch;
+        if (best.Score < PopupDetectorOptions.TitleAnchorThreshold)
+        {
+            popupBounds = default;
+            return false;
+        }
+
+        var estimatedPopupX = searchBounds.X + best.Location.X - (int)Math.Round(ExpectedPopupWidth * 0.16);
+        var estimatedPopupY = searchBounds.Y + best.Location.Y - (int)Math.Round(ExpectedPopupHeight * 0.02);
+        popupBounds = BuildClampedBounds(
+            estimatedPopupX,
+            estimatedPopupY,
+            ExpectedPopupWidth,
+            ExpectedPopupHeight,
+            image.Size());
+        return true;
+    }
+
     private static Rect BuildRelativeBounds(Rect bounds, double leftRatio, double topRatio, double widthRatio, double heightRatio)
     {
         return BuildClampedBounds(
@@ -150,7 +211,10 @@ internal static class ConnectionLostPopupDetectionEngine
         public static double TitleThreshold => 0.40;
         public static double WeakSignalThreshold => 0.45;
         public static double StrongTitleThreshold => 0.62;
+        public static double TitleAnchorThreshold => 0.52;
     }
+
+    private readonly record struct TemplateMatchResult(double Score, Point Location);
 
     private readonly record struct PopupScore(
         double ButtonQuit,

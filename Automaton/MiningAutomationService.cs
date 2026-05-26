@@ -23,6 +23,8 @@ internal sealed class MiningAutomationService
     private readonly MiningAsteroidDetector m_MiningAsteroidDetector;
     private readonly MiningLaserDetector m_MiningLaserDetector;
     private readonly WarOverviewDetector m_WarOverviewDetector;
+    private readonly ConnectionLostPopupDetector m_ConnectionLostPopupDetector;
+    private readonly CommonAutomationStates.ConnectionLostPopupRecoveryBehavior m_ConnectionLostPopupRecoveryBehavior;
     private IMiningAutomationState m_CurrentState;
 
     public MiningAutomationService(
@@ -39,7 +41,9 @@ internal sealed class MiningAutomationService
         FirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector,
         MiningAsteroidDetector miningAsteroidDetector,
         MiningLaserDetector miningLaserDetector,
-        WarOverviewDetector warOverviewDetector)
+        WarOverviewDetector warOverviewDetector,
+        ConnectionLostPopupDetector connectionLostPopupDetector,
+        CommonAutomationStates.ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior)
     {
         m_AutomationInputController = automationInputController;
         m_Context = new MiningAutomationContext(screenCaptureService, automationClock);
@@ -54,6 +58,8 @@ internal sealed class MiningAutomationService
         m_MiningAsteroidDetector = miningAsteroidDetector;
         m_MiningLaserDetector = miningLaserDetector;
         m_WarOverviewDetector = warOverviewDetector;
+        m_ConnectionLostPopupDetector = connectionLostPopupDetector;
+        m_ConnectionLostPopupRecoveryBehavior = connectionLostPopupRecoveryBehavior;
         m_CurrentState = CreateState(MiningAutomationStateKind.StartingGame);
     }
 
@@ -73,6 +79,12 @@ internal sealed class MiningAutomationService
             while (!cancellationToken.IsCancellationRequested)
             {
                 lastSummary = ExecuteSingleStep(cancellationToken);
+
+                if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
+                {
+                    continue;
+                }
+
                 if (lastSummary.Action == MiningAutomationActionKind.QuitGameAndExitApplication)
                 {
                     Logger.Information(
@@ -119,6 +131,21 @@ internal sealed class MiningAutomationService
             transition.CapturePath);
     }
 
+    private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var capture = m_Context.ScreenCaptureService.CaptureCurrentScreen(".mining-connection-lost-popup-check");
+        var detection = m_ConnectionLostPopupDetector.Detect(capture.CapturePath);
+        if (detection.State != PopupState.ConnectionLost)
+        {
+            return false;
+        }
+
+        Logger.Error("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.GetType().Name, capture.CapturePath);
+        m_CurrentState = CreateState(MiningAutomationStateKind.RecoverConnectionLostPopup);
+        return true;
+    }
+
     private IMiningAutomationState CreateState(MiningAutomationStateKind stateKind)
     {
         return stateKind switch
@@ -128,10 +155,11 @@ internal sealed class MiningAutomationService
             MiningAutomationStateKind.Dock => new DockingState(m_AutomationInputController, m_HomeStationDetector),
             MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(m_AutomationInputController, m_InventoryDetector, m_DowntimeDetector),
             MiningAutomationStateKind.Undocking => new UndockingState(m_AutomationInputController, m_LocationChangeTimerDetector),
-            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(m_AutomationInputController, m_AsteroidBeltOverviewDetector, m_MineOverviewDetector, Random.Shared.Next),
+            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(m_AutomationInputController, m_AsteroidBeltOverviewDetector, m_MineOverviewDetector, m_WarOverviewDetector, Random.Shared.Next),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(m_AutomationInputController, m_MineOverviewDetector, m_FirstAsteroidWithinReachDetector),
             MiningAutomationStateKind.Mining => new MiningState(m_AutomationInputController, m_MiningAsteroidDetector, m_MiningLaserDetector, m_WarOverviewDetector),
             MiningAutomationStateKind.Recovery => new RecoveryState(m_AutomationInputController, m_AsteroidBeltOverviewDetector, m_HomeStationDetector, m_PlayNowButtonLocator),
+            MiningAutomationStateKind.RecoverConnectionLostPopup => new RecoverConnectionLostPopupState(m_ConnectionLostPopupRecoveryBehavior),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }
@@ -156,6 +184,7 @@ internal enum MiningAutomationStateKind
     Mining,
     UnloadCargo,
     Recovery,
+    RecoverConnectionLostPopup,
 }
 
 internal enum MiningAutomationActionKind
@@ -175,5 +204,6 @@ internal enum MiningAutomationActionKind
     QuitGameFromDock,
     QuitGameAndExitApplication,
     Relogin,
-    Recover
+    Recover,
+    RecoverConnectionLostPopup
 }

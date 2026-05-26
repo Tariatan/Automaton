@@ -48,9 +48,10 @@ internal sealed class MiningState(
                 return Recover(capture.CapturePath);
             }
 
-            if (warOverviewDetector.TryLocate(capture.Image, out var warOverviewBounds))
+            using var warDetectionImage = capture.Image.Clone();
+            if (warOverviewDetector.TryLocate(warDetectionImage, out var warOverviewBounds))
             {
-                var warOverviewNothingFound = NothingFoundDetector.Detect(capture.Image, warOverviewBounds);
+                var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warOverviewBounds);
                 if (!warOverviewNothingFound)
                 {
                     if (context.TryGetCurrentAsteroidBelt(out var currentAsteroidBeltBounds))

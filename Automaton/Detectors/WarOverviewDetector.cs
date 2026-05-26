@@ -7,6 +7,8 @@ internal sealed class WarOverviewDetector
 {
     private const double MinimumHeaderMatchScore = 0.90;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
+    private static readonly Scalar HeaderBoundsColor = new(120, 255, 120);
+    private static readonly Scalar WarOverviewBoundsColor = new(120, 220, 255);
 
     private readonly Mat m_OverviewWarTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_war.png");
 
@@ -18,19 +20,41 @@ internal sealed class WarOverviewDetector
             return false;
         }
 
-        var searchBounds = BuildFallbackSearchBounds(screen.Size());
-        return TryLocateByTemplate(screen, searchBounds, out warOverviewBounds);
-    }
-
-    private bool TryLocateByTemplate(Mat screen, Rect searchBounds, out Rect warOverviewBounds)
-    {
-        warOverviewBounds = default;
-        if (!TryMatchTemplate(screen, m_OverviewWarTemplate, searchBounds, out var headerLocation))
+        if (!TryLocateByTemplate(screen, out warOverviewBounds, out var headerBounds))
         {
             return false;
         }
 
-        warOverviewBounds = BuildWarOverviewBounds(screen.Size(), headerLocation.Bounds);
+        Cv2.Rectangle(screen, headerBounds, HeaderBoundsColor, 2);
+        Cv2.Rectangle(screen, warOverviewBounds, WarOverviewBoundsColor, 2);
+        return true;
+    }
+
+    private bool TryLocateByTemplate(Mat screen, out Rect warOverviewBounds, out Rect headerBounds)
+    {
+        warOverviewBounds = default;
+        headerBounds = default;
+        TemplateLocation? bestHeaderLocation = null;
+        foreach (var searchBounds in BuildFallbackSearchBounds(screen.Size()))
+        {
+            if (!TryMatchTemplate(screen, m_OverviewWarTemplate, searchBounds, out var headerLocation))
+            {
+                continue;
+            }
+
+            if (bestHeaderLocation is null || headerLocation.Score > bestHeaderLocation.Value.Score)
+            {
+                bestHeaderLocation = headerLocation;
+            }
+        }
+
+        if (bestHeaderLocation is null)
+        {
+            return false;
+        }
+
+        headerBounds = bestHeaderLocation.Value.Bounds;
+        warOverviewBounds = BuildWarOverviewBounds(screen.Size(), bestHeaderLocation.Value.Bounds);
         return true;
     }
 
@@ -94,9 +118,11 @@ internal sealed class WarOverviewDetector
         return scaledTemplate;
     }
 
-    private static Rect BuildFallbackSearchBounds(Size imageSize)
+    private static IEnumerable<Rect> BuildFallbackSearchBounds(Size imageSize)
     {
-        return BuildRelativeBounds(imageSize, 0.62, 0.52, 0.35, 0.45);
+        yield return BuildRelativeBounds(imageSize, 0.62, 0.65, 0.35, 0.32);
+        yield return BuildRelativeBounds(imageSize, 0.62, 0.52, 0.35, 0.45);
+        yield return BuildRelativeBounds(imageSize, 0.58, 0.45, 0.39, 0.50);
     }
 
     private static Rect BuildRelativeBounds(

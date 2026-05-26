@@ -19,9 +19,6 @@ internal static class SyntheticDiscoveryImageFactory
     public static Mat CreateSlowDownPopupImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/slow_down_popup.png");
 
-    public static Mat CreateConnectionLostPopupImage()
-        => ScreenshotLoader.LoadOrSkip("Discovery/connection_lost_popup.png");
-
     public static string GetSingleClusterImagePath()
         => ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_single_cluster.png");
 

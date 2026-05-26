@@ -28,6 +28,9 @@ internal static class SyntheticCommonImageFactory
     public static void CopyLoginPilotSelectionScreenTo(string destinationPath)
         => File.Copy(GetLoginPilotSelectionScreenPath(), destinationPath, overwrite: true);
 
+    public static Mat CreateConnectionLostPopupImage()
+        => ScreenshotLoader.LoadOrSkip("Discovery/connection_lost_popup.png");
+
     public static void CopyPilotAvatarTemplatesTo(string pilotDirectory, int pilotIndex)
     {
         Directory.CreateDirectory(pilotDirectory);

@@ -1,57 +1,115 @@
+using Automaton.Infrastructure;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
 internal static class NothingFoundDetector
 {
-    private const int MinimumBrightPixelCount = 180;
-    private const int MinimumLineWidth = 48;
-    private const int MinimumLineHeight = 10;
-    private const int MinimumLineCount = 2;
-    private const int WideLineWidth = 80;
+    private const double MinimumTemplateMatchScore = 0.62;
+    private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.9, 1.1, 0.85, 1.15];
+    private static readonly Mat NothingFoundTemplate = EmbeddedResourceLoader.LoadMat("overview.nothing_found.png");
+    private static readonly Scalar FoundBoundsColor = new(120, 220, 255);
 
     public static bool Detect(Mat screen, Rect mineOverviewBounds)
     {
+        var detected = TryLocate(screen, mineOverviewBounds, out var foundBounds);
+        if (detected)
+        {
+            Cv2.Rectangle(screen, foundBounds, FoundBoundsColor, 2);
+        }
+
+        return detected;
+    }
+
+    private static bool TryLocate(Mat screen, Rect mineOverviewBounds, out Rect foundBounds)
+    {
+        foundBounds = default;
         if (screen.Empty())
         {
             return false;
         }
 
-        var nothingFoundBounds = BuildNothingFoundSearchBounds(screen.Size(), mineOverviewBounds);
-        using var region = new Mat(screen, nothingFoundBounds);
-        using var gray = new Mat();
-        using var mask = new Mat();
-        Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
-        Cv2.InRange(gray, new Scalar(110), new Scalar(255), mask);
-        if (Cv2.CountNonZero(mask) < MinimumBrightPixelCount)
+        var searchBounds = BuildNothingFoundSearchBounds(screen.Size(), mineOverviewBounds);
+        if (TryMatchTemplate(screen, searchBounds, out foundBounds))
         {
-            return false;
+            return true;
         }
 
-        using var mergedMask = new Mat();
-        using var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(7, 3));
-        Cv2.MorphologyEx(mask, mergedMask, MorphTypes.Close, kernel);
-        Cv2.FindContours(
-            mergedMask,
-            out var contours,
-            out _,
-            RetrievalModes.External,
-            ContourApproximationModes.ApproxSimple);
-
-        var lineBounds = contours
-            .Select(Cv2.BoundingRect)
-            .Where(bounds => bounds is { Width: >= MinimumLineWidth, Height: >= MinimumLineHeight })
-            .ToArray();
-
-        return lineBounds.Length >= MinimumLineCount || lineBounds.Any(bounds => bounds.Width >= WideLineWidth);
+        var expandedSearchBounds = BuildExpandedNothingFoundSearchBounds(screen.Size(), mineOverviewBounds);
+        return TryMatchTemplate(screen, expandedSearchBounds, out foundBounds);
     }
 
     private static Rect BuildNothingFoundSearchBounds(Size imageSize, Rect mineOverviewBounds)
     {
-        var left = Math.Clamp(mineOverviewBounds.X + 40, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(mineOverviewBounds.Y + 80, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(mineOverviewBounds.Right - 28, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(mineOverviewBounds.Bottom - 30, top + 1, imageSize.Height);
+        var left = Math.Clamp(mineOverviewBounds.X + 8, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(mineOverviewBounds.Y + 40, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(mineOverviewBounds.Right - 8, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(mineOverviewBounds.Bottom - 10, top + 1, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
+
+    private static Rect BuildExpandedNothingFoundSearchBounds(Size imageSize, Rect mineOverviewBounds)
+    {
+        var left = Math.Clamp(mineOverviewBounds.X + 8, 0, Math.Max(0, imageSize.Width - 1));
+        var top = Math.Clamp(mineOverviewBounds.Y + 20, 0, Math.Max(0, imageSize.Height - 1));
+        var right = Math.Clamp(mineOverviewBounds.Right - 8, left + 1, imageSize.Width);
+        var bottom = Math.Clamp(imageSize.Height - 10, top + 1, imageSize.Height);
+        return new Rect(left, top, right - left, bottom - top);
+    }
+
+    private static bool TryMatchTemplate(Mat screen, Rect searchBounds, out Rect foundBounds)
+    {
+        foundBounds = default;
+        using var searchRegion = new Mat(screen, searchBounds);
+        using var searchRegionGray = new Mat();
+        Cv2.CvtColor(searchRegion, searchRegionGray, ColorConversionCodes.BGR2GRAY);
+        TemplateLocation? bestLocation = null;
+        foreach (var scale in TemplateScales)
+        {
+            using var scaledTemplate = BuildScaledTemplate(NothingFoundTemplate, scale);
+            using var scaledTemplateGray = new Mat();
+            Cv2.CvtColor(scaledTemplate, scaledTemplateGray, ColorConversionCodes.BGR2GRAY);
+            if (scaledTemplateGray.Width > searchRegionGray.Width || scaledTemplateGray.Height > searchRegionGray.Height)
+            {
+                continue;
+            }
+
+            using var result = new Mat();
+            Cv2.MatchTemplate(searchRegionGray, scaledTemplateGray, result, TemplateMatchModes.CCoeffNormed);
+            Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
+            var bounds = new Rect(
+                searchBounds.X + locationPoint.X,
+                searchBounds.Y + locationPoint.Y,
+                scaledTemplateGray.Width,
+                scaledTemplateGray.Height);
+            if (bestLocation is null || score > bestLocation.Value.Score)
+            {
+                bestLocation = new TemplateLocation(bounds, score);
+            }
+        }
+
+        if (bestLocation is null || bestLocation.Value.Score < MinimumTemplateMatchScore)
+        {
+            return false;
+        }
+
+        foundBounds = bestLocation.Value.Bounds;
+        return true;
+    }
+
+    private static Mat BuildScaledTemplate(Mat template, double scale)
+    {
+        if (Math.Abs(scale - 1.0) < double.Epsilon)
+        {
+            return template.Clone();
+        }
+
+        var width = Math.Max(1, (int)Math.Round(template.Width * scale));
+        var height = Math.Max(1, (int)Math.Round(template.Height * scale));
+        var scaledTemplate = new Mat();
+        Cv2.Resize(template, scaledTemplate, new Size(width, height));
+        return scaledTemplate;
+    }
+
+    private readonly record struct TemplateLocation(Rect Bounds, double Score);
 }

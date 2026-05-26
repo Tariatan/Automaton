@@ -11,6 +11,7 @@ internal sealed class SelectBeltAndWarpState(
     IAutomationInputController automationInputController,
     AsteroidBeltOverviewDetector beltOverviewDetector,
     MineOverviewDetector mineOverviewDetector,
+    WarOverviewDetector warOverviewDetector,
     Func<int, int> nextRandomIndex)
     : IMiningAutomationState
 {
@@ -106,7 +107,28 @@ internal sealed class SelectBeltAndWarpState(
             // Landed on asteroid belt
             if (landingAnalysis.LandedOnAsteroidBelt)
             {
-                m_Logger.Information("Landed on asteroid belt");
+                m_Logger.Information("Landed on asteroid belt => detecting asteroids");
+
+                using var warDetectionImage = capture.Image.Clone();
+                if (warOverviewDetector.TryLocate(warDetectionImage, out var warOverviewBounds))
+                {
+                    var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warOverviewBounds);
+                    if (!warOverviewNothingFound)
+                    {
+                        context.BlacklistAsteroidBelt(selectedAsteroidBelt.Bounds);
+                        m_Logger.Error(
+                            "WAR overview is active and not empty in SelectBeltAndWarpState => GTFO docking. BlacklistedBeltCount={BlacklistedBeltCount}, BlacklistedBeltBounds={BlacklistedBeltBounds}",
+                            context.BlacklistedAsteroidBeltCount,
+                            selectedAsteroidBelt.Bounds);
+                        var gtfoResult = new MiningAutomationStateTransition(
+                            Kind,
+                            MiningAutomationStateKind.Dock,
+                            MiningAutomationActionKind.None,
+                            capture.CapturePath);
+                        capture.Dispose();
+                        return gtfoResult;
+                    }
+                }
 
                 var mineOverviewAnalysis = AnalyzeMineOverview(capture.CapturePath, capture.Image);
                 var nothingFoundDetected = mineOverviewAnalysis is { MineOverviewLocated: true, MineOverviewBounds: not null } &&

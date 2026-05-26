@@ -70,6 +70,12 @@ internal sealed class ProjectDiscoveryAutomationService(
             while (!cancellationToken.IsCancellationRequested)
             {
                 lastSummary = ExecuteSingleStep(cancellationToken);
+
+                if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
+                {
+                    continue;
+                }
+
                 if (lastSummary.Action == DiscoveryAutomationActionKind.StopAutomation)
                 {
                     Logger.Information(
@@ -120,6 +126,21 @@ internal sealed class ProjectDiscoveryAutomationService(
             transition.NextState,
             transition.Action,
             transition.CapturePath);
+    }
+
+    private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var capture = screenCaptureService.CaptureCurrentScreen(".discovery-connection-lost-popup-check");
+        var detection = connectionLostPopupDetector.Detect(capture.CapturePath);
+        if (detection.State != PopupState.ConnectionLost)
+        {
+            return false;
+        }
+
+        Logger.Warning("Connection Lost popup detected {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
+        m_CurrentState = CreateState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
+        return true;
     }
 
     private IProjectDiscoveryAutomationState CreateState(DiscoveryAutomationStateKind stateKind)

@@ -52,11 +52,12 @@ internal sealed class DiscoverState(
             // Restart Game if playfield was not found for five times in a row
             if (context.ConsecutivePlayfieldMisses >= MaximumConsecutivePlayfieldMisses)
             {
+                m_Logger.Error("Playfield was not found for {Times} times in a row => Restarting", MaximumConsecutivePlayfieldMisses);
                 automationInputController.QuitGame(cancellationToken);
                 return new DiscoveryAutomationStateTransition(
                     Kind,
                     DiscoveryAutomationStateKind.StartingGame,
-                    DiscoveryAutomationActionKind.StopAutomation,
+                    DiscoveryAutomationActionKind.StartGame,
                     captureSummary.CapturePath);
             }
         }

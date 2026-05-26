@@ -28,6 +28,7 @@ public sealed class SelectBeltAndWarpStateTests
             automationInputController,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
+            new WarOverviewDetector(),
             _ => 1);
 
         // Act
@@ -65,6 +66,7 @@ public sealed class SelectBeltAndWarpStateTests
             automationInputController,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
+            new WarOverviewDetector(),
             _ => 0);
 
         // Act
@@ -84,5 +86,50 @@ public sealed class SelectBeltAndWarpStateTests
     {
         Assert.InRange(point.X, 200, 299);
         Assert.InRange(point.Y, 200, 299);
+    }
+
+    [Fact]
+    public void Execute_LandedAndWarOverviewNotEmpty_TransitionsToDockViaGtfo()
+    {
+        // Arrange
+        var captureInvocationCount = 0;
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(() =>
+            {
+                captureInvocationCount++;
+                return captureInvocationCount < 4
+                    ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
+                    : BuildLandedGtfoImage();
+            }),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var state = new SelectBeltAndWarpState(
+            automationInputController,
+            new AsteroidBeltOverviewDetector(),
+            new MineOverviewDetector(),
+            new WarOverviewDetector(),
+            _ => 1);
+        var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
+
+        // Act
+        var transition = state.Execute(context, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.Dock, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.None, transition.Action);
+        Assert.Equal(1, context.BlacklistedAsteroidBeltCount);
+    }
+
+    private static Mat BuildLandedGtfoImage()
+    {
+        var landedImage = SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
+        using var miningGtfoImage = SyntheticMiningImageFactory.LoadMiningGtfoImage();
+        var overlayLeft = Math.Clamp((int)Math.Round(landedImage.Width * 0.62), 0, landedImage.Width - 1);
+        var overlayBounds = new Rect(overlayLeft, 0, landedImage.Width - overlayLeft, landedImage.Height);
+        using var sourceRegion = new Mat(miningGtfoImage, overlayBounds);
+        using var targetRegion = new Mat(landedImage, overlayBounds);
+        sourceRegion.CopyTo(targetRegion);
+        return landedImage;
     }
 }

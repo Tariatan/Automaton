@@ -17,6 +17,8 @@ internal static class Delays
     
     public const int ConnectionLostExitMs = 1_000;
 
+    public const int RecoveryMs = 60_000;
+
     // Quit game / window control
     public const int QuitGameConfirmMs = 2_000;
     public const int WindowActivationMs = 1_000;
@@ -44,7 +46,4 @@ internal static class Delays
     // Mining: active mining
     public const int MiningPollingMs = 5_000;
     public static readonly TimeSpan MiningLoopDuration = TimeSpan.FromMinutes(15);
-
-    // Mining: recovery
-    public const int RecoveryMs = 60_000;
 }
