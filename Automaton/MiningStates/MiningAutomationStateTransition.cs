@@ -5,3 +5,46 @@ internal sealed record MiningAutomationStateTransition(
     MiningAutomationStateKind NextState,
     MiningAutomationActionKind Action,
     string? CapturePath = null);
+
+internal sealed record MiningAutomationStepSummary(
+    MiningAutomationStateKind State,
+    MiningAutomationStateKind NextState,
+    MiningAutomationActionKind Action,
+    string? CapturePath);
+
+internal enum MiningAutomationStateKind
+{
+    None,
+    StartingGame,
+    Login,
+    Dock,
+    Undocking,
+    SelectBeltAndWarp,
+    WarpingToAsteroidField,
+    ApproachingAsteroid,
+    Mining,
+    UnloadCargo,
+    Recovery,
+    RecoverConnectionLostPopup,
+}
+
+internal enum MiningAutomationActionKind
+{
+    None,
+    StartGame,
+    LoginPilot,
+    Dock,
+    FocusMiningHold,
+    Undock,
+    CompleteUndock,
+    WarpToAsteroidField,
+    ApproachAsteroid,
+    ActivateMiningLasers,
+    UnloadCargo,
+    QuitGameFromSpace,
+    QuitGameFromDock,
+    QuitGameAndExitApplication,
+    Relogin,
+    Recover,
+    RecoverConnectionLostPopup
+}

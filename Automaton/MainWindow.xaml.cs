@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Automaton.Infrastructure;
+using Automaton.MiningStates;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Properties;
 using Microsoft.Win32;

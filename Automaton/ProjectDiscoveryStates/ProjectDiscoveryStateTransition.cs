@@ -6,6 +6,12 @@ internal sealed record DiscoveryAutomationStateTransition(
     DiscoveryAutomationActionKind Action,
     string? CapturePath = null);
 
+internal sealed record DiscoveryAutomationStepSummary(
+    DiscoveryAutomationStateKind State,
+    DiscoveryAutomationStateKind NextState,
+    DiscoveryAutomationActionKind Action,
+    string? CapturePath);
+
 internal enum DiscoveryAutomationStateKind
 {
     None,
@@ -32,9 +38,3 @@ internal enum DiscoveryAutomationActionKind
     StopAutomation,
     NoFurtherPilotsAvailable,
 }
-
-internal sealed record DiscoveryAutomationStepSummary(
-    DiscoveryAutomationStateKind State,
-    DiscoveryAutomationStateKind NextState,
-    DiscoveryAutomationActionKind Action,
-    string? CapturePath);
