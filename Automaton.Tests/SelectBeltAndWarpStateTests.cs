@@ -76,7 +76,7 @@ public sealed class SelectBeltAndWarpStateTests
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.QuitGameFromSpace, transition.Action);
+        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Empty(automationInputController.Delays);

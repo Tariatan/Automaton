@@ -49,6 +49,8 @@ internal sealed class ProjectDiscoveryAutomationService(
             {
                 lastSummary = ExecuteSingleStep(cancellationToken);
 
+                automationInputController.TryHideUi(lastSummary.CapturePath, cancellationToken);
+
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
                 {
                     continue;

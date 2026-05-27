@@ -26,11 +26,7 @@ internal sealed class DockingState(
         var analysis = homeStationDetector.Analyze(capture.Image);
         if (!analysis.HomeStationLocated || analysis.HomeStationBounds is null)
         {
-            m_Logger.Error(
-                "Failed to detect home station. BestMatchScore={BestMatchScore:F3}, OverviewLocated={OverviewLocated}, OverviewBounds={OverviewBounds}",
-                analysis.BestMatchScore,
-                analysis.OverviewAnalysis.OverviewLocated,
-                analysis.OverviewAnalysis.OverviewBounds);
+            m_Logger.Error("Failed to detect home station. CapturePath={CapturePath}", capture.CapturePath);
             var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;
@@ -82,7 +78,7 @@ internal sealed class DockingState(
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.QuitGameFromSpace,
+            MiningAutomationActionKind.Recover,
             capturePath);
     }
 }

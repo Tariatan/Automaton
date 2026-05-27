@@ -18,6 +18,8 @@ internal sealed class ScreenCaptureService(
     private const int GameCaptureTop = 0;
     private const int GameCaptureWidth = 2_560;
     private const int GameCaptureHeight = 2_160;
+    private const int CaptureAttemptCount = 2;
+    private const int CaptureRetryDelayMilliseconds = 100;
     internal const int VirtualScreenLeftMetric = 76;
     internal const int VirtualScreenTopMetric = 77;
     internal const int VirtualScreenWidthMetric = 78;
@@ -50,7 +52,8 @@ internal sealed class ScreenCaptureService(
 
     internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "")
     {
-        var image = screenCaptureProvider.CaptureScreen();
+        var image = CaptureScreenWithRetry();
+
         var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
         var capturePath = Path.Combine(
             capturesDirectory,
@@ -68,13 +71,35 @@ internal sealed class ScreenCaptureService(
 
     internal void CaptureCurrentScreenToFile(string outputPath)
     {
-        using var image = screenCaptureProvider.CaptureScreen();
+        using var image = CaptureScreenWithRetry();
         if (persistCaptures)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             Cv2.ImWrite(outputPath, image);
             Logger.Debug("Captured current screen to file. OutputPath={OutputPath}", outputPath);
         }
+    }
+
+    private Mat CaptureScreenWithRetry()
+    {
+        for (var attempt = 1; attempt <= CaptureAttemptCount; attempt++)
+        {
+            try
+            {
+                return screenCaptureProvider.CaptureScreen();
+            }
+            catch (Exception exception) when (IsScreenCaptureFailure(exception) && attempt < CaptureAttemptCount)
+            {
+                Thread.Sleep(CaptureRetryDelayMilliseconds);
+            }
+        }
+
+        return new Mat(1, 1, MatType.CV_8UC3, Scalar.Black);
+    }
+
+    private static bool IsScreenCaptureFailure(Exception exception)
+    {
+        return exception is ArgumentException;
     }
 
     internal static Rectangle BuildGameCaptureBounds(Rectangle virtualScreenBounds)

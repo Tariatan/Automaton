@@ -22,7 +22,7 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
         cancellationToken.ThrowIfCancellationRequested();
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen($"{CaptureSuffix}-{PilotIndex}");
         cancellationToken.ThrowIfCancellationRequested();
-        var commonLoginState = new CommonLoginState(automationInputController, context.ScreenCaptureService);
+        var commonLoginState = new CommonLoginState(automationInputController);
 
         if (!commonLoginState.TryLoginPilot(
             PilotIndex,
@@ -47,7 +47,7 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.QuitGameFromSpace,
+            MiningAutomationActionKind.Recover,
             capturePath);
     }
 }

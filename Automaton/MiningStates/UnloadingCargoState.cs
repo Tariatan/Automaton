@@ -25,6 +25,17 @@ internal sealed class UnloadingCargoState(
         m_Logger.Debug("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
+        using var captureCheckIfDocked = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // TryLocate Undock button
+        if (!UndockButtonDetector.TryLocate(captureCheckIfDocked.Image, out _))
+        {
+            // Failed to detect Undock button
+            m_Logger.Error("Not in Dock => abort unloading");
+            return Recover(captureCheckIfDocked.CapturePath);
+        }
+
         if (!TryOpenInventoryWindow(
                 context,
                 cancellationToken,
@@ -54,14 +65,6 @@ internal sealed class UnloadingCargoState(
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // TryLocate Undock button
-        if (!UndockButtonDetector.TryLocate(capture.Image, out _))
-        {
-            // Failed to detect Undock button
-            m_Logger.Error("Not in Dock => abort unloading");
-            return Recover(capture.CapturePath);
-        }
-
         var analysis = inventoryDetector.Analyze(capture.Image);
         AnnotateHoldTransferCapture(
             capture.CapturePath,
@@ -70,7 +73,7 @@ internal sealed class UnloadingCargoState(
             analysis.ItemHangarFirstRowBounds);
         if (analysis.MiningHoldTitleBounds is null || analysis.ItemHangarTitleBounds is null)
         {
-            m_Logger.Error("Failed to detect Item Hangar and/or Mining Hold");
+            m_Logger.Error("Failed to detect Item Hangar and/or Mining Hold. Capture={CapturePath}", capture.CapturePath);
             return Recover(capture.CapturePath);
         }
 
@@ -195,7 +198,7 @@ internal sealed class UnloadingCargoState(
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.QuitGameFromDock,
+            MiningAutomationActionKind.Recover,
             capturePath);
     }
 }

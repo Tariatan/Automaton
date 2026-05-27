@@ -41,9 +41,8 @@ internal enum MiningAutomationActionKind
     ApproachAsteroid,
     ActivateMiningLasers,
     UnloadCargo,
-    QuitGameFromSpace,
-    QuitGameFromDock,
     QuitGameAndExitApplication,
+    Reboot,
     Relogin,
     Recover,
     RecoverConnectionLostPopup

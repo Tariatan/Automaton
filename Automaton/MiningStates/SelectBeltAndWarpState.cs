@@ -214,7 +214,7 @@ internal sealed class SelectBeltAndWarpState(
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.QuitGameFromSpace,
+            MiningAutomationActionKind.Recover,
             capturePath);
     }
 

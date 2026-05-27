@@ -139,16 +139,6 @@ internal partial class MainWindow
                 nextState,
                 discoveryAutomationActionKind);
 
-            // ToDo: handle in corresponding states
-            /*
-            if (summary.ConnectionLostDetected)
-            {
-                Logger.Error("Connection Lost popup detected. Exiting process.");
-                Application.Current.Shutdown();
-                Environment.Exit(0);
-            }
-            */
-
             if (discoveryAutomationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
             {
                 const MiningAutomationStateKind desiredMiningAutomationInitialState = MiningAutomationStateKind.Login;
@@ -193,14 +183,20 @@ internal partial class MainWindow
                 summary.CapturePath);
             if (summary.Action == MiningAutomationActionKind.QuitGameAndExitApplication)
             {
-                Logger.Information("Mining automation requested safe application exit.");
+                Logger.Error("Mining automation requested safe application exit.");
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
+            else if (summary.Action == MiningAutomationActionKind.Reboot)
+            {
+                Logger.Error("Mining automation requested operating system reboot. Closing application.");
                 Application.Current.Shutdown();
                 Environment.Exit(0);
             }
         }
         catch (OperationCanceledException)
         {
-            Logger.Information("Mining automation was canceled.");
+            Logger.Error("Mining automation was canceled.");
         }
         catch (Exception exception)
         {

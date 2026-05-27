@@ -1,9 +1,7 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
-using OpenCvSharp;
 using Serilog;
-using System.IO;
 
 namespace Automaton.MiningStates;
 
@@ -15,6 +13,8 @@ internal sealed class RecoveryState(
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-recovery";
+    private const int MaximumStartingGameTransitionsBeforeReboot = 5;
+    private static int _sStartingGameTransitionsCount;
 
     private readonly ILogger m_Logger = Log.ForContext<RecoveryState>();
 
@@ -44,24 +44,15 @@ internal sealed class RecoveryState(
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
 
-        // Try to detect safe haven again
-        if (context.LastAction == MiningAutomationActionKind.QuitGameFromSpace)
-        {
-            var beltAnalysis = AnalyzeBeltOverview(capture.CapturePath, capture.Image);
-            var homeStationAnalysis = homeStationDetector.Analyze(capture.Image);
-            if (!beltAnalysis.OverviewLocated || !homeStationAnalysis.HomeStationLocated)
-            {
-                m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
-                automationInputController.QuitGame(cancellationToken);
-                // Debounce
-                automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
-                return new MiningAutomationStateTransition(
-                    Kind,
-                    MiningAutomationStateKind.StartingGame,
-                    MiningAutomationActionKind.None,
-                    capture.CapturePath);
-            }
+        var overviewLocated = beltOverviewDetector.AnalyzeAndDrawDebugOverlay(capture.CapturePath).OverviewLocated;
+        var homeStationLocated = homeStationDetector.Analyze(capture.Image).HomeStationLocated;
+        var inSpace = overviewLocated && homeStationLocated;
+        var docked = UndockButtonDetector.TryLocate(capture.Image, out _);
 
+        if (inSpace)
+        {
+            _sStartingGameTransitionsCount = 0;
+            m_Logger.Error("Home station detected during recovery => try docking");
             // We are still in space and docking is possible
             return new MiningAutomationStateTransition(
                 Kind,
@@ -70,22 +61,9 @@ internal sealed class RecoveryState(
                 capture.CapturePath);
         }
 
-        // Try to detect Undock button again
-        if (context.LastAction == MiningAutomationActionKind.QuitGameFromDock)
+        if (docked)
         {
-            if (!UndockButtonDetector.TryLocate(capture.Image, out _))
-            {
-                m_Logger.Error("Undock button not found while docked. Quit Game since this state is unrecoverable.");
-                automationInputController.QuitGame(cancellationToken);
-                // Debounce
-                automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
-                return new MiningAutomationStateTransition(
-                    Kind,
-                    MiningAutomationStateKind.StartingGame,
-                    MiningAutomationActionKind.None,
-                    capture.CapturePath);
-            }
-
+            _sStartingGameTransitionsCount = 0;
             m_Logger.Error("Undock button found during recovery => try unloading cargo again");
             // Docked and Undock button found
             return new MiningAutomationStateTransition(
@@ -96,45 +74,53 @@ internal sealed class RecoveryState(
         }
 
         // Game crashed?
-        var playNowFound = File.Exists(capture.CapturePath)
-            ? playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.CapturePath, out _)
-            : playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.Image, out _);
+        var playNowFound = playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.CapturePath, out _);
         if (playNowFound)
         {
             m_Logger.Error("Game crashed => Restarting...");
-            return new MiningAutomationStateTransition(
+            return BuildStartingGameTransition(
                 Kind,
                 MiningAutomationStateKind.StartingGame,
                 MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+                capture.CapturePath,
+                cancellationToken);
         }
 
-        return new MiningAutomationStateTransition(
+        // Last resort
+        m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
+        automationInputController.QuitGame(cancellationToken);
+        // Debounce
+        automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
+        return BuildStartingGameTransition(
             Kind,
-            MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.Recover,
-            capture.CapturePath);
+            MiningAutomationStateKind.StartingGame,
+            MiningAutomationActionKind.None,
+            capture.CapturePath,
+            cancellationToken);
     }
 
-    private AsteroidBeltOverviewAnalysis AnalyzeBeltOverview(string capturePath, Mat screen)
+    private MiningAutomationStateTransition BuildStartingGameTransition(
+        MiningAutomationStateKind state,
+        MiningAutomationStateKind nextState,
+        MiningAutomationActionKind action,
+        string? capturePath,
+        CancellationToken cancellationToken)
     {
-        if (File.Exists(capturePath))
+        _sStartingGameTransitionsCount++;
+        if (_sStartingGameTransitionsCount <= MaximumStartingGameTransitionsBeforeReboot)
         {
-            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+            return new MiningAutomationStateTransition(state, nextState, action, capturePath);
         }
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-recovery-belt-overview-{Guid.NewGuid():N}.png");
-        try
-        {
-            Cv2.ImWrite(tempPath, screen);
-            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
+        m_Logger.Error(
+            "StartingGame transition count exceeded threshold ({Threshold}). Triggering operating system reboot.",
+            MaximumStartingGameTransitionsBeforeReboot);
+        automationInputController.RebootOperatingSystem(cancellationToken);
+        return new MiningAutomationStateTransition(state, nextState, MiningAutomationActionKind.Reboot, capturePath);
+    }
+
+    internal static void ResetStartingGameTransitionsCounterForTests()
+    {
+        _sStartingGameTransitionsCount = 0;
     }
 }

@@ -10,7 +10,7 @@ internal sealed class LoginState(
     IAutomationInputController automationInputController) : IProjectDiscoveryAutomationState
 {
     private const string CaptureSuffix = ".discovery-login";
-    private readonly CommonLoginState m_CommonLoginState = new(automationInputController, screenCaptureService);
+    private readonly CommonLoginState m_CommonLoginState = new(automationInputController);
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Login;
 

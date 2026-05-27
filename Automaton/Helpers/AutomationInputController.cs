@@ -1,11 +1,16 @@
-using System.Runtime.InteropServices;
 using Automaton.Primitives;
 using OpenCvSharp;
+using Serilog;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Automaton.Helpers;
 
 internal sealed class AutomationInputController : IAutomationInputController
 {
+    private readonly ILogger m_Logger = Log.ForContext<AutomationInputController>();
+
     private const uint LeftDownEvent = 0x0002;
     private const uint LeftUpEvent = 0x0004;
     private const uint KeyUpEvent = 0x0002;
@@ -20,6 +25,22 @@ internal sealed class AutomationInputController : IAutomationInputController
         MoveTo(point);
         LeftClick(cancellationToken);
         MoveTo(BuildRandomMouseParkingPoint());
+    }
+
+    public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(capturePathToValidate))
+        {
+            return;
+        }
+
+        var captureFileInfo = new FileInfo(capturePathToValidate);
+        // Hide UI if captured file size is more than 1Mb
+        if (captureFileInfo is { Exists: true, Length: > 1024 * 1024 })
+        {
+            m_Logger.Information("Hiding UI because capture size exceeded 1 MB ({CaptureSizeMb} MB).", captureFileInfo.Length / 1024 / 1024);
+            PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
+        }
     }
 
     public void MoveTo(Point point)
@@ -115,6 +136,25 @@ internal sealed class AutomationInputController : IAutomationInputController
         PressKey(VirtualKeys.Enter, cancellationToken);
     }
 
+    public void RebootOperatingSystem(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        m_Logger.Error("Scheduling safe operating system reboot.");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "shutdown.exe",
+            Arguments = "/r /t 30 /c \"Automaton recovery threshold exceeded\"",
+            CreateNoWindow = true,
+            UseShellExecute = false
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+        {
+            throw new InvalidOperationException("Failed to schedule operating system reboot.");
+        }
+    }
+
     public void Logout(CancellationToken cancellationToken)
     {
         Delay(Delays.WindowActivationMs, cancellationToken);
@@ -126,8 +166,10 @@ internal sealed class AutomationInputController : IAutomationInputController
         // Confirm Logout
         PressKey(VirtualKeys.Enter, cancellationToken);
 
+        var delay = TimeSpan.FromMilliseconds(Delays.PilotLogoutMs);
+        m_Logger.Information("Logging out for {Seconds} seconds", delay.TotalSeconds);
         // Wait for full logout
-        Delay(Delays.PilotLogoutMs, cancellationToken);
+        Delay(delay, cancellationToken);
 
         // Close any window on login screen
         PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);

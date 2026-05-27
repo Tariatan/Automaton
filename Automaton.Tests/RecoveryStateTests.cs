@@ -9,6 +9,11 @@ namespace Automaton.Tests;
 
 public sealed class RecoveryStateTests
 {
+    public RecoveryStateTests()
+    {
+        RecoveryState.ResetStartingGameTransitionsCounterForTests();
+    }
+
     [Fact]
     public void Execute_HomeStationFound_TransitionsToDock()
     {
@@ -26,7 +31,7 @@ public sealed class RecoveryStateTests
             new PlayNowButtonLocator());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
-            LastAction = MiningAutomationActionKind.QuitGameFromSpace
+            LastAction = MiningAutomationActionKind.Recover
         };
 
         // Act
@@ -55,7 +60,7 @@ public sealed class RecoveryStateTests
             new PlayNowButtonLocator());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
-            LastAction = MiningAutomationActionKind.QuitGameFromDock
+            LastAction = MiningAutomationActionKind.Recover
         };
 
         // Act
@@ -139,7 +144,7 @@ public sealed class RecoveryStateTests
             new PlayNowButtonLocator());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
-            LastAction = MiningAutomationActionKind.QuitGameFromSpace
+            LastAction = MiningAutomationActionKind.Recover
         };
 
         // Act
@@ -170,7 +175,7 @@ public sealed class RecoveryStateTests
             new PlayNowButtonLocator());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
-            LastAction = MiningAutomationActionKind.QuitGameFromDock
+            LastAction = MiningAutomationActionKind.Recover
         };
 
         // Act
@@ -181,6 +186,37 @@ public sealed class RecoveryStateTests
         Assert.Equal(MiningAutomationActionKind.None, transition.Action);
         Assert.True(automationInputController.QuitGameCalled);
         Assert.Equal([Delays.RecoveryMs, Delays.RecoveryMs], automationInputController.Delays);
+    }
+
+    [Fact]
+    public void Execute_StartingGameTransitionCountExceedsFive_TriggersRebootAction()
+    {
+        // Arrange
+        using var screen = CreatePlayButtonScreen(new Point(260, 340));
+        var beltOverviewDetector = new AsteroidBeltOverviewDetector();
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(screen.Clone),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var state = new RecoveryState(
+            automationInputController,
+            beltOverviewDetector,
+            new HomeStationDetector(beltOverviewDetector),
+            new PlayNowButtonLocator());
+        var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
+
+        // Act
+        MiningAutomationStateTransition transition = null!;
+        for (var i = 0; i < 6; i++)
+        {
+            transition = state.Execute(context, CancellationToken.None);
+        }
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.StartingGame, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Reboot, transition.Action);
+        Assert.True(automationInputController.RebootOperatingSystemCalled);
     }
 
     private static Mat CreatePlayButtonScreen(Point playButtonLocation)

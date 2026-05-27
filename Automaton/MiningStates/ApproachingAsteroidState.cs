@@ -118,7 +118,7 @@ internal sealed class ApproachingAsteroidState(
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.QuitGameFromSpace,
+            MiningAutomationActionKind.Recover,
             capturePath);
     }
 

@@ -34,13 +34,6 @@ internal sealed class PlayNowButtonLocator
         return found;
     }
 
-    public bool TryLocateAndDrawDebugOverlay(Mat image, out PlayNowButtonLocation location)
-    {
-        var found = TryLocateCore(image, out location);
-        DrawDebugOverlay(image, found, location);
-        return found;
-    }
-
     private bool TryLocateCore(Mat screen, out PlayNowButtonLocation location)
     {
         location = default;

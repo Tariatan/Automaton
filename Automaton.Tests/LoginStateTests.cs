@@ -83,7 +83,7 @@ public sealed class LoginStateTests
 
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.QuitGameFromSpace, transition.Action);
+        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
         Assert.Empty(automationInputControllerMock.Delays);

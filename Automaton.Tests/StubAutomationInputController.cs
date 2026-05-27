@@ -10,6 +10,7 @@ internal sealed class StubAutomationInputController : IAutomationInputController
     public List<KeyboardInput> KeyInputs { get; } = [];
     public int ClickCount { get; private set; }
     public bool QuitGameCalled { get; private set; }
+    public bool RebootOperatingSystemCalled { get; private set; }
     public bool LogoutCalled { get; private set; }
     public Action<int>? OnDelay { get; init; }
     public Action<ushort, ushort>? OnPressKeyChord { get; init; }
@@ -20,6 +21,11 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         MoveTargets.Add(point);
         ClickCount++;
         MoveTargets.Add(new Point(250, 250));
+    }
+
+    public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 
     public void MoveTo(Point point)
@@ -46,20 +52,16 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         OnPressKeyChord?.Invoke(modifierVirtualKey, virtualKey);
     }
 
-    public void PressKeyChord(
-        ushort firstModifierVirtualKey,
-        ushort secondModifierVirtualKey,
-        ushort virtualKey,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        KeyInputs.Add(new KeyboardInput(firstModifierVirtualKey, secondModifierVirtualKey, virtualKey));
-    }
-
     public void QuitGame(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         QuitGameCalled = true;
+    }
+
+    public void RebootOperatingSystem(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        RebootOperatingSystemCalled = true;
     }
 
     public void Logout(CancellationToken cancellationToken)
