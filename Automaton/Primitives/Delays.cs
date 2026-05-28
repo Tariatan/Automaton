@@ -10,9 +10,9 @@ internal static class Delays
     // General automation
     public const int AutomationStartupDelayMs = 3_000;
     public const int StateMachineNextStepDelayMs = 500;
-    public const int LauncherStartupMs = 30_000;
-    public const int PilotLoginMs = 20_000;
-    public const int PilotLogoutMs = 30_000;
+    public const int LauncherStartupMs = 60_000;
+    public const int PilotLoginMs = 40_000;
+    public const int PilotLogoutMs = 40_000;
     public const int LoadWindowMs = 3_000;
     
     public const int ConnectionLostExitMs = 1_000;
@@ -29,7 +29,7 @@ internal static class Delays
     // Mining: docking
     public const int BeforeDockMs = 1_000;
     public const int DockedPollingMs = 5_000;
-    public const int DockedBounceMs = 15_000;
+    public const int DockedBounceMs = 25_000;
 
     // Mining: undocking
     public const int InitialUndockMs = 15_000;
@@ -40,7 +40,7 @@ internal static class Delays
     public const int LandingPollingMs = 1_000;
 
     // Mining: approaching asteroid
-    public const int ApproachAsteroidDistancePollingMs = 500;
+    public const int ApproachAsteroidDistancePollingMs = 1000;
     public const int LockAsteroidMs = 3_000;
 
     // Mining: active mining

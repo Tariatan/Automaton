@@ -44,7 +44,7 @@ internal sealed class RecoveryState(
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
 
         var overviewAnalysis = beltOverviewDetector.Detect(capture.Image, false);
-        var inSpace = overviewAnalysis.OverviewLocated && overviewAnalysis.HomeStationLocated;
+        var inSpace = overviewAnalysis is { OverviewLocated: true, HomeStationLocated: true };
         var docked = UndockButtonDetector.Detect(capture.Image, out _, false);
 
         if (inSpace)

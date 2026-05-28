@@ -62,10 +62,7 @@ internal static class AsteroidRowsDetector
 
         if (drawDebugOverlay)
         {
-            foreach (var row in result)
-            {
-                Cv2.Rectangle(screen, row.Bounds, RowBoundsColor, 2);
-            }
+            // do nothing
         }
 
         return result;

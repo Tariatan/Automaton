@@ -31,7 +31,7 @@ internal sealed class StartingGameState(
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.QuitGameAndExitApplication,
+                MiningAutomationActionKind.Relogin,
                 capture.CapturePath);
         }
 
