@@ -26,11 +26,11 @@ public sealed class ApproachingAsteroidStateTests
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var firstAsteroidWithinReachDetector = new StubFirstAsteroidWithinReachDetector(
-            (OpenCvSharp.Mat _, OpenCvSharp.Rect _, OpenCvSharp.Rect _, out DistanceUnitDetectionTelemetry telemetry) =>
+            () =>
             {
                 detectInvocationCount++;
-                telemetry = new DistanceUnitDetectionTelemetry(null, null, 0.99, 1.0, detectInvocationCount >= 2);
-                return detectInvocationCount >= 2;
+                var isWithinReach = detectInvocationCount >= 2;
+                return new FirstAsteroidWithinReachAnalysis(isWithinReach, null, null, 0.99, 1.0);
             });
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
@@ -81,28 +81,16 @@ public sealed class ApproachingAsteroidStateTests
     }
 
     private sealed class StubFirstAsteroidWithinReachDetector(
-        StubFirstAsteroidWithinReachDetector.DetectWithTelemetryHandler detectWithTelemetry)
-        : IFirstAsteroidWithinReachDetector
+        Func<FirstAsteroidWithinReachAnalysis> detectHandler)
+        : FirstAsteroidWithinReachDetector
     {
-        public bool Detect(OpenCvSharp.Mat screen, OpenCvSharp.Rect mineOverviewBounds, OpenCvSharp.Rect firstAsteroidRowBounds, bool drawDebugOverlay = true)
-        {
-            return Detect(screen, mineOverviewBounds, firstAsteroidRowBounds, out _, drawDebugOverlay);
-        }
-
-        public bool Detect(
+        public override FirstAsteroidWithinReachAnalysis Detect(
             OpenCvSharp.Mat screen,
             OpenCvSharp.Rect mineOverviewBounds,
             OpenCvSharp.Rect firstAsteroidRowBounds,
-            out DistanceUnitDetectionTelemetry telemetry,
             bool drawDebugOverlay = true)
         {
-            return detectWithTelemetry(screen, mineOverviewBounds, firstAsteroidRowBounds, out telemetry);
+            return detectHandler();
         }
-
-        internal delegate bool DetectWithTelemetryHandler(
-            OpenCvSharp.Mat screen,
-            OpenCvSharp.Rect mineOverviewBounds,
-            OpenCvSharp.Rect firstAsteroidRowBounds,
-            out DistanceUnitDetectionTelemetry telemetry);
     }
 }

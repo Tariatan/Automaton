@@ -9,7 +9,7 @@ namespace Automaton.MiningStates;
 internal sealed class ApproachingAsteroidState(
     IAutomationInputController automationInputController,
     MineOverviewDetector mineOverviewDetector,
-    IFirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector)
+    FirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector)
     : IMiningAutomationState
 {
     private readonly ILogger m_Logger = Log.ForContext<ApproachingAsteroidState>();
@@ -74,16 +74,15 @@ internal sealed class ApproachingAsteroidState(
                 ? currentAsteroids[0].Bounds
                 : asteroids[0].Bounds;
 
-            var nearestAsteroidWithinReach = firstAsteroidWithinReachDetector.Detect(
+            var reachAnalysis = firstAsteroidWithinReachDetector.Detect(
                 capture.Image,
                 mineOverviewBounds,
-                firstAsteroidRowBounds,
-                out var _);
+                firstAsteroidRowBounds);
             Cv2.ImWrite(capture.CapturePath, capture.Image);
             m_Logger.Information("Asteroid within reach detection. Attempt={Attempt}/{MaxAttempts}", attempt + 1, Settings.ApproachingAsteroidDistancePollingAttemptCount);
 
             // Nearest asteroid is within reach
-            if (nearestAsteroidWithinReach)
+            if (reachAnalysis.IsWithinReach)
             {
                 m_Logger.Information("Distance to asteroid decreased below 10 km => locking target and activating lasers");
 
