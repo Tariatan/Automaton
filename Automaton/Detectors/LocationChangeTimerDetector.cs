@@ -13,7 +13,7 @@ internal sealed class LocationChangeTimerDetector : IDisposable
 
     public void Dispose() => m_Template.Dispose();
 
-    public bool TryLocate(Mat screen, out LocationChangeTimerLocation location)
+    public bool Detect(Mat screen, out LocationChangeTimerLocation location, bool drawDebugOverlay = true)
     {
         location = default;
         if (screen.Empty())

@@ -1,6 +1,5 @@
 using Automaton.Infrastructure;
 using OpenCvSharp;
-using System.IO;
 
 namespace Automaton.Detectors;
 
@@ -11,9 +10,9 @@ internal sealed class HomeStationDetector(AsteroidBeltOverviewDetector asteroidB
 
     private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
 
-    public HomeStationAnalysis Analyze(Mat screen)
+    public HomeStationAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
     {
-        var overviewAnalysis = AnalyzeOverview(screen);
+        var overviewAnalysis = asteroidBeltOverviewDetector.Detect(screen, false);
         if (!overviewAnalysis.OverviewLocated || overviewAnalysis.OverviewBounds is null)
         {
             return new HomeStationAnalysis(false, null, 0, overviewAnalysis);
@@ -25,23 +24,6 @@ internal sealed class HomeStationDetector(AsteroidBeltOverviewDetector asteroidB
         }
 
         return new HomeStationAnalysis(true, homeStationBounds, bestScore, overviewAnalysis);
-    }
-
-    private AsteroidBeltOverviewAnalysis AnalyzeOverview(Mat screen)
-    {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-home-station-{Guid.NewGuid():N}.png");
-        try
-        {
-            Cv2.ImWrite(tempPath, screen);
-            return asteroidBeltOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
     }
 
     private bool TryMatchHomeStation(Mat screen, Rect overviewBounds, out Rect homeStationBounds, out double bestScore)

@@ -18,7 +18,7 @@ public sealed class StartingGameStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonLocator());
+        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonDetector());
 
         // Act
         var transition = state.Execute(
@@ -45,7 +45,7 @@ public sealed class StartingGameStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonLocator());
+        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonDetector());
 
         // Act
         var transition = state.Execute(

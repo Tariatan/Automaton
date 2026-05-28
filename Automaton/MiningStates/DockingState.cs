@@ -23,7 +23,7 @@ internal sealed class DockingState(
         cancellationToken.ThrowIfCancellationRequested();
 
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-        var analysis = homeStationDetector.Analyze(capture.Image);
+        var analysis = homeStationDetector.Detect(capture.Image);
         if (!analysis.HomeStationLocated || analysis.HomeStationBounds is null)
         {
             m_Logger.Error("Failed to detect home station. CapturePath={CapturePath}", capture.CapturePath);
@@ -53,7 +53,7 @@ internal sealed class DockingState(
             capture = context.ScreenCaptureService.CaptureCurrentScreen(DockedCaptureSuffix);
 
             // Docked
-            if (UndockButtonDetector.TryLocate(capture.Image, out _))
+            if (UndockButtonDetector.Detect(capture.Image, out _))
             {
                 m_Logger.Information("Docked");
                 break;

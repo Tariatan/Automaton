@@ -15,7 +15,7 @@ internal abstract class PopupDetectorBase
 
     protected abstract PopupDetection DetectCore(Mat image);
 
-    public PopupDetection Detect(string imagePath)
+    public PopupDetection Detect(string imagePath, bool drawDebugOverlay = true)
     {
         using var image = Cv2.ImRead(imagePath);
         var coreDetection = DetectCore(image);
@@ -27,17 +27,21 @@ internal abstract class PopupDetectorBase
             return detection;
         }
 
-        Cv2.Rectangle(image, detection.Bounds, DebugOverlayTextColor, 2);
-        Cv2.PutText(
-            image,
-            DebugOverlayText,
-            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
-            HersheyFonts.HersheySimplex,
-            DebugOverlayTextScale,
-            DebugOverlayTextColor,
-            DebugOverlayTextThickness,
-            LineTypes.AntiAlias);
-        Cv2.ImWrite(imagePath, image);
+        if (drawDebugOverlay)
+        {
+            Cv2.Rectangle(image, detection.Bounds, DebugOverlayTextColor, 2);
+            Cv2.PutText(
+                image,
+                DebugOverlayText,
+                new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
+                HersheyFonts.HersheySimplex,
+                DebugOverlayTextScale,
+                DebugOverlayTextColor,
+                DebugOverlayTextThickness,
+                LineTypes.AntiAlias);
+            Cv2.ImWrite(imagePath, image);
+        }
+
         return detection;
     }
 }

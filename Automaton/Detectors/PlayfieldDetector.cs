@@ -54,7 +54,7 @@ internal sealed class PlayfieldDetector
         m_TemplateSize = m_TemplateGray.Size();
     }
 
-    public PlayfieldDetectionResult Detect(Mat screenshot)
+    public PlayfieldDetectionResult Detect(Mat screenshot, bool drawDebugOverlay = true)
     {
         using var screenshotGray = new Mat();
         using var screenshotEqualized = new Mat();

@@ -12,7 +12,7 @@ public sealed class LocationChangeTimerDetectorTests
         var locator = new LocationChangeTimerDetector();
 
         // Act
-        var located = locator.TryLocate(image, out var location);
+        var located = locator.Detect(image, out var location);
 
         // Assert
         Assert.True(located);
@@ -28,7 +28,7 @@ public sealed class LocationChangeTimerDetectorTests
         var locator = new LocationChangeTimerDetector();
 
         // Act
-        var located = locator.TryLocate(image, out _);
+        var located = locator.Detect(image, out _);
 
         // Assert
         Assert.False(located);

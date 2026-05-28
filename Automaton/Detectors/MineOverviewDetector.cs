@@ -21,7 +21,7 @@ internal sealed class MineOverviewDetector
 
     private readonly Mat m_OverviewMineTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_mine.png");
 
-    public MineOverviewAnalysis AnalyzeAndDrawDebugOverlay(string imagePath)
+    public MineOverviewAnalysis Detect(string imagePath, bool drawDebugOverlay = true)
     {
         using var screen = Cv2.ImRead(imagePath);
         if (screen.Empty())
@@ -30,8 +30,13 @@ internal sealed class MineOverviewDetector
         }
 
         var analysis = AnalyzeCore(screen);
-        DrawDebugOverlay(screen, analysis);
-        Cv2.ImWrite(imagePath, screen);
+
+        if (drawDebugOverlay)
+        {
+            DrawDebugOverlay(screen, analysis);
+            Cv2.ImWrite(imagePath, screen);
+        }
+
         return analysis;
     }
 

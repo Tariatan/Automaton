@@ -102,7 +102,7 @@ internal sealed class SelectBeltAndWarpState(
         {
             cancellationToken.ThrowIfCancellationRequested();
             capture = context.ScreenCaptureService.CaptureCurrentScreen(LandingCaptureSuffix);
-            var landingAnalysis = AsteroidBeltLandingDetector.Analyze(capture.Image);
+            var landingAnalysis = AsteroidBeltLandingDetector.Detect(capture.Image);
 
             // Landed on asteroid belt
             if (landingAnalysis.LandedOnAsteroidBelt)
@@ -110,7 +110,7 @@ internal sealed class SelectBeltAndWarpState(
                 m_Logger.Information("Landed on asteroid belt => detecting asteroids");
 
                 using var warDetectionImage = capture.Image.Clone();
-                if (warOverviewDetector.TryLocate(warDetectionImage, out var warOverviewBounds))
+                if (warOverviewDetector.Detect(warDetectionImage, out var warOverviewBounds))
                 {
                     var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warOverviewBounds);
                     if (!warOverviewNothingFound)
@@ -167,38 +167,28 @@ internal sealed class SelectBeltAndWarpState(
 
     private AsteroidBeltOverviewAnalysis Analyze(string capturePath, Mat screen)
     {
+        var analysis = beltOverviewDetector.Detect(screen);
+
         if (File.Exists(capturePath))
         {
-            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+            Cv2.ImWrite(capturePath, screen);
         }
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-select-belt-overview-{Guid.NewGuid():N}.png");
-        try
-        {
-            Cv2.ImWrite(tempPath, screen);
-            return beltOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
+        return analysis;
     }
 
     private MineOverviewAnalysis AnalyzeMineOverview(string capturePath, Mat screen)
     {
         if (File.Exists(capturePath))
         {
-            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+            return mineOverviewDetector.Detect(capturePath);
         }
 
         var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-select-belt-mine-overview-{Guid.NewGuid():N}.png");
         try
         {
             Cv2.ImWrite(tempPath, screen);
-            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
+            return mineOverviewDetector.Detect(tempPath);
         }
         finally
         {

@@ -32,7 +32,7 @@ internal sealed class PilotAvatarLocator
         return false;
     }
 
-    public static bool TryLocateAndDrawDebugOverlay(string imagePath, int requestedPilotIndex, out PilotAvatarLocation location)
+    public static bool Detect(string imagePath, int requestedPilotIndex, out PilotAvatarLocation location, bool drawDebugOverlay = true)
     {
         using var image = Cv2.ImRead(imagePath);
         var requestedMatch = TryLocateBest(image, requestedPilotIndex);
@@ -41,8 +41,11 @@ internal sealed class PilotAvatarLocator
             ? requestedPilotIndex
             : TryFindBestPilotIndex(image, requestedPilotIndex);
 
-        DrawDebugOverlay(image, requestedPilotIndex, foundPilotIndex, requestedMatch);
-        Cv2.ImWrite(imagePath, image);
+        if (drawDebugOverlay)
+        {
+            DrawDebugOverlay(image, requestedPilotIndex, foundPilotIndex, requestedMatch);
+            Cv2.ImWrite(imagePath, image);
+        }
 
         if (!matchedRequestedPilot)
         {

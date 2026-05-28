@@ -17,9 +17,7 @@ internal sealed class ProjectDiscoveryAutomationService(
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
     private ProjectDiscoveryAutomationContext m_Context = null!;
 
-    internal int CurrentPilotIndex { get; private set; } = InitialPilotIndex;
-
-    internal ScreenCaptureService ScreenCaptureService { get; } = screenCaptureService;
+    private ScreenCaptureService ScreenCaptureService { get; } = screenCaptureService;
 
     public void ProcessSamples()
     {
@@ -39,7 +37,6 @@ internal sealed class ProjectDiscoveryAutomationService(
 
         m_Context = new ProjectDiscoveryAutomationContext(initialPilotIndex, keepDebugImages);
 
-        CurrentPilotIndex = initialPilotIndex;
         m_CurrentState = CreateState(startingState);
 
         DiscoveryAutomationStepSummary? lastSummary = null;
@@ -118,7 +115,7 @@ internal sealed class ProjectDiscoveryAutomationService(
             return false;
         }
 
-        Logger.Warning("Connection Lost popup detected {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
+        Logger.Warning("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
         m_CurrentState = CreateState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
         return true;
     }

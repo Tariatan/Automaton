@@ -13,7 +13,7 @@ public sealed class InventoryDetectorTests
         var detector = new InventoryDetector();
 
         // Act
-        var analysis = detector.Analyze(image);
+        var analysis = detector.Detect(image);
 
         // Assert
         Assert.NotNull(analysis.ItemHangarTitleBounds);
@@ -32,7 +32,7 @@ public sealed class InventoryDetectorTests
         var detector = new InventoryDetector();
 
         // Act
-        var analysis = detector.Analyze(image);
+        var analysis = detector.Detect(image);
 
         // Assert
         Assert.Null(analysis.MiningHoldTitleBounds);

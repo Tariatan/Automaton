@@ -9,12 +9,12 @@ internal sealed class RecoveryState(
     IAutomationInputController automationInputController,
     AsteroidBeltOverviewDetector beltOverviewDetector,
     HomeStationDetector homeStationDetector,
-    PlayNowButtonLocator playNowButtonLocator)
+    PlayNowButtonDetector playNowButtonDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-recovery";
     private const int MaximumStartingGameTransitionsBeforeReboot = 5;
-    private static int _sStartingGameTransitionsCount;
+    private static int sStartingGameTransitionsCount;
 
     private readonly ILogger m_Logger = Log.ForContext<RecoveryState>();
 
@@ -44,14 +44,14 @@ internal sealed class RecoveryState(
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
 
-        var overviewLocated = beltOverviewDetector.AnalyzeAndDrawDebugOverlay(capture.CapturePath).OverviewLocated;
-        var homeStationLocated = homeStationDetector.Analyze(capture.Image).HomeStationLocated;
+        var overviewLocated = beltOverviewDetector.Detect(capture.Image, false).OverviewLocated;
+        var homeStationLocated = homeStationDetector.Detect(capture.Image, false).HomeStationLocated;
         var inSpace = overviewLocated && homeStationLocated;
-        var docked = UndockButtonDetector.TryLocate(capture.Image, out _);
+        var docked = UndockButtonDetector.Detect(capture.Image, out _, false);
 
         if (inSpace)
         {
-            _sStartingGameTransitionsCount = 0;
+            sStartingGameTransitionsCount = 0;
             m_Logger.Error("Home station detected during recovery => try docking");
             // We are still in space and docking is possible
             return new MiningAutomationStateTransition(
@@ -63,7 +63,7 @@ internal sealed class RecoveryState(
 
         if (docked)
         {
-            _sStartingGameTransitionsCount = 0;
+            sStartingGameTransitionsCount = 0;
             m_Logger.Error("Undock button found during recovery => try unloading cargo again");
             // Docked and Undock button found
             return new MiningAutomationStateTransition(
@@ -74,7 +74,7 @@ internal sealed class RecoveryState(
         }
 
         // Game crashed?
-        var playNowFound = playNowButtonLocator.TryLocateAndDrawDebugOverlay(capture.CapturePath, out _);
+        var playNowFound = playNowButtonDetector.Detect(capture.CapturePath, out _);
         if (playNowFound)
         {
             m_Logger.Error("Game crashed => Restarting...");
@@ -106,8 +106,8 @@ internal sealed class RecoveryState(
         string? capturePath,
         CancellationToken cancellationToken)
     {
-        _sStartingGameTransitionsCount++;
-        if (_sStartingGameTransitionsCount <= MaximumStartingGameTransitionsBeforeReboot)
+        sStartingGameTransitionsCount++;
+        if (sStartingGameTransitionsCount <= MaximumStartingGameTransitionsBeforeReboot)
         {
             return new MiningAutomationStateTransition(state, nextState, action, capturePath);
         }
@@ -121,6 +121,6 @@ internal sealed class RecoveryState(
 
     internal static void ResetStartingGameTransitionsCounterForTests()
     {
-        _sStartingGameTransitionsCount = 0;
+        sStartingGameTransitionsCount = 0;
     }
 }

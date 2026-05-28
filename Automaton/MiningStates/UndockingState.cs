@@ -31,7 +31,7 @@ internal sealed class UndockingState(
         cancellationToken.ThrowIfCancellationRequested();
 
         // TryLocate Undock button
-        if (!UndockButtonDetector.TryLocate(capture.Image, out var undockButtonBounds))
+        if (!UndockButtonDetector.Detect(capture.Image, out var undockButtonBounds))
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort undocking");
@@ -55,7 +55,7 @@ internal sealed class UndockingState(
         {
             cancellationToken.ThrowIfCancellationRequested();
             capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-            if (detector.TryLocate(capture.Image, out _))
+            if (detector.Detect(capture.Image, out _))
             {
                 m_Logger.Information("Location Change Timer located");
 
@@ -79,5 +79,4 @@ internal sealed class UndockingState(
             MiningAutomationActionKind.Recover,
             capture.CapturePath);
     }
-
 }

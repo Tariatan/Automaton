@@ -141,10 +141,10 @@ internal partial class MainWindow
 
             if (discoveryAutomationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
             {
-                const MiningAutomationStateKind desiredMiningAutomationInitialState = MiningAutomationStateKind.Login;
-                Logger.Information("No further pilots are available. Switching to mining automation from {State} state.", desiredMiningAutomationInitialState);
+                const MiningAutomationStateKind DesiredMiningAutomationInitialState = MiningAutomationStateKind.Login;
+                Logger.Information("No further pilots are available. Switching to mining automation from {State} state.", DesiredMiningAutomationInitialState);
                 m_AutomationMode = ApplicationAutomationMode.Mining;
-                m_SelectedMiningStartState = desiredMiningAutomationInitialState;
+                m_SelectedMiningStartState = DesiredMiningAutomationInitialState;
                 ApplyAutomationMode();
                 await StartMiningAutomationAsync(new CancellationTokenSource());
             }

@@ -9,12 +9,12 @@ internal sealed class FirstAsteroidWithinReachDetector : IFirstAsteroidWithinRea
     private static readonly double[] TemplateScales = [1.0, 0.98, 1.02, 0.97, 1.03, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
     private readonly Mat m_DistanceMetersTemplate = EmbeddedResourceLoader.LoadMat("overview.distance_m.png");
 
-    public bool Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds)
+    public bool Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds, bool drawDebugOverlay = true)
     {
-        return Detect(screen, mineOverviewBounds, firstAsteroidRowBounds, out _);
+        return Detect(screen, mineOverviewBounds, firstAsteroidRowBounds, out _, drawDebugOverlay);
     }
 
-    public bool Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds, out DistanceUnitDetectionTelemetry telemetry)
+    public bool Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds, out DistanceUnitDetectionTelemetry telemetry, bool drawDebugOverlay = true)
     {
         if (screen.Empty())
         {

@@ -12,7 +12,7 @@ internal sealed class WarOverviewDetector
 
     private readonly Mat m_OverviewWarTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_war.png");
 
-    public bool TryLocate(Mat screen, out Rect warOverviewBounds)
+    public bool Detect(Mat screen, out Rect warOverviewBounds, bool drawDebugOverlay = true)
     {
         warOverviewBounds = default;
         if (screen.Empty())
@@ -25,8 +25,12 @@ internal sealed class WarOverviewDetector
             return false;
         }
 
-        Cv2.Rectangle(screen, headerBounds, HeaderBoundsColor, 2);
-        Cv2.Rectangle(screen, warOverviewBounds, WarOverviewBoundsColor, 2);
+        if (drawDebugOverlay)
+        {
+            Cv2.Rectangle(screen, headerBounds, HeaderBoundsColor, 2);
+            Cv2.Rectangle(screen, warOverviewBounds, WarOverviewBoundsColor, 2);
+        }
+
         return true;
     }
 

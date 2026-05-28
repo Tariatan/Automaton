@@ -1,30 +1,80 @@
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.Detectors;
 
 internal static class AsteroidBeltLandingDetector
 {
-    private const int BinaryMaskMaxValue = 255;
     private const int MinimumLabelBrightPixelCount = 700;
     private const int MinimumLabelRowBrightPixelCount = 40;
     private const int MinimumLabelWidth = 400;
     private const int MinimumLabelHeight = 35;
     private const int MaximumLabelHeight = 50;
+    private const double DebugOverlayTextScale = 0.8;
+    private const int DebugOverlayTextThickness = 2;
+    private const int DebugOverlayLeftPadding = 30;
+    private const int DebugOverlayTopPadding = 40;
+    private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
+    private static readonly Scalar SearchBoundsColor = new(255, 200, 120);
+    private static readonly Scalar LabelBoundsColor = new(120, 255, 120);
+    private static readonly ILogger Logger = Log.ForContext(typeof(AsteroidBeltLandingDetector));
 
-    public static AsteroidBeltLandingAnalysis Analyze(Mat screen)
+    public static AsteroidBeltLandingAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
     {
         if (screen.Empty())
         {
             return AsteroidBeltLandingAnalysis.NotFound;
         }
 
-        var labelBounds = LocateAsteroidBeltLabel(screen);
-        return labelBounds is null ? AsteroidBeltLandingAnalysis.NotFound : new AsteroidBeltLandingAnalysis(true);
+        var searchBounds = BuildLabelSearchBounds(screen.Size());
+        var labelBounds = LocateAsteroidBeltLabel(screen, searchBounds);
+        var analysis = labelBounds is null
+            ? new AsteroidBeltLandingAnalysis(false, searchBounds, null)
+            : new AsteroidBeltLandingAnalysis(true, searchBounds, labelBounds);
+
+        if (drawDebugOverlay)
+        {
+            DrawDebugOverlay(screen, analysis);
+        }
+
+        return analysis;
     }
 
-    private static Rect? LocateAsteroidBeltLabel(Mat screen)
+    private static void DrawDebugOverlay(Mat image, AsteroidBeltLandingAnalysis analysis)
     {
-        var searchBounds = BuildLabelSearchBounds(screen.Size());
+        if (image.Empty())
+        {
+            return;
+        }
+
+        if (analysis.SearchBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.SearchBounds.Value, SearchBoundsColor, 2);
+        }
+
+        if (analysis.LabelBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.LabelBounds.Value, LabelBoundsColor, 2);
+        }
+
+        var overlayText = $"Belt landing: {(analysis.LandedOnAsteroidBelt ? "detected" : "not found")}";
+        Cv2.PutText(
+            image,
+            overlayText,
+            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
+            HersheyFonts.HersheySimplex,
+            DebugOverlayTextScale,
+            DebugOverlayColor,
+            DebugOverlayTextThickness,
+            LineTypes.AntiAlias);
+
+        Logger.Information(
+            "Asteroid belt landing: LandedOnAsteroidBelt={LandedOnAsteroidBelt}",
+            analysis.LandedOnAsteroidBelt);
+    }
+
+    private static Rect? LocateAsteroidBeltLabel(Mat screen, Rect searchBounds)
+    {
         using var searchRegion = new Mat(screen, searchBounds);
         using var gray = new Mat();
         using var brightMask = new Mat();
@@ -38,7 +88,7 @@ internal static class AsteroidBeltLandingDetector
             Cv2.CvtColor(searchRegion, gray, ColorConversionCodes.BGR2GRAY);
         }
 
-        Cv2.Threshold(gray, brightMask, 180, BinaryMaskMaxValue, ThresholdTypes.Binary);
+        Cv2.Threshold(gray, brightMask, 180, 255, ThresholdTypes.Binary);
 
         var brightPixelCount = Cv2.CountNonZero(brightMask);
         if (brightPixelCount < MinimumLabelBrightPixelCount)
@@ -61,14 +111,16 @@ internal static class AsteroidBeltLandingDetector
 
     private static Rect? FindAsteroidBeltLabelBand(Mat brightMask)
     {
+        using var rowSums = new Mat();
+        Cv2.Reduce(brightMask, rowSums, ReduceDimension.Column, ReduceTypes.Sum, MatType.CV_32S);
+
         Rect? bestBounds = null;
         var rowStart = -1;
+        const int Threshold = MinimumLabelRowBrightPixelCount * 255;
 
         for (var y = 0; y < brightMask.Height; y++)
         {
-            using var row = brightMask.Row(y);
-            var rowBrightPixelCount = Cv2.CountNonZero(row);
-            if (rowBrightPixelCount >= MinimumLabelRowBrightPixelCount)
+            if (rowSums.At<int>(y, 0) >= Threshold)
             {
                 if (rowStart < 0)
                 {
@@ -93,22 +145,39 @@ internal static class AsteroidBeltLandingDetector
         }
 
         using var bandMask = new Mat(brightMask, new Rect(0, rowStart, brightMask.Width, rowEnd - rowStart + 1));
-        using var brightPixels = new Mat();
-        Cv2.FindNonZero(bandMask, brightPixels);
-        if (brightPixels.Empty())
+        using var colSums = new Mat();
+        Cv2.Reduce(bandMask, colSums, ReduceDimension.Row, ReduceTypes.Sum, MatType.CV_32S);
+
+        var left = -1;
+        var right = -1;
+        for (var x = 0; x < colSums.Cols; x++)
+        {
+            if (colSums.At<int>(0, x) <= 0)
+            {
+                continue;
+            }
+
+            if (left < 0)
+            {
+                left = x;
+            }
+
+            right = x;
+        }
+
+        if (left < 0)
         {
             return bestBounds;
         }
 
-        var bounds = Cv2.BoundingRect(brightPixels);
-        bounds.Y += rowStart;
-        if (bounds.Width < MinimumLabelWidth ||
-            bounds.Height < MinimumLabelHeight ||
-            bounds.Height > MaximumLabelHeight)
+        var width = right - left + 1;
+        var height = rowEnd - rowStart + 1;
+        if (width < MinimumLabelWidth || height < MinimumLabelHeight || height > MaximumLabelHeight)
         {
             return bestBounds;
         }
 
+        var bounds = new Rect(left, rowStart, width, height);
         return bestBounds is null || bounds.Width > bestBounds.Value.Width
             ? bounds
             : bestBounds;
@@ -124,7 +193,10 @@ internal static class AsteroidBeltLandingDetector
     }
 }
 
-internal sealed record AsteroidBeltLandingAnalysis(bool LandedOnAsteroidBelt)
+internal sealed record AsteroidBeltLandingAnalysis(
+    bool LandedOnAsteroidBelt,
+    Rect? SearchBounds,
+    Rect? LabelBounds)
 {
-    public static AsteroidBeltLandingAnalysis NotFound { get; } = new(false);
+    public static AsteroidBeltLandingAnalysis NotFound { get; } = new(false, null, null);
 }

@@ -16,7 +16,7 @@ internal sealed class MiningAsteroidDetector
         EmbeddedResourceLoader.LoadMat("mining.asteroid_veldspar.png")
     ];
 
-    public bool TryLocate(Mat screen)
+    public bool Detect(Mat screen, bool drawDebugOverlay = true)
     {
         if (screen.Empty())
         {

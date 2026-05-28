@@ -11,7 +11,7 @@ public sealed class AsteroidBeltLandingDetectorTests
         using var image = SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
 
         // Act
-        var analysis = AsteroidBeltLandingDetector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Detect(image);
 
         // Assert
         Assert.True(analysis.LandedOnAsteroidBelt);
@@ -24,7 +24,7 @@ public sealed class AsteroidBeltLandingDetectorTests
         using var image = SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage();
 
         // Act
-        var analysis = AsteroidBeltLandingDetector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Detect(image);
 
         // Assert
         Assert.False(analysis.LandedOnAsteroidBelt);
@@ -37,7 +37,7 @@ public sealed class AsteroidBeltLandingDetectorTests
         using var image = SyntheticMiningImageFactory.LoadWarpDriveActiveImage();
 
         // Act
-        var analysis = AsteroidBeltLandingDetector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Detect(image);
 
         // Assert
         Assert.False(analysis.LandedOnAsteroidBelt);
@@ -50,7 +50,7 @@ public sealed class AsteroidBeltLandingDetectorTests
         using var image = SyntheticMiningImageFactory.LoadLandedOnEmptyAsteroidBeltImage();
 
         // Act
-        var analysis = AsteroidBeltLandingDetector.Analyze(image);
+        var analysis = AsteroidBeltLandingDetector.Detect(image);
 
         // Assert
         Assert.True(analysis.LandedOnAsteroidBelt);

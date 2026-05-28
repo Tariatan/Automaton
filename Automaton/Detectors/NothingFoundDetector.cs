@@ -10,10 +10,10 @@ internal static class NothingFoundDetector
     private static readonly Mat NothingFoundTemplate = EmbeddedResourceLoader.LoadMat("overview.nothing_found.png");
     private static readonly Scalar FoundBoundsColor = new(120, 220, 255);
 
-    public static bool Detect(Mat screen, Rect mineOverviewBounds)
+    public static bool Detect(Mat screen, Rect mineOverviewBounds, bool drawDebugOverlay = true)
     {
         var detected = TryLocate(screen, mineOverviewBounds, out var foundBounds);
-        if (detected)
+        if (detected && drawDebugOverlay)
         {
             Cv2.Rectangle(screen, foundBounds, FoundBoundsColor, 2);
         }

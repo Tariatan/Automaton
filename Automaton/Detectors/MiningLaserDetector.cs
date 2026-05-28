@@ -12,7 +12,7 @@ internal sealed class MiningLaserDetector
 
     private readonly Mat m_MiningLaserTemplate = EmbeddedResourceLoader.LoadMat("mining.mining_laser.png");
 
-    public bool TryLocate(Mat screen)
+    public bool Detect(Mat screen, bool drawDebugOverlay = true)
     {
         return !screen.Empty() && TryMatchTemplate(screen, m_MiningLaserTemplate, LaserSearchBounds, MinimumLaserMatchScore);
     }

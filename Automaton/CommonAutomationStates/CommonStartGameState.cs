@@ -8,14 +8,14 @@ namespace Automaton.CommonAutomationStates;
 
 internal sealed class CommonStartGameState(
     IAutomationInputController automationInputController,
-    PlayNowButtonLocator playNowButtonLocator)
+    PlayNowButtonDetector playNowButtonDetector)
 {
     private readonly ILogger m_Logger = Log.ForContext<CommonStartGameState>();
 
     public bool TryStartGame(string capturePath, CancellationToken cancellationToken, out Rect playButtonBounds)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!playNowButtonLocator.TryLocateAndDrawDebugOverlay(capturePath, out var playButtonLocation))
+        if (!playNowButtonDetector.Detect(capturePath, out var playButtonLocation))
         {
             playButtonBounds = default;
             return false;

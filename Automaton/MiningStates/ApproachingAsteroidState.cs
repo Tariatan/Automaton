@@ -49,7 +49,7 @@ internal sealed class ApproachingAsteroidState(
             return result;
         }
 
-        var asteroids = AsteroidRowsDetector.Locate(capture.Image, mineOverviewBounds);
+        var asteroids = AsteroidRowsDetector.Detect(capture.Image, mineOverviewBounds);
         if (asteroids.Count == 0)
         {
             m_Logger.Error("Failed to detect asteroid rows in MINE overview");
@@ -70,7 +70,7 @@ internal sealed class ApproachingAsteroidState(
         {
             cancellationToken.ThrowIfCancellationRequested();
             capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.ApproachingAsteroidCaptureSuffix);
-            var currentAsteroids = AsteroidRowsDetector.Locate(capture.Image, mineOverviewBounds);
+            var currentAsteroids = AsteroidRowsDetector.Detect(capture.Image, mineOverviewBounds);
             var firstAsteroidRowBounds = currentAsteroids.Count > 0
                 ? currentAsteroids[0].Bounds
                 : asteroids[0].Bounds;
@@ -146,14 +146,14 @@ internal sealed class ApproachingAsteroidState(
     {
         if (File.Exists(capturePath))
         {
-            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(capturePath);
+            return mineOverviewDetector.Detect(capturePath);
         }
 
         var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-approaching-mine-overview-{Guid.NewGuid():N}.png");
         try
         {
             Cv2.ImWrite(tempPath, screen);
-            return mineOverviewDetector.AnalyzeAndDrawDebugOverlay(tempPath);
+            return mineOverviewDetector.Detect(tempPath);
         }
         finally
         {
@@ -163,5 +163,4 @@ internal sealed class ApproachingAsteroidState(
             }
         }
     }
-
 }

@@ -84,16 +84,17 @@ public sealed class ApproachingAsteroidStateTests
         StubFirstAsteroidWithinReachDetector.DetectWithTelemetryHandler detectWithTelemetry)
         : IFirstAsteroidWithinReachDetector
     {
-        public bool Detect(OpenCvSharp.Mat screen, OpenCvSharp.Rect mineOverviewBounds, OpenCvSharp.Rect firstAsteroidRowBounds)
+        public bool Detect(OpenCvSharp.Mat screen, OpenCvSharp.Rect mineOverviewBounds, OpenCvSharp.Rect firstAsteroidRowBounds, bool drawDebugOverlay = true)
         {
-            return Detect(screen, mineOverviewBounds, firstAsteroidRowBounds, out _);
+            return Detect(screen, mineOverviewBounds, firstAsteroidRowBounds, out _, drawDebugOverlay);
         }
 
         public bool Detect(
             OpenCvSharp.Mat screen,
             OpenCvSharp.Rect mineOverviewBounds,
             OpenCvSharp.Rect firstAsteroidRowBounds,
-            out DistanceUnitDetectionTelemetry telemetry)
+            out DistanceUnitDetectionTelemetry telemetry,
+            bool drawDebugOverlay = true)
         {
             return detectWithTelemetry(screen, mineOverviewBounds, firstAsteroidRowBounds, out telemetry);
         }

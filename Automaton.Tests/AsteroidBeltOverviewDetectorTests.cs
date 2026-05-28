@@ -1,23 +1,18 @@
 using Automaton.Detectors;
-using OpenCvSharp;
-using System.IO;
 
 namespace Automaton.Tests;
 
 public sealed class AsteroidBeltOverviewDetectorTests
 {
     [Fact]
-    public void AnalyzeAndDrawDebugOverlay_OverviewWithAsteroidBelts_ReturnsControlsAndBeltRows()
+    public void Detect_OverviewWithAsteroidBelts_ReturnsControlsAndBeltRows()
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage();
-        using var temporaryDirectory = new TemporaryDirectory();
-        var imagePath = Path.Combine(temporaryDirectory.Path, "overview.png");
-        Cv2.ImWrite(imagePath, image);
-        var detector = new AsteroidBeltOverviewDetector();
+        using var detector = new AsteroidBeltOverviewDetector();
 
         // Act
-        var analysis = detector.AnalyzeAndDrawDebugOverlay(imagePath);
+        var analysis = detector.Detect(image);
 
         // Assert
         Assert.True(analysis.OverviewLocated);

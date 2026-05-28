@@ -28,7 +28,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             beltOverviewDetector,
             new HomeStationDetector(beltOverviewDetector),
-            new PlayNowButtonLocator());
+            new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -57,7 +57,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             beltOverviewDetector,
             new HomeStationDetector(beltOverviewDetector),
-            new PlayNowButtonLocator());
+            new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -87,7 +87,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             beltOverviewDetector,
             new HomeStationDetector(beltOverviewDetector),
-            new PlayNowButtonLocator());
+            new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
         // Act
@@ -114,7 +114,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             beltOverviewDetector,
             new HomeStationDetector(beltOverviewDetector),
-            new PlayNowButtonLocator());
+            new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
         // Act
@@ -141,7 +141,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             beltOverviewDetector,
             new HomeStationDetector(beltOverviewDetector),
-            new PlayNowButtonLocator());
+            new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -172,7 +172,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             beltOverviewDetector,
             new HomeStationDetector(beltOverviewDetector),
-            new PlayNowButtonLocator());
+            new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -203,7 +203,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             beltOverviewDetector,
             new HomeStationDetector(beltOverviewDetector),
-            new PlayNowButtonLocator());
+            new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
         // Act

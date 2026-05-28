@@ -1,5 +1,3 @@
-using System.Windows;
-
 namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class ProjectDiscoveryAutomationContext(int initialPilotIndex, bool keepDebugImages)

@@ -10,7 +10,7 @@ internal sealed class MiningAutomationService(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
     IAutomationClock automationClock,
-    PlayNowButtonLocator playNowButtonLocator,
+    PlayNowButtonDetector playNowButtonDetector,
     HomeStationDetector homeStationDetector,
     LocationChangeTimerDetector locationChangeTimerDetector,
     InventoryDetector inventoryDetector,
@@ -109,7 +109,7 @@ internal sealed class MiningAutomationService(
             return false;
         }
 
-        Logger.Error("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.GetType().Name, capture.CapturePath);
+        Logger.Error("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
         m_CurrentState = CreateState(MiningAutomationStateKind.RecoverConnectionLostPopup);
         return true;
     }
@@ -118,7 +118,7 @@ internal sealed class MiningAutomationService(
     {
         return stateKind switch
         {
-            MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, playNowButtonLocator),
+            MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, playNowButtonDetector),
             MiningAutomationStateKind.Login => new LoginState(automationInputController),
             MiningAutomationStateKind.Dock => new DockingState(automationInputController, homeStationDetector),
             MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, inventoryDetector, downtimeDetector),
@@ -126,7 +126,7 @@ internal sealed class MiningAutomationService(
             MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(automationInputController, asteroidBeltOverviewDetector, mineOverviewDetector, warOverviewDetector, Random.Shared.Next),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(automationInputController, mineOverviewDetector, firstAsteroidWithinReachDetector),
             MiningAutomationStateKind.Mining => new MiningState(automationInputController, miningAsteroidDetector, miningLaserDetector, warOverviewDetector),
-            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, asteroidBeltOverviewDetector, homeStationDetector, playNowButtonLocator),
+            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, asteroidBeltOverviewDetector, homeStationDetector, playNowButtonDetector),
             MiningAutomationStateKind.RecoverConnectionLostPopup => new RecoverConnectionLostPopupState(connectionLostPopupRecoveryBehavior),
             _ => new PendingMiningAutomationState(stateKind)
         };

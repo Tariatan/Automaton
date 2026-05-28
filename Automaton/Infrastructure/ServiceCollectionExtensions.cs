@@ -15,7 +15,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IAutomationClock, SystemAutomationClock>();
 
         services.AddSingleton<PlayfieldDetector>();
-        services.AddSingleton<PlayNowButtonLocator>();
+        services.AddSingleton<PlayNowButtonDetector>();
         services.AddSingleton<KnownSampleMatcher>();
         services.AddSingleton<MaxSubmissionsPopupDetector>();
         services.AddSingleton<SlowDownPopupDetector>();

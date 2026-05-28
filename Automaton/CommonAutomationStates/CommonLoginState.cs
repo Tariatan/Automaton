@@ -15,7 +15,7 @@ internal sealed class CommonLoginState(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!PilotAvatarLocator.TryLocateAndDrawDebugOverlay(capturePath, pilotIndex, out var pilotLocation))
+        if (!PilotAvatarLocator.Detect(capturePath, pilotIndex, out var pilotLocation))
         {
             pilotBounds = default;
             return false;

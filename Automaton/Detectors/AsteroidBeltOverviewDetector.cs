@@ -41,21 +41,7 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
         m_HomeStationTemplate.Dispose();
     }
 
-    public AsteroidBeltOverviewAnalysis AnalyzeAndDrawDebugOverlay(string imagePath)
-    {
-        using var image = Cv2.ImRead(imagePath);
-        if (image.Empty())
-        {
-            return AsteroidBeltOverviewAnalysis.NotFound;
-        }
-
-        var analysis = AnalyzeCore(image);
-        DrawDebugOverlay(image, analysis);
-        Cv2.ImWrite(imagePath, image);
-        return analysis;
-    }
-
-    private AsteroidBeltOverviewAnalysis AnalyzeCore(Mat screen)
+    public AsteroidBeltOverviewAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
     {
         if (screen.Empty())
         {
@@ -92,12 +78,19 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
             ? []
             : LocateAsteroidBelts(searchable, overviewBounds, homeStationBounds.Value);
 
-        return new AsteroidBeltOverviewAnalysis(
+        var analysis = new AsteroidBeltOverviewAnalysis(
             true,
             overviewBounds,
             overviewBeltButtonBounds,
             homeStationBounds,
             asteroidBelts);
+
+        if (drawDebugOverlay)
+        {
+            DrawDebugOverlay(screen, analysis);
+        }
+
+        return analysis;
     }
 
     private static void DrawDebugOverlay(Mat image, AsteroidBeltOverviewAnalysis analysis)
@@ -186,25 +179,26 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
             .Where(row => RowLooksSelectable(screen, row.Bounds))
             .ToList();
 
-        return rows
-            .OrderBy(row => row.Bounds.Y)
-            .ToList();
+        rows.Sort((a, b) => a.Bounds.Y.CompareTo(b.Bounds.Y));
+        return rows;
     }
 
     private static List<List<int>> GroupIconPartCenters(IReadOnlyList<int> iconPartCenters)
     {
         var groups = new List<List<int>>();
+        var groupSums = new List<long>();
         foreach (var center in iconPartCenters.Order())
         {
-            var currentGroup = groups.LastOrDefault();
-            if (currentGroup is null ||
-                Math.Abs(center - currentGroup.Average()) > AsteroidIconGroupMaximumDistance)
+            if (groups.Count == 0 ||
+                Math.Abs(center - (double)groupSums[^1] / groups[^1].Count) > AsteroidIconGroupMaximumDistance)
             {
                 groups.Add([center]);
+                groupSums.Add(center);
                 continue;
             }
 
-            currentGroup.Add(center);
+            groups[^1].Add(center);
+            groupSums[^1] += center;
         }
 
         return groups;

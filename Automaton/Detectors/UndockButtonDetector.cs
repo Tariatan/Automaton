@@ -10,7 +10,7 @@ internal static class UndockButtonDetector
     private static readonly Scalar BlueUiMinimum = new(85, 35, 25);
     private static readonly Scalar BlueUiMaximum = new(110, 220, 140);
 
-    public static bool TryLocate(Mat screen, out Rect undockButtonBounds)
+    public static bool Detect(Mat screen, out Rect undockButtonBounds, bool drawDebugOverlay = true)
     {
         undockButtonBounds = default;
         if (screen.Empty())

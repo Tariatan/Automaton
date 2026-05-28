@@ -39,7 +39,7 @@ public sealed class NothingFoundDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.LoadMiningGtfoImage();
-        var warOverviewFound = m_WarOverviewDetector.TryLocate(image, out var warOverviewBounds);
+        var warOverviewFound = m_WarOverviewDetector.Detect(image, out var warOverviewBounds);
 
         // Act
         var detected = warOverviewFound && NothingFoundDetector.Detect(image, warOverviewBounds);

@@ -29,7 +29,7 @@ internal sealed class UnloadingCargoState(
         cancellationToken.ThrowIfCancellationRequested();
 
         // TryLocate Undock button
-        if (!UndockButtonDetector.TryLocate(captureCheckIfDocked.Image, out _))
+        if (!UndockButtonDetector.Detect(captureCheckIfDocked.Image, out _, false))
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort unloading");
@@ -38,10 +38,10 @@ internal sealed class UnloadingCargoState(
 
         if (!TryOpenInventoryWindow(
                 context,
-                cancellationToken,
                 VirtualKeys.M,
                 analysis => analysis.MiningHoldTitleBounds is not null,
-                "Mining Hold"))
+                "Mining Hold",
+                cancellationToken))
         {
             return new MiningAutomationStateTransition(
                 Kind,
@@ -51,10 +51,10 @@ internal sealed class UnloadingCargoState(
 
         if (!TryOpenInventoryWindow(
                 context,
-                cancellationToken,
                 VirtualKeys.G,
                 analysis => analysis.ItemHangarTitleBounds is not null,
-                "Item Hangar"))
+                "Item Hangar",
+                cancellationToken))
         {
             return new MiningAutomationStateTransition(
                 Kind,
@@ -65,7 +65,7 @@ internal sealed class UnloadingCargoState(
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var analysis = inventoryDetector.Analyze(capture.Image);
+        var analysis = inventoryDetector.Detect(capture.Image);
         AnnotateHoldTransferCapture(
             capture.CapturePath,
             capture.Image,
@@ -145,14 +145,14 @@ internal sealed class UnloadingCargoState(
 
     private bool TryOpenInventoryWindow(
         MiningAutomationContext context,
-        CancellationToken cancellationToken,
         ushort inventoryVirtualKey,
         Func<InventoryAnalysis, bool> isWindowVisible,
-        string windowName)
+        string windowName,
+        CancellationToken cancellationToken)
     {
         using (var initialCapture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix))
         {
-            var initialAnalysis = inventoryDetector.Analyze(initialCapture.Image);
+            var initialAnalysis = inventoryDetector.Detect(initialCapture.Image);
             if (isWindowVisible(initialAnalysis))
             {
                 m_Logger.Information(
@@ -168,7 +168,7 @@ internal sealed class UnloadingCargoState(
             automationInputController.Delay(Delays.LoadWindowMs, cancellationToken);
 
             using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
-            var analysis = inventoryDetector.Analyze(capture.Image);
+            var analysis = inventoryDetector.Detect(capture.Image);
             if (isWindowVisible(analysis))
             {
                 m_Logger.Information(

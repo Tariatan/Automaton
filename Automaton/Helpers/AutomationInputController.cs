@@ -103,7 +103,7 @@ internal sealed class AutomationInputController : IAutomationInputController
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    public void PressKeyChord(
+    private static void PressKeyChord(
         ushort firstModifierVirtualKey,
         ushort secondModifierVirtualKey,
         ushort virtualKey,

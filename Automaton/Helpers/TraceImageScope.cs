@@ -1,8 +1,7 @@
-using Automaton.Helpers;
 using System.IO;
 using Serilog;
 
-namespace Automaton.ProjectDiscoveryStates;
+namespace Automaton.Helpers;
 
 internal sealed class TraceImageScope(bool keepImages) : IDisposable
 {

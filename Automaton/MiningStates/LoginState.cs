@@ -33,8 +33,6 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
             return Recover(capture.CapturePath);
         }
 
-        m_Logger.Information("Logging in mining pilot {PilotIndex}...", PilotIndex);
-
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.UnloadCargo,

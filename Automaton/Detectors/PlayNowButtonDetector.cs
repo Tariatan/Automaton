@@ -4,7 +4,7 @@ using Serilog;
 
 namespace Automaton.Detectors;
 
-internal sealed class PlayNowButtonLocator
+internal sealed class PlayNowButtonDetector
 {
     private const double MinimumMatchScore = 0.82;
     private const double DebugOverlayTextScale = 0.8;
@@ -13,11 +13,11 @@ internal sealed class PlayNowButtonLocator
     private const int DebugOverlayTopPadding = 40;
     private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10];
-    private static readonly ILogger Logger = Log.ForContext<PlayNowButtonLocator>();
+    private static readonly ILogger Logger = Log.ForContext<PlayNowButtonDetector>();
 
     private readonly Mat m_Template = EmbeddedResourceLoader.LoadMat("play.png");
 
-    public bool TryLocateAndDrawDebugOverlay(string imagePath, out PlayNowButtonLocation location)
+    public bool Detect(string imagePath, out PlayNowButtonLocation location, bool drawDebugOverlay = true)
     {
         using var image = Cv2.ImRead(imagePath);
         if (image.Empty())
@@ -28,8 +28,11 @@ internal sealed class PlayNowButtonLocator
 
         var found = TryLocateCore(image, out location);
 
-        DrawDebugOverlay(image, found, location);
-        Cv2.ImWrite(imagePath, image);
+        if (drawDebugOverlay)
+        {
+            DrawDebugOverlay(image, found, location);
+            Cv2.ImWrite(imagePath, image);
+        }
 
         return found;
     }

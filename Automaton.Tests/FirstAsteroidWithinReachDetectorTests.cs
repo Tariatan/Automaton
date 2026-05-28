@@ -19,9 +19,9 @@ public sealed class FirstAsteroidWithinReachDetectorTests
         var telemetry = default(DistanceUnitDetectionTelemetry);
 
         // Act
-        var mineOverviewAnalysis = mineOverviewDetector.AnalyzeAndDrawDebugOverlay(imagePath);
+        var mineOverviewAnalysis = mineOverviewDetector.Detect(imagePath);
         var asteroids = mineOverviewAnalysis.MineOverviewLocated && mineOverviewAnalysis.MineOverviewBounds is not null
-            ? AsteroidRowsDetector.Locate(image, mineOverviewAnalysis.MineOverviewBounds.Value)
+            ? AsteroidRowsDetector.Detect(image, mineOverviewAnalysis.MineOverviewBounds.Value)
             : [];
         var detected = mineOverviewAnalysis.MineOverviewLocated &&
                        mineOverviewAnalysis.MineOverviewBounds is not null &&

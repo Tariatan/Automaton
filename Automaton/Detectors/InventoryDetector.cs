@@ -18,7 +18,7 @@ internal sealed class InventoryDetector : IDisposable
         m_MiningHoldTemplate.Dispose();
     }
 
-    public InventoryAnalysis Analyze(Mat screen)
+    public InventoryAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
     {
         if (screen.Empty())
         {

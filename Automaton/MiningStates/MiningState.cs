@@ -49,7 +49,7 @@ internal sealed class MiningState(
             }
 
             using var warDetectionImage = capture.Image.Clone();
-            if (warOverviewDetector.TryLocate(warDetectionImage, out var warOverviewBounds))
+            if (warOverviewDetector.Detect(warDetectionImage, out var warOverviewBounds))
             {
                 var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warOverviewBounds);
                 if (!warOverviewNothingFound)
@@ -64,13 +64,13 @@ internal sealed class MiningState(
                 }
             }
 
-            if (!asteroidDetector.TryLocate(capture.Image))
+            if (!asteroidDetector.Detect(capture.Image))
             {
                 dockingReason = DockingReason.AsteroidDepleted;
                 break;
             }
 
-            if (!laserDetector.TryLocate(capture.Image))
+            if (!laserDetector.Detect(capture.Image))
             {
                 dockingReason = DockingReason.CargoFull;
                 break;
