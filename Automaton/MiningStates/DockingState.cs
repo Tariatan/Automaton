@@ -7,7 +7,7 @@ namespace Automaton.MiningStates;
 
 internal sealed class DockingState(
     IAutomationInputController automationInputController,
-    HomeStationDetector homeStationDetector)
+    AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-dock";
@@ -23,8 +23,8 @@ internal sealed class DockingState(
         cancellationToken.ThrowIfCancellationRequested();
 
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-        var analysis = homeStationDetector.Detect(capture.Image);
-        if (!analysis.HomeStationLocated || analysis.HomeStationBounds is null)
+        var analysis = asteroidBeltOverviewDetector.Detect(capture.Image);
+        if (!analysis.OverviewLocated || !analysis.HomeStationLocated)
         {
             m_Logger.Error("Failed to detect home station. CapturePath={CapturePath}", capture.CapturePath);
             var result = Recover(capture.CapturePath);
@@ -34,7 +34,7 @@ internal sealed class DockingState(
 
         // Select home station in the belt overview
         m_Logger.Information("Selecting home station");
-        automationInputController.ClickUiElement(GeometryHelper.Center(analysis.HomeStationBounds.Value), cancellationToken);
+        automationInputController.ClickUiElement(GeometryHelper.Center(analysis.HomeStationBounds!.Value), cancellationToken);
         capture.Dispose();
 
         // Wait 1 second

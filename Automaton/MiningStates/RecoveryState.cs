@@ -8,7 +8,6 @@ namespace Automaton.MiningStates;
 internal sealed class RecoveryState(
     IAutomationInputController automationInputController,
     AsteroidBeltOverviewDetector beltOverviewDetector,
-    HomeStationDetector homeStationDetector,
     PlayNowButtonDetector playNowButtonDetector)
     : IMiningAutomationState
 {
@@ -44,9 +43,8 @@ internal sealed class RecoveryState(
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
 
-        var overviewLocated = beltOverviewDetector.Detect(capture.Image, false).OverviewLocated;
-        var homeStationLocated = homeStationDetector.Detect(capture.Image, false).HomeStationLocated;
-        var inSpace = overviewLocated && homeStationLocated;
+        var overviewAnalysis = beltOverviewDetector.Detect(capture.Image, false);
+        var inSpace = overviewAnalysis.OverviewLocated && overviewAnalysis.HomeStationLocated;
         var docked = UndockButtonDetector.Detect(capture.Image, out _, false);
 
         if (inSpace)

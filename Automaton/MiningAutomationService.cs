@@ -11,7 +11,6 @@ internal sealed class MiningAutomationService(
     IAutomationInputController automationInputController,
     IAutomationClock automationClock,
     PlayNowButtonDetector playNowButtonDetector,
-    HomeStationDetector homeStationDetector,
     LocationChangeTimerDetector locationChangeTimerDetector,
     InventoryDetector inventoryDetector,
     DowntimeDetector downtimeDetector,
@@ -120,13 +119,13 @@ internal sealed class MiningAutomationService(
         {
             MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, playNowButtonDetector),
             MiningAutomationStateKind.Login => new LoginState(automationInputController),
-            MiningAutomationStateKind.Dock => new DockingState(automationInputController, homeStationDetector),
+            MiningAutomationStateKind.Dock => new DockingState(automationInputController, asteroidBeltOverviewDetector),
             MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, inventoryDetector, downtimeDetector),
             MiningAutomationStateKind.Undocking => new UndockingState(automationInputController, locationChangeTimerDetector),
             MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(automationInputController, asteroidBeltOverviewDetector, mineOverviewDetector, warOverviewDetector, Random.Shared.Next),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(automationInputController, mineOverviewDetector, firstAsteroidWithinReachDetector),
             MiningAutomationStateKind.Mining => new MiningState(automationInputController, miningAsteroidDetector, miningLaserDetector, warOverviewDetector),
-            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, asteroidBeltOverviewDetector, homeStationDetector, playNowButtonDetector),
+            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, asteroidBeltOverviewDetector, playNowButtonDetector),
             MiningAutomationStateKind.RecoverConnectionLostPopup => new RecoverConnectionLostPopupState(connectionLostPopupRecoveryBehavior),
             _ => new PendingMiningAutomationState(stateKind)
         };

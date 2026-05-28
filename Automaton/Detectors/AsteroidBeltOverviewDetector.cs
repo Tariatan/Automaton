@@ -332,6 +332,8 @@ internal sealed record AsteroidBeltOverviewAnalysis(
     Rect? HomeStationBounds,
     IReadOnlyList<AsteroidBeltOverviewEntry> AsteroidBelts)
 {
+    public bool HomeStationLocated => HomeStationBounds is not null;
+
     public static AsteroidBeltOverviewAnalysis NotFound { get; } = new(
         false,
         null,

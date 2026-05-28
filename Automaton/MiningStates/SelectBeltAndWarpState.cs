@@ -40,7 +40,7 @@ internal sealed class SelectBeltAndWarpState(
         }
 
         // Failed to detect Home Station in the Belt overview
-        if (analysis.HomeStationBounds is null)
+        if (!analysis.HomeStationLocated)
         {
             m_Logger.Error("Failed to detect Home Station in the Belt overview");
             automationInputController.QuitGame(cancellationToken);

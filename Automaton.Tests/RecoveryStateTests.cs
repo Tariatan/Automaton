@@ -27,7 +27,6 @@ public sealed class RecoveryStateTests
         var state = new RecoveryState(
             automationInputController,
             beltOverviewDetector,
-            new HomeStationDetector(beltOverviewDetector),
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
@@ -56,7 +55,6 @@ public sealed class RecoveryStateTests
         var state = new RecoveryState(
             automationInputController,
             beltOverviewDetector,
-            new HomeStationDetector(beltOverviewDetector),
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
@@ -85,7 +83,6 @@ public sealed class RecoveryStateTests
         var state = new RecoveryState(
             automationInputController,
             beltOverviewDetector,
-            new HomeStationDetector(beltOverviewDetector),
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
@@ -112,7 +109,6 @@ public sealed class RecoveryStateTests
         var state = new RecoveryState(
             automationInputController,
             beltOverviewDetector,
-            new HomeStationDetector(beltOverviewDetector),
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
@@ -140,7 +136,6 @@ public sealed class RecoveryStateTests
         var state = new RecoveryState(
             automationInputController,
             beltOverviewDetector,
-            new HomeStationDetector(beltOverviewDetector),
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
@@ -171,7 +166,6 @@ public sealed class RecoveryStateTests
         var state = new RecoveryState(
             automationInputController,
             beltOverviewDetector,
-            new HomeStationDetector(beltOverviewDetector),
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
@@ -202,7 +196,6 @@ public sealed class RecoveryStateTests
         var state = new RecoveryState(
             automationInputController,
             beltOverviewDetector,
-            new HomeStationDetector(beltOverviewDetector),
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
