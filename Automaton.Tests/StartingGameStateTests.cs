@@ -15,8 +15,7 @@ public sealed class StartingGameStateTests
         using var screen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(screen.Clone),
-            new SampleImageProcessor(),
-            persistCaptures: false);
+            new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
         var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonDetector());
 

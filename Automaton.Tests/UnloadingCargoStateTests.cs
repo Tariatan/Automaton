@@ -73,7 +73,7 @@ public sealed class UnloadingCargoStateTests
             new StubScreenCaptureProvider(() =>
             {
                 captureInvocationCount++;
-                return captureInvocationCount == 1
+                return captureInvocationCount <= 2
                     ? CreateImageWithoutMiningHoldTitle()
                     : SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
             }),
@@ -90,7 +90,7 @@ public sealed class UnloadingCargoStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
-        Assert.Equal(4, captureInvocationCount);
+        Assert.Equal(5, captureInvocationCount);
         Assert.Equal(2, automationInputController.KeyInputs.Count(input => input is { ModifierVirtualKey: VirtualKeys.Alt, VirtualKey: VirtualKeys.M }));
         Assert.Equal(1, automationInputController.KeyInputs.Count(input => input is { ModifierVirtualKey: VirtualKeys.Alt, VirtualKey: VirtualKeys.G }));
     }

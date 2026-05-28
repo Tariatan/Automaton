@@ -73,8 +73,8 @@ public sealed class UndockingStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal(16, captureInvocationCount);
-        Assert.Equal(17, automationInputController.Delays.Count);
+        Assert.Equal(31, captureInvocationCount);
+        Assert.Equal(32, automationInputController.Delays.Count);
         Assert.Equal(Delays.UndockingBounceMs, automationInputController.Delays[0]);
         Assert.Equal(Delays.InitialUndockMs, automationInputController.Delays[1]);
         Assert.All(automationInputController.Delays.Skip(2), delay => Assert.Equal(Delays.LocationChangeTimerPollingMs, delay));

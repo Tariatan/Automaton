@@ -45,9 +45,8 @@ public sealed class LoginStateTests
         Assert.Equal(new Point(854, 782), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal([Delays.PilotLoginMs, Delays.MinimumClickMs], automationInputControllerMock.Delays);
-        Assert.Equal(2, automationInputControllerMock.KeyInputs.Count);
+        Assert.Single(automationInputControllerMock.KeyInputs);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
-        AssertTripleKeyChord(automationInputControllerMock.KeyInputs[1], VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9);
     }
 
     [Fact]

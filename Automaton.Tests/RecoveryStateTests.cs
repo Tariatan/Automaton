@@ -80,8 +80,7 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(screen.Clone),
-            new SampleImageProcessor(),
-            persistCaptures: false);
+            new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
         var state = new RecoveryState(
             automationInputController,
@@ -100,7 +99,7 @@ public sealed class RecoveryStateTests
     }
 
     [Fact]
-    public void Execute_HomeStationUndockAndPlayNowMissing_TransitionsToRecovery()
+    public void Execute_HomeStationUndockAndPlayNowMissing_TransitionsToStartingGame()
     {
         // Arrange
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
@@ -121,9 +120,10 @@ public sealed class RecoveryStateTests
         var transition = state.Execute(context, CancellationToken.None);
 
         // Assert
-        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal([Delays.RecoveryMs], automationInputController.Delays);
+        Assert.Equal(MiningAutomationStateKind.StartingGame, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.None, transition.Action);
+        Assert.True(automationInputController.QuitGameCalled);
+        Assert.Equal([Delays.RecoveryMs, Delays.RecoveryMs], automationInputController.Delays);
     }
 
     [Fact]
