@@ -1,6 +1,5 @@
 using Automaton.Detectors;
 using OpenCvSharp;
-using System.IO;
 
 namespace Automaton.Tests;
 
@@ -11,17 +10,14 @@ public sealed class FirstAsteroidWithinReachDetectorTests
     {
         // Arrange
         using var image = SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImageWithMetersDistance();
-        using var temporaryDirectory = new TemporaryDirectory();
-        var imagePath = Path.Combine(temporaryDirectory.Path, "mine-overview.png");
-        Cv2.ImWrite(imagePath, image);
         var mineOverviewDetector = new MineOverviewDetector();
         var detector = new FirstAsteroidWithinReachDetector();
         var telemetry = default(DistanceUnitDetectionTelemetry);
 
         // Act
-        var mineOverviewAnalysis = mineOverviewDetector.Detect(imagePath);
+        var mineOverviewAnalysis = mineOverviewDetector.Detect(image, drawDebugOverlay: false);
         var asteroids = mineOverviewAnalysis.MineOverviewLocated && mineOverviewAnalysis.MineOverviewBounds is not null
-            ? AsteroidRowsDetector.Detect(image, mineOverviewAnalysis.MineOverviewBounds.Value)
+            ? AsteroidRowsDetector.Detect(image, mineOverviewAnalysis.MineOverviewBounds.Value, drawDebugOverlay: false)
             : [];
         var detected = mineOverviewAnalysis.MineOverviewLocated &&
                        mineOverviewAnalysis.MineOverviewBounds is not null &&

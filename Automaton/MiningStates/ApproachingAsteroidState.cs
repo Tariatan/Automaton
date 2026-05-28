@@ -3,7 +3,6 @@ using Automaton.Helpers;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
-using System.IO;
 
 namespace Automaton.MiningStates;
 
@@ -28,7 +27,7 @@ internal sealed class ApproachingAsteroidState(
         automationInputController.PressKey(VirtualKeys.F4, cancellationToken);
 
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.ApproachingAsteroidCaptureSuffix);
-        var mineOverviewAnalysis = AnalyzeMineOverview(capture.CapturePath, capture.Image);
+        var mineOverviewAnalysis = mineOverviewDetector.Detect(capture.Image);
 
         // Failed to detect Mine overview tab
         if (!mineOverviewAnalysis.MineOverviewLocated || mineOverviewAnalysis.MineOverviewBounds is null)
@@ -79,8 +78,8 @@ internal sealed class ApproachingAsteroidState(
                 capture.Image,
                 mineOverviewBounds,
                 firstAsteroidRowBounds,
-                out var distanceTelemetry);
-            AnnotateDistanceDetectionCapture(capture.CapturePath, capture.Image, distanceTelemetry.RowSearchBounds, distanceTelemetry.SearchBounds);
+                out var _);
+            Cv2.ImWrite(capture.CapturePath, capture.Image);
             m_Logger.Information("Asteroid within reach detection. Attempt={Attempt}/{MaxAttempts}", attempt + 1, Settings.ApproachingAsteroidDistancePollingAttemptCount);
 
             // Nearest asteroid is within reach
@@ -120,47 +119,5 @@ internal sealed class ApproachingAsteroidState(
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
             capturePath);
-    }
-
-    private static void AnnotateDistanceDetectionCapture(
-        string capturePath,
-        Mat screen,
-        Rect? rowSearchBounds,
-        Rect? unitSearchBounds)
-    {
-        using var annotated = screen.Clone();
-        if (rowSearchBounds.HasValue)
-        {
-            Cv2.Rectangle(annotated, rowSearchBounds.Value, new Scalar(0, 255, 0), 2);
-        }
-
-        if (unitSearchBounds.HasValue)
-        {
-            Cv2.Rectangle(annotated, unitSearchBounds.Value, new Scalar(0, 255, 255), 2);
-        }
-
-        Cv2.ImWrite(capturePath, annotated);
-    }
-
-    private MineOverviewAnalysis AnalyzeMineOverview(string capturePath, Mat screen)
-    {
-        if (File.Exists(capturePath))
-        {
-            return mineOverviewDetector.Detect(capturePath);
-        }
-
-        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-approaching-mine-overview-{Guid.NewGuid():N}.png");
-        try
-        {
-            Cv2.ImWrite(tempPath, screen);
-            return mineOverviewDetector.Detect(tempPath);
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
     }
 }

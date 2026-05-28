@@ -7,6 +7,8 @@ internal sealed class FirstAsteroidWithinReachDetector : IFirstAsteroidWithinRea
 {
     private const double MinimumMetersTemplateMatchScore = 0.95;
     private static readonly double[] TemplateScales = [1.0, 0.98, 1.02, 0.97, 1.03, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
+    private static readonly Scalar RowSearchBoundsColor = new(0, 255, 0);
+    private static readonly Scalar UnitSearchBoundsColor = new(0, 255, 255);
     private readonly Mat m_DistanceMetersTemplate = EmbeddedResourceLoader.LoadMat("overview.distance_m.png");
 
     public bool Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds, bool drawDebugOverlay = true)
@@ -42,6 +44,12 @@ internal sealed class FirstAsteroidWithinReachDetector : IFirstAsteroidWithinRea
         }
 
         var isMetersByTemplate = TryMatchMeters(region, out var bestScore, out var matchedScale);
+
+        if (drawDebugOverlay)
+        {
+            Cv2.Rectangle(screen, rowSearchBounds, RowSearchBoundsColor, 2);
+            Cv2.Rectangle(screen, unitBounds, UnitSearchBoundsColor, 2);
+        }
 
         telemetry = new DistanceUnitDetectionTelemetry(
             rowSearchBounds,

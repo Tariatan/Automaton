@@ -5,7 +5,7 @@ using Serilog;
 
 namespace Automaton.Detectors;
 
-internal sealed class MineOverviewDetector
+internal sealed class MineOverviewDetector : IDisposable
 {
     private const double MinimumHeaderMatchScore = 0.90;
     private const double DebugOverlayTextScale = 0.8;
@@ -21,9 +21,13 @@ internal sealed class MineOverviewDetector
 
     private readonly Mat m_OverviewMineTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_mine.png");
 
-    public MineOverviewAnalysis Detect(string imagePath, bool drawDebugOverlay = true)
+    public void Dispose()
     {
-        using var screen = Cv2.ImRead(imagePath);
+        m_OverviewMineTemplate.Dispose();
+    }
+
+    public MineOverviewAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
+    {
         if (screen.Empty())
         {
             return MineOverviewAnalysis.NotFound;
@@ -34,7 +38,6 @@ internal sealed class MineOverviewDetector
         if (drawDebugOverlay)
         {
             DrawDebugOverlay(screen, analysis);
-            Cv2.ImWrite(imagePath, screen);
         }
 
         return analysis;
@@ -45,20 +48,15 @@ internal sealed class MineOverviewDetector
         var searchBounds = BuildFallbackSearchBounds(screen.Size());
         if (!TryMatchTemplate(screen, m_OverviewMineTemplate, searchBounds, out var headerLocation))
         {
-            return new MineOverviewAnalysis(false, searchBounds, null, null, 0);
+            return new MineOverviewAnalysis(false, searchBounds, null, null);
         }
 
         var mineOverviewBounds = BuildMineOverviewBounds(screen.Size(), headerLocation.Bounds);
-        return new MineOverviewAnalysis(true, searchBounds, headerLocation.Bounds, mineOverviewBounds, headerLocation.Score);
+        return new MineOverviewAnalysis(true, searchBounds, headerLocation.Bounds, mineOverviewBounds);
     }
 
     private static void DrawDebugOverlay(Mat image, MineOverviewAnalysis analysis)
     {
-        if (image.Empty())
-        {
-            return;
-        }
-
         Cv2.Rectangle(image, analysis.SearchBounds, SearchBoundsColor, 2);
         if (analysis.HeaderBounds is not null)
         {
@@ -97,24 +95,41 @@ internal sealed class MineOverviewDetector
         TemplateLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
-            using var scaledTemplate = BuildScaledTemplate(template, scale);
-            if (scaledTemplate.Width > searchRegion.Width ||
-                scaledTemplate.Height > searchRegion.Height)
+            var ownsScaled = false;
+            var scaledTemplate = template;
+            if (Math.Abs(scale - 1.0) >= double.Epsilon)
             {
-                continue;
+                scaledTemplate = BuildScaledTemplate(template, scale);
+                ownsScaled = true;
             }
 
-            using var result = new Mat();
-            Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
-            Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
-            var bounds = new Rect(
-                searchBounds.X + locationPoint.X,
-                searchBounds.Y + locationPoint.Y,
-                scaledTemplate.Width,
-                scaledTemplate.Height);
-            if (bestLocation is null || score > bestLocation.Value.Score)
+            try
             {
-                bestLocation = new TemplateLocation(bounds, score);
+                if (scaledTemplate.Width > searchRegion.Width ||
+                    scaledTemplate.Height > searchRegion.Height)
+                {
+                    continue;
+                }
+
+                using var result = new Mat();
+                Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+                Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
+                var bounds = new Rect(
+                    searchBounds.X + locationPoint.X,
+                    searchBounds.Y + locationPoint.Y,
+                    scaledTemplate.Width,
+                    scaledTemplate.Height);
+                if (bestLocation is null || score > bestLocation.Value.Score)
+                {
+                    bestLocation = new TemplateLocation(bounds, score);
+                }
+            }
+            finally
+            {
+                if (ownsScaled)
+                {
+                    scaledTemplate.Dispose();
+                }
             }
         }
 
@@ -138,11 +153,6 @@ internal sealed class MineOverviewDetector
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(template.Height * scale));
         var scaledTemplate = new Mat();
@@ -181,8 +191,7 @@ internal sealed record MineOverviewAnalysis(
     bool MineOverviewLocated,
     Rect SearchBounds,
     Rect? HeaderBounds,
-    Rect? MineOverviewBounds,
-    double BestMatchScore)
+    Rect? MineOverviewBounds)
 {
-    public static MineOverviewAnalysis NotFound { get; } = new(false, new Rect(0, 0, 1, 1), null, null, 0);
+    public static MineOverviewAnalysis NotFound { get; } = new(false, new Rect(0, 0, 1, 1), null, null);
 }

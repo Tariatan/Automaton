@@ -10,6 +10,7 @@ internal static class AsteroidRowsDetector
     private const int AsteroidIconGroupMaximumDistance = 18;
     private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 90;
     private const int MinimumDistanceColumnBrightPixelCount = 10;
+    private static readonly Scalar RowBoundsColor = new(0, 165, 255);
 
     public static IReadOnlyList<AsteroidOverviewEntry> Detect(Mat screen, Rect mineOverviewBounds, bool drawDebugOverlay = true)
     {
@@ -44,7 +45,7 @@ internal static class AsteroidRowsDetector
 
         var rowLeft = Math.Clamp(mineOverviewBounds.X + 28, 0, Math.Max(0, screen.Width - 1));
         var rowWidth = Math.Clamp(mineOverviewBounds.Width - 55, 1, screen.Width - rowLeft);
-        return GroupIconCenters(iconCenters)
+        var candidates = GroupIconCenters(iconCenters)
             .Select(group => (int)Math.Round(group.Average()))
             .Select(centerY =>
             {
@@ -52,25 +53,40 @@ internal static class AsteroidRowsDetector
                 var rowHeight = Math.Clamp(34, 1, screen.Height - rowTop);
                 return new AsteroidOverviewEntry(new Rect(rowLeft, rowTop, rowWidth, rowHeight));
             })
-            .Where(row => RowLooksSelectable(screen, row.Bounds))
             .OrderBy(row => row.Bounds.Y)
             .ToArray();
+
+        using var probeGray = new Mat();
+        using var probeMask = new Mat();
+        var result = Array.FindAll(candidates, row => RowLooksSelectable(screen, row.Bounds, probeGray, probeMask));
+
+        if (drawDebugOverlay)
+        {
+            foreach (var row in result)
+            {
+                Cv2.Rectangle(screen, row.Bounds, RowBoundsColor, 2);
+            }
+        }
+
+        return result;
     }
 
-    private static IReadOnlyList<IReadOnlyList<int>> GroupIconCenters(IReadOnlyList<int> iconCenters)
+    private static List<List<int>> GroupIconCenters(IReadOnlyList<int> iconCenters)
     {
         var groups = new List<List<int>>();
+        var groupSums = new List<long>();
         foreach (var center in iconCenters.Order())
         {
-            var currentGroup = groups.LastOrDefault();
-            if (currentGroup is null ||
-                Math.Abs(center - currentGroup.Average()) > AsteroidIconGroupMaximumDistance)
+            if (groups.Count == 0 ||
+                Math.Abs(center - groupSums[^1] / (double)groups[^1].Count) > AsteroidIconGroupMaximumDistance)
             {
                 groups.Add([center]);
+                groupSums.Add(center);
                 continue;
             }
 
-            currentGroup.Add(center);
+            groups[^1].Add(center);
+            groupSums[^1] += center;
         }
 
         return groups;
@@ -86,7 +102,7 @@ internal static class AsteroidRowsDetector
         return new Rect(left, top, width, height);
     }
 
-    private static bool RowLooksSelectable(Mat screen, Rect rowBounds)
+    private static bool RowLooksSelectable(Mat screen, Rect rowBounds, Mat probeGray, Mat probeMask)
     {
         var probeLeft = Math.Clamp(rowBounds.Right - 84, 0, Math.Max(0, screen.Width - 1));
         var probeTop = Math.Clamp(rowBounds.Top + 3, 0, Math.Max(0, screen.Height - 1));
@@ -95,11 +111,9 @@ internal static class AsteroidRowsDetector
         var probeBounds = new Rect(probeLeft, probeTop, probeRight - probeLeft, probeBottom - probeTop);
 
         using var probe = new Mat(screen, probeBounds);
-        using var gray = new Mat();
-        using var mask = new Mat();
-        Cv2.CvtColor(probe, gray, ColorConversionCodes.BGR2GRAY);
-        Cv2.InRange(gray, new Scalar(120), new Scalar(255), mask);
-        return Cv2.CountNonZero(mask) >= MinimumDistanceColumnBrightPixelCount;
+        Cv2.CvtColor(probe, probeGray, ColorConversionCodes.BGR2GRAY);
+        Cv2.InRange(probeGray, new Scalar(120), new Scalar(255), probeMask);
+        return Cv2.CountNonZero(probeMask) >= MinimumDistanceColumnBrightPixelCount;
     }
 }
 

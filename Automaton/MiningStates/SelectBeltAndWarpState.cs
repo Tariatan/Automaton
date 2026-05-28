@@ -130,7 +130,7 @@ internal sealed class SelectBeltAndWarpState(
                     }
                 }
 
-                var mineOverviewAnalysis = AnalyzeMineOverview(capture.CapturePath, capture.Image);
+                var mineOverviewAnalysis = mineOverviewDetector.Detect(capture.Image);
                 var nothingFoundDetected = mineOverviewAnalysis is { MineOverviewLocated: true, MineOverviewBounds: not null } &&
                                            NothingFoundDetector.Detect(capture.Image, mineOverviewAnalysis.MineOverviewBounds.Value);
                 if (nothingFoundDetected)
@@ -177,28 +177,6 @@ internal sealed class SelectBeltAndWarpState(
         return analysis;
     }
 
-    private MineOverviewAnalysis AnalyzeMineOverview(string capturePath, Mat screen)
-    {
-        if (File.Exists(capturePath))
-        {
-            return mineOverviewDetector.Detect(capturePath);
-        }
-
-        var tempPath = Path.Combine(Path.GetTempPath(), $"automaton-select-belt-mine-overview-{Guid.NewGuid():N}.png");
-        try
-        {
-            Cv2.ImWrite(tempPath, screen);
-            return mineOverviewDetector.Detect(tempPath);
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
-    }
-
     private MiningAutomationStateTransition Recover(string capturePath)
     {
         return new MiningAutomationStateTransition(
@@ -207,5 +185,4 @@ internal sealed class SelectBeltAndWarpState(
             MiningAutomationActionKind.Recover,
             capturePath);
     }
-
 }
