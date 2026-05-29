@@ -45,8 +45,9 @@ public sealed class LoginStateTests
         Assert.Equal(new Point(854, 782), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal([Delays.PilotLoginMs, Delays.MinimumClickMs], automationInputControllerMock.Delays);
-        Assert.Single(automationInputControllerMock.KeyInputs);
+        Assert.Equal(2, automationInputControllerMock.KeyInputs.Count);
         AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
+        AssertKeyChord(automationInputControllerMock.KeyInputs[1], VirtualKeys.Control, VirtualKeys.W);
     }
 
     [Fact]
@@ -86,7 +87,8 @@ public sealed class LoginStateTests
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
         Assert.Empty(automationInputControllerMock.Delays);
-        Assert.Empty(automationInputControllerMock.KeyInputs);
+        Assert.Single(automationInputControllerMock.KeyInputs);
+        AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
     }
 
     private static void WritePilotAvatarTemplates(string pilotDirectory, int pilotIndex)

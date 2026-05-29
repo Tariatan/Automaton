@@ -6,6 +6,7 @@ internal static class Delays
     public const int MouseDownMs = 300;
     public const int MinimumClickMs = 250;
     public const int HoverMs = 200;
+    public const int HideUiMs = 1000;
 
     // General automation
     public const int AutomationStartupDelayMs = 3_000;

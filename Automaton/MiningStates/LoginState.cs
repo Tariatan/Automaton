@@ -9,6 +9,7 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
 {
     private const int PilotIndex = 2;
     private const string CaptureSuffix = ".mining-login";
+    private readonly CommonLoginState m_CommonLoginState = new(automationInputController);
 
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
 
@@ -19,25 +20,26 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
         CancellationToken cancellationToken)
     {
         m_Logger.Debug("Executing {State}", Kind);
-        cancellationToken.ThrowIfCancellationRequested();
-        using var capture = context.ScreenCaptureService.CaptureCurrentScreen($"{CaptureSuffix}-{PilotIndex}");
-        cancellationToken.ThrowIfCancellationRequested();
-        var commonLoginState = new CommonLoginState(automationInputController);
-
-        if (!commonLoginState.TryLoginPilot(
+        if (!m_CommonLoginState.TryLoginPilot(
+            context.ScreenCaptureService,
             PilotIndex,
-            capture.CapturePath,
+            CaptureSuffix,
             cancellationToken,
-            out _))
+            out var capturePath))
         {
-            return Recover(capture.CapturePath);
+            return Recover(capturePath);
+        }
+
+        if( context.LastAction == MiningAutomationActionKind.StartGame)
+        {
+            automationInputController.TryHideUi(capturePath, cancellationToken);
         }
 
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.UnloadCargo,
             MiningAutomationActionKind.LoginPilot,
-            capture.CapturePath);
+            capturePath);
     }
 
     private MiningAutomationStateTransition Recover(string capturePath)

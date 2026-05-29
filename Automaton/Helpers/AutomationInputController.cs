@@ -13,18 +13,13 @@ internal sealed class AutomationInputController : IAutomationInputController
 
     private const uint LeftDownEvent = 0x0002;
     private const uint LeftUpEvent = 0x0004;
+    private const uint InputKeyboard = 1;
     private const uint KeyUpEvent = 0x0002;
-
-    private const int MouseParkingAreaLeft = 200;
-    private const int MouseParkingAreaTop = 200;
-    private const int MouseParkingAreaWidth = 100;
-    private const int MouseParkingAreaHeight = 100;
 
     public void ClickUiElement(Point point, CancellationToken cancellationToken)
     {
         MoveTo(point);
         LeftClick(cancellationToken);
-        MoveTo(BuildRandomMouseParkingPoint());
     }
 
     public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)
@@ -40,6 +35,7 @@ internal sealed class AutomationInputController : IAutomationInputController
         {
             m_Logger.Information("Hiding UI because capture size exceeded 1 MB ({CaptureSizeMb} MB).", captureFileInfo.Length / 1024 / 1024);
             PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
+            Delay(Delays.HideUiMs, cancellationToken);
         }
     }
 
@@ -76,9 +72,9 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        keybd_event((byte)virtualKey, 0, 0, UIntPtr.Zero);
-        Thread.Sleep(Delays.MouseDownMs);
-        keybd_event((byte)virtualKey, 0, KeyUpEvent, UIntPtr.Zero);
+        SendKeyboardInputs(
+            BuildKeyDownInput(virtualKey),
+            BuildKeyUpInput(virtualKey));
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
@@ -86,20 +82,12 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        keybd_event((byte)modifierVirtualKey, 0, 0, UIntPtr.Zero);
-
-        try
-        {
-            keybd_event((byte)virtualKey, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(Delays.MouseDownMs);
-            keybd_event((byte)virtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-        }
-        finally
-        {
-            keybd_event((byte)modifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-            Thread.Sleep(Delays.MouseDownMs);
-        }
-
+        SendKeyboardInputs(
+            BuildKeyDownInput(modifierVirtualKey),
+            BuildKeyDownInput(virtualKey),
+            BuildKeyUpInput(virtualKey),
+            BuildKeyUpInput(modifierVirtualKey));
+        Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
@@ -110,22 +98,14 @@ internal sealed class AutomationInputController : IAutomationInputController
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        keybd_event((byte)firstModifierVirtualKey, 0, 0, UIntPtr.Zero);
-        keybd_event((byte)secondModifierVirtualKey, 0, 0, UIntPtr.Zero);
-
-        try
-        {
-            keybd_event((byte)virtualKey, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(Delays.MouseDownMs);
-            keybd_event((byte)virtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-        }
-        finally
-        {
-            keybd_event((byte)secondModifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-            keybd_event((byte)firstModifierVirtualKey, 0, KeyUpEvent, UIntPtr.Zero);
-            Thread.Sleep(Delays.MouseDownMs);
-        }
-
+        SendKeyboardInputs(
+            BuildKeyDownInput(firstModifierVirtualKey),
+            BuildKeyDownInput(secondModifierVirtualKey),
+            BuildKeyDownInput(virtualKey),
+            BuildKeyUpInput(virtualKey),
+            BuildKeyUpInput(secondModifierVirtualKey),
+            BuildKeyUpInput(firstModifierVirtualKey));
+        Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
@@ -177,7 +157,7 @@ internal sealed class AutomationInputController : IAutomationInputController
 
     public void Delay(TimeSpan milliseconds, CancellationToken cancellationToken)
     {
-        Delay((int)Math.Round(milliseconds.TotalMilliseconds), cancellationToken);
+        Delay((int)milliseconds.TotalMilliseconds, cancellationToken);
     }
 
     public void Delay(int milliseconds, CancellationToken cancellationToken)
@@ -186,11 +166,45 @@ internal sealed class AutomationInputController : IAutomationInputController
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private static Point BuildRandomMouseParkingPoint()
+    private static INPUT BuildKeyDownInput(ushort virtualKey)
     {
-        return new Point(
-            Random.Shared.Next(MouseParkingAreaLeft, MouseParkingAreaLeft + MouseParkingAreaWidth),
-            Random.Shared.Next(MouseParkingAreaTop, MouseParkingAreaTop + MouseParkingAreaHeight));
+        return new INPUT
+        {
+            type = InputKeyboard,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey
+                }
+            }
+        };
+    }
+
+    private static INPUT BuildKeyUpInput(ushort virtualKey)
+    {
+        return new INPUT
+        {
+            type = InputKeyboard,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    dwFlags = KeyUpEvent
+                }
+            }
+        };
+    }
+
+    private static void SendKeyboardInputs(params INPUT[] inputs)
+    {
+        if (inputs.Length == 0)
+        {
+            return;
+        }
+
+        _ = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
     }
 
     [DllImport("user32.dll")]
@@ -200,5 +214,29 @@ internal sealed class AutomationInputController : IAutomationInputController
     private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
 
     [DllImport("user32.dll")]
-    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion U;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
+    }
 }

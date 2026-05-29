@@ -35,26 +35,31 @@ internal sealed class LoginState(
         }
 
         m_Logger.Information("Attempting pilot {PilotIndex} login", context.CurrentPilotIndex);
-        using var capture = screenCaptureService.CaptureCurrentScreen($"{CaptureSuffix}-{context.CurrentPilotIndex}");
         if (!m_CommonLoginState.TryLoginPilot(
+            screenCaptureService,
             context.CurrentPilotIndex,
-            capture.CapturePath,
+            CaptureSuffix,
             cancellationToken,
-            out _))
+            out var capturePath))
         {
-            m_Logger.Error("Pilot {PilotIndex} login failed! CapturePath={CapturePath}", context.CurrentPilotIndex, capture.CapturePath);
+            m_Logger.Error("Pilot {PilotIndex} login failed! CapturePath={CapturePath}", context.CurrentPilotIndex, capturePath);
             return new DiscoveryAutomationStateTransition(
                 Kind,
                 DiscoveryAutomationStateKind.RecoverConnectionLostPopup,
                 DiscoveryAutomationActionKind.StopAutomation,
-                capture.CapturePath);
+                capturePath);
         }
 
-        m_Logger.Information("Pilot {PilotIndex} login succeeded. CapturePath={CapturePath}", context.CurrentPilotIndex, capture.CapturePath);
+        if (context.LastAction == DiscoveryAutomationActionKind.StartGame)
+        {
+            automationInputController.TryHideUi(capturePath, cancellationToken);
+        }
+
+        m_Logger.Information("Pilot {PilotIndex} login succeeded. CapturePath={CapturePath}", context.CurrentPilotIndex, capturePath);
         return new DiscoveryAutomationStateTransition(
             Kind,
             DiscoveryAutomationStateKind.Discover,
             DiscoveryAutomationActionKind.LoginPilot,
-            capture.CapturePath);
+            capturePath);
     }
 }

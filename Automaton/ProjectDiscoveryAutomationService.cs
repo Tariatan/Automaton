@@ -47,7 +47,12 @@ internal sealed class ProjectDiscoveryAutomationService(
             {
                 lastSummary = ExecuteSingleStep(cancellationToken);
 
-                automationInputController.TryHideUi(lastSummary.CapturePath, cancellationToken);
+                if(lastSummary.Action is not (DiscoveryAutomationActionKind.StartGame or
+                                              DiscoveryAutomationActionKind.LoginPilot or
+                                              DiscoveryAutomationActionKind.LoginNextPilot))
+                {
+                    automationInputController.TryHideUi(lastSummary.CapturePath, cancellationToken);
+                }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
                 {
@@ -62,6 +67,7 @@ internal sealed class ProjectDiscoveryAutomationService(
                         lastSummary.NextState);
                     return lastSummary;
                 }
+
                 if (lastSummary.Action == DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
                 {
                     Logger.Information(

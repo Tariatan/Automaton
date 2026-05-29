@@ -45,7 +45,11 @@ internal sealed class MiningAutomationService(
             {
                 lastSummary = ExecuteSingleStep(cancellationToken);
 
-                automationInputController.TryHideUi(lastSummary.CapturePath, cancellationToken);
+
+                if (lastSummary.Action is not (MiningAutomationActionKind.StartGame or MiningAutomationActionKind.LoginPilot))
+                {
+                    automationInputController.TryHideUi(lastSummary.CapturePath, cancellationToken);
+                }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
                 {

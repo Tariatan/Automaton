@@ -22,23 +22,23 @@ internal sealed class StartingGameState(
         CancellationToken cancellationToken)
     {
         m_Logger.Debug("Executing {State}", Kind);
-        cancellationToken.ThrowIfCancellationRequested();
-        using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!m_CommonStartGameState.TryStartGame(capture.CapturePath, cancellationToken, out _))
+        if (!m_CommonStartGameState.TryStartGame(
+            context.ScreenCaptureService,
+            CaptureSuffix,
+            cancellationToken,
+            out var capturePath))
         {
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Relogin,
-                capture.CapturePath);
+                capturePath);
         }
 
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Login,
             MiningAutomationActionKind.StartGame,
-            capture.CapturePath);
+            capturePath);
     }
 }

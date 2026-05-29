@@ -12,12 +12,18 @@ internal sealed class CommonStartGameState(
 {
     private readonly ILogger m_Logger = Log.ForContext<CommonStartGameState>();
 
-    public bool TryStartGame(string capturePath, CancellationToken cancellationToken, out Rect playButtonBounds)
+    public bool TryStartGame(
+        ScreenCaptureService screenCaptureService,
+        string captureSuffix,
+        CancellationToken cancellationToken,
+        out string capturePath)
     {
+        using var capture = screenCaptureService.CaptureCurrentScreen(captureSuffix);
+        capturePath = capture.CapturePath;
+
         cancellationToken.ThrowIfCancellationRequested();
         if (!playNowButtonDetector.Detect(capturePath, out var playButtonLocation))
         {
-            playButtonBounds = default;
             return false;
         }
 
@@ -25,7 +31,6 @@ internal sealed class CommonStartGameState(
 
         var delay = TimeSpan.FromMilliseconds(Delays.LauncherStartupMs);
         m_Logger.Information("Starting Game for {DelaySeconds:0.###} seconds...", delay.TotalSeconds);
-        playButtonBounds = playButtonLocation.Bounds;
         automationInputController.MoveTo(GeometryHelper.Center(playButtonLocation.Bounds));
         automationInputController.LeftClick(cancellationToken);
         automationInputController.Delay(delay, cancellationToken);

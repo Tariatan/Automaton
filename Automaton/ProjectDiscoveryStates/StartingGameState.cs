@@ -12,20 +12,23 @@ internal sealed class StartingGameState(
 
     public DiscoveryAutomationStateTransition Execute(ProjectDiscoveryAutomationContext context, CancellationToken cancellationToken)
     {
-        using var capture = screenCaptureService.CaptureCurrentScreen(CaptureSuffix);
-        if (!commonStartGameState.TryStartGame(capture.CapturePath, cancellationToken, out _))
+        if (!commonStartGameState.TryStartGame(
+            screenCaptureService,
+            CaptureSuffix,
+            cancellationToken,
+            out var capturePath))
         {
             return new DiscoveryAutomationStateTransition(
                 Kind,
                 DiscoveryAutomationStateKind.RecoverConnectionLostPopup,
                 DiscoveryAutomationActionKind.StopAutomation,
-                capture.CapturePath);
+                capturePath);
         }
 
         return new DiscoveryAutomationStateTransition(
             Kind,
             DiscoveryAutomationStateKind.Login,
             DiscoveryAutomationActionKind.StartGame,
-            capture.CapturePath);
+            capturePath);
     }
 }

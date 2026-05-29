@@ -11,22 +11,30 @@ internal sealed class CommonLoginState(
 {
     private readonly ILogger m_Logger = Log.ForContext<CommonLoginState>();
 
-    public bool TryLoginPilot(int pilotIndex, string capturePath, CancellationToken cancellationToken, out Rect pilotBounds)
+    public bool TryLoginPilot(
+        ScreenCaptureService screenCaptureService,
+        int pilotIndex,
+        string captureSuffix,
+        CancellationToken cancellationToken,
+        out string capturePath)
     {
+        m_Logger.Information("Hide any active window on login screen first");
+        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+
+        using var capture = screenCaptureService.CaptureCurrentScreen($"{captureSuffix}-{pilotIndex}");
+        capturePath = capture.CapturePath;
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!PilotAvatarLocator.Detect(capturePath, pilotIndex, out var pilotLocation))
         {
-            pilotBounds = default;
             return false;
         }
 
         DrawDebugOverlay(capturePath, pilotLocation.Bounds, $"Pilot {pilotIndex} found");
 
-        pilotBounds = pilotLocation.Bounds;
         var delay = TimeSpan.FromMilliseconds(Delays.PilotLoginMs);
         m_Logger.Information("Logging in pilot {PilotIndex} for {DelaySeconds:0.###} seconds...", pilotIndex, delay.TotalSeconds);
-        automationInputController.MoveTo(GeometryHelper.Center(pilotBounds));
+        automationInputController.MoveTo(GeometryHelper.Center(pilotLocation.Bounds));
         automationInputController.LeftClick(cancellationToken);
         automationInputController.Delay(delay, cancellationToken);
 
