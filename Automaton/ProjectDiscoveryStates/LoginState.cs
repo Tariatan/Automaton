@@ -18,7 +18,7 @@ internal sealed class LoginState(
     {
         if (context.LastAction == DiscoveryAutomationActionKind.LoginNextPilot)
         {
-            if (!PilotAvatarLocator.TryGetNextPilotIndex(context.CurrentPilotIndex, out var nextPilotIndex))
+            if (!PilotRegistry.TryGetNextPilotIndex(context.CurrentPilotIndex, out var nextPilotIndex))
             {
                 m_Logger.Warning("Failed to resolve next pilot index. CurrentPilotIndex={CurrentPilotIndex}", context.CurrentPilotIndex);
                 return new DiscoveryAutomationStateTransition(

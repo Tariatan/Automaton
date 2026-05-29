@@ -8,82 +8,53 @@ internal sealed class PilotAvatarLocator
 {
     private const string PilotFolderName = "pilot";
     private const double MinimumMatchScore = 0.90;
-    private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10];
+    private const double EarlyExitScore = 0.98;
+    private static readonly double[] TemplateScales = [0.95, 1.05, 0.90, 1.10];
     private static readonly ILogger Logger = Log.ForContext<PilotAvatarLocator>();
-
-    public static bool TryGetNextPilotIndex(int currentPilotIndex, out int nextPilotIndex)
-    {
-        var availablePilotIndices = GetAvailablePilotIndices();
-        foreach (var pilotIndex in availablePilotIndices)
-        {
-            if (pilotIndex > currentPilotIndex)
-            {
-                nextPilotIndex = pilotIndex;
-                return true;
-            }
-        }
-
-        nextPilotIndex = currentPilotIndex;
-        return false;
-    }
 
     public static bool Detect(string imagePath, int requestedPilotIndex, out PilotAvatarLocation location)
     {
         using var image = Cv2.ImRead(imagePath);
-        var requestedMatch = TryLocateBest(image, requestedPilotIndex);
-        var matchedRequestedPilot = requestedMatch is not null && requestedMatch.Value.Location.Score >= MinimumMatchScore;
+        var match = TryLocateBest(image, requestedPilotIndex);
 
-        if (!matchedRequestedPilot)
+        if (match is null || match.Value.Score < MinimumMatchScore)
         {
-            var foundPilotIndex = TryFindBestPilotIndex(image, requestedPilotIndex);
-            if (foundPilotIndex != null)
-            {
-                Logger.Information("RequestedPilotIndex={RequestedPilotIndex}, FoundPilotIndex={FoundPilotIndex}", requestedPilotIndex, foundPilotIndex);
-            }
-            else
-            {
-                Logger.Error("RequestedPilotIndex={RequestedPilotIndex} not found!", requestedPilotIndex);
-            }
-
+            Logger.Error("RequestedPilotIndex={RequestedPilotIndex} not found!", requestedPilotIndex);
             location = default;
             return false;
         }
 
-        Logger.Information("RequestedPilotIndex={RequestedPilotIndex}, FoundPilotIndex={FoundPilotIndex}", requestedPilotIndex, requestedPilotIndex);
-        location = requestedMatch!.Value.Location;
+        location = match.Value;
         return true;
     }
 
-    private static int [] GetAvailablePilotIndices()
+    private static PilotAvatarLocation? TryLocateBest(Mat screen, int pilotIndex)
     {
-        if (!Directory.Exists(PilotFolderName))
+        if (screen.Empty() || !Directory.Exists(PilotFolderName))
         {
-            return [];
+            return null;
         }
 
-        return Directory
-            .EnumerateFiles(PilotFolderName, "*.png", SearchOption.TopDirectoryOnly)
-            .Select(Path.GetFileNameWithoutExtension)
-            .Select(ParsePilotIndex)
-            .Where(pilotIndex => pilotIndex > 0)
-            .Distinct()
-            .Order()
-            .ToArray();
-    }
-
-    private static int ParsePilotIndex(string? fileNameWithoutExtension)
-    {
-        if (string.IsNullOrWhiteSpace(fileNameWithoutExtension))
+        PilotAvatarLocation? bestLocation = null;
+        foreach (var candidate in BuildCandidates(PilotFolderName, pilotIndex))
         {
-            return 0;
+            if (!File.Exists(candidate.Path))
+            {
+                continue;
+            }
+
+            if (!TryMatchTemplate(screen, candidate, out var candidateLocation))
+            {
+                continue;
+            }
+
+            if (bestLocation is null || candidateLocation.Score > bestLocation.Value.Score)
+            {
+                bestLocation = candidateLocation;
+            }
         }
 
-        var indexText = fileNameWithoutExtension.EndsWith("_focused", StringComparison.OrdinalIgnoreCase)
-            ? fileNameWithoutExtension[..^"_focused".Length]
-            : fileNameWithoutExtension;
-        return int.TryParse(indexText, out var pilotIndex)
-            ? pilotIndex
-            : 0;
+        return bestLocation;
     }
 
     private static IReadOnlyList<PilotAvatarCandidate> BuildCandidates(string pilotDirectory, int pilotIndex)
@@ -110,7 +81,13 @@ internal sealed class PilotAvatarLocator
             return false;
         }
 
-        PilotAvatarLocation? bestLocation = null;
+        var bestLocation = MatchAtScale(searchableScreen, template, 1.0);
+        if (bestLocation is not null && bestLocation.Value.Score >= EarlyExitScore)
+        {
+            location = bestLocation.Value;
+            return true;
+        }
+
         foreach (var scale in TemplateScales)
         {
             using var scaledTemplate = BuildScaledTemplate(template, scale);
@@ -126,6 +103,10 @@ internal sealed class PilotAvatarLocator
             if (bestLocation is null || score > bestLocation.Value.Score)
             {
                 bestLocation = new PilotAvatarLocation(bounds, score);
+                if (score >= EarlyExitScore)
+                {
+                    break;
+                }
             }
         }
 
@@ -138,60 +119,43 @@ internal sealed class PilotAvatarLocator
         return true;
     }
 
-    private static PilotMatchResult? TryLocateBest(Mat screen, int pilotIndex)
+    private static PilotAvatarLocation? MatchAtScale(Mat searchableScreen, Mat template, double scale)
     {
-        if (screen.Empty() || !Directory.Exists(PilotFolderName))
+        Mat effectiveTemplate;
+        bool ownsTemplate;
+
+        if (Math.Abs(scale - 1.0) < double.Epsilon)
         {
-            return null;
+            effectiveTemplate = template;
+            ownsTemplate = false;
+        }
+        else
+        {
+            effectiveTemplate = BuildScaledTemplate(template, scale);
+            ownsTemplate = true;
         }
 
-        PilotAvatarLocation? bestLocation = null;
-        foreach (var candidate in BuildCandidates(PilotFolderName, pilotIndex))
+        try
         {
-            if (!File.Exists(candidate.Path))
+            if (effectiveTemplate.Width > searchableScreen.Width || effectiveTemplate.Height > searchableScreen.Height)
             {
-                continue;
+                return null;
             }
 
-            if (!TryMatchTemplate(screen, candidate, out var candidateLocation))
+            using var result = new Mat();
+            Cv2.MatchTemplate(searchableScreen, effectiveTemplate, result, TemplateMatchModes.CCoeffNormed);
+            Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
+            return new PilotAvatarLocation(
+                new Rect(locationPoint.X, locationPoint.Y, effectiveTemplate.Width, effectiveTemplate.Height),
+                score);
+        }
+        finally
+        {
+            if (ownsTemplate)
             {
-                continue;
-            }
-
-            if (bestLocation is null || candidateLocation.Score > bestLocation.Value.Score)
-            {
-                bestLocation = candidateLocation;
+                effectiveTemplate.Dispose();
             }
         }
-
-        return bestLocation is null
-            ? null
-            : new PilotMatchResult(pilotIndex, bestLocation.Value);
-    }
-
-    private static int? TryFindBestPilotIndex(Mat screen, int requestedPilotIndex)
-    {
-        PilotMatchResult? bestMatch = null;
-        foreach (var pilotIndex in GetAvailablePilotIndices())
-        {
-            if (pilotIndex == requestedPilotIndex)
-            {
-                continue;
-            }
-
-            var candidateMatch = TryLocateBest(screen, pilotIndex);
-            if (candidateMatch is null || candidateMatch.Value.Location.Score < MinimumMatchScore)
-            {
-                continue;
-            }
-
-            if (bestMatch is null || candidateMatch.Value.Location.Score > bestMatch.Value.Location.Score)
-            {
-                bestMatch = candidateMatch;
-            }
-        }
-
-        return bestMatch?.PilotIndex;
     }
 
     private static Mat BuildSearchableScreen(Mat screen, bool useColor)
@@ -220,11 +184,6 @@ internal sealed class PilotAvatarLocator
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(template.Height * scale));
         var scaledTemplate = new Mat();
@@ -233,7 +192,6 @@ internal sealed class PilotAvatarLocator
     }
 
     private readonly record struct PilotAvatarCandidate(string Path, bool UsesColor);
-    private readonly record struct PilotMatchResult(int PilotIndex, PilotAvatarLocation Location);
 }
 
 internal readonly record struct PilotAvatarLocation(
