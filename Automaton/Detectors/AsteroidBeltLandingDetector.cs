@@ -1,5 +1,4 @@
 using OpenCvSharp;
-using Serilog;
 
 namespace Automaton.Detectors;
 
@@ -10,16 +9,8 @@ internal static class AsteroidBeltLandingDetector
     private const int MinimumLabelWidth = 400;
     private const int MinimumLabelHeight = 35;
     private const int MaximumLabelHeight = 50;
-    private const double DebugOverlayTextScale = 0.8;
-    private const int DebugOverlayTextThickness = 2;
-    private const int DebugOverlayLeftPadding = 30;
-    private const int DebugOverlayTopPadding = 40;
-    private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
-    private static readonly Scalar SearchBoundsColor = new(255, 200, 120);
-    private static readonly Scalar LabelBoundsColor = new(120, 255, 120);
-    private static readonly ILogger Logger = Log.ForContext(typeof(AsteroidBeltLandingDetector));
 
-    public static AsteroidBeltLandingAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
+    public static AsteroidBeltLandingAnalysis Detect(Mat screen)
     {
         if (screen.Empty())
         {
@@ -28,49 +19,9 @@ internal static class AsteroidBeltLandingDetector
 
         var searchBounds = BuildLabelSearchBounds(screen.Size());
         var labelBounds = LocateAsteroidBeltLabel(screen, searchBounds);
-        var analysis = labelBounds is null
+        return labelBounds is null
             ? new AsteroidBeltLandingAnalysis(false, searchBounds, null)
             : new AsteroidBeltLandingAnalysis(true, searchBounds, labelBounds);
-
-        if (drawDebugOverlay)
-        {
-            DrawDebugOverlay(screen, analysis);
-        }
-
-        return analysis;
-    }
-
-    private static void DrawDebugOverlay(Mat image, AsteroidBeltLandingAnalysis analysis)
-    {
-        if (image.Empty())
-        {
-            return;
-        }
-
-        if (analysis.SearchBounds is not null)
-        {
-            Cv2.Rectangle(image, analysis.SearchBounds.Value, SearchBoundsColor, 2);
-        }
-
-        if (analysis.LabelBounds is not null)
-        {
-            Cv2.Rectangle(image, analysis.LabelBounds.Value, LabelBoundsColor, 2);
-        }
-
-        var overlayText = $"Belt landing: {(analysis.LandedOnAsteroidBelt ? "detected" : "not found")}";
-        Cv2.PutText(
-            image,
-            overlayText,
-            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
-            HersheyFonts.HersheySimplex,
-            DebugOverlayTextScale,
-            DebugOverlayColor,
-            DebugOverlayTextThickness,
-            LineTypes.AntiAlias);
-
-        Logger.Information(
-            "Asteroid belt landing: LandedOnAsteroidBelt={LandedOnAsteroidBelt}",
-            analysis.LandedOnAsteroidBelt);
     }
 
     private static Rect? LocateAsteroidBeltLabel(Mat screen, Rect searchBounds)

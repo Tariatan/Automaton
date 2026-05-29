@@ -3,16 +3,20 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class WarOverviewDetector
+internal sealed class WarOverviewDetector : IDisposable
 {
     private const double MinimumHeaderMatchScore = 0.90;
+    private const double EarlyExitScore = 0.95;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
-    private static readonly Scalar HeaderBoundsColor = new(120, 255, 120);
-    private static readonly Scalar WarOverviewBoundsColor = new(120, 220, 255);
 
     private readonly Mat m_OverviewWarTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_war.png");
 
-    public bool Detect(Mat screen, out Rect warOverviewBounds, bool drawDebugOverlay = true)
+    public void Dispose()
+    {
+        m_OverviewWarTemplate.Dispose();
+    }
+
+    public bool Detect(Mat screen, out Rect warOverviewBounds)
     {
         warOverviewBounds = default;
         if (screen.Empty())
@@ -20,15 +24,9 @@ internal sealed class WarOverviewDetector
             return false;
         }
 
-        if (!TryLocateByTemplate(screen, out warOverviewBounds, out var headerBounds))
+        if (!TryLocateByTemplate(screen, out warOverviewBounds, out _))
         {
             return false;
-        }
-
-        if (drawDebugOverlay)
-        {
-            Cv2.Rectangle(screen, headerBounds, HeaderBoundsColor, 2);
-            Cv2.Rectangle(screen, warOverviewBounds, WarOverviewBoundsColor, 2);
         }
 
         return true;
@@ -69,24 +67,40 @@ internal sealed class WarOverviewDetector
         TemplateLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
-            using var scaledTemplate = BuildScaledTemplate(template, scale);
-            if (scaledTemplate.Width > searchRegion.Width ||
-                scaledTemplate.Height > searchRegion.Height)
+            var ownsScaled = !IsUnscaled(scale);
+            var scaledTemplate = ownsScaled ? BuildScaledTemplate(template, scale) : template;
+            try
             {
-                continue;
-            }
+                if (scaledTemplate.Width > searchRegion.Width ||
+                    scaledTemplate.Height > searchRegion.Height)
+                {
+                    continue;
+                }
 
-            using var result = new Mat();
-            Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
-            Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
-            var bounds = new Rect(
-                searchBounds.X + locationPoint.X,
-                searchBounds.Y + locationPoint.Y,
-                scaledTemplate.Width,
-                scaledTemplate.Height);
-            if (bestLocation is null || score > bestLocation.Value.Score)
+                using var result = new Mat();
+                Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+                Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
+                var bounds = new Rect(
+                    searchBounds.X + locationPoint.X,
+                    searchBounds.Y + locationPoint.Y,
+                    scaledTemplate.Width,
+                    scaledTemplate.Height);
+                if (bestLocation is null || score > bestLocation.Value.Score)
+                {
+                    bestLocation = new TemplateLocation(bounds, score);
+                }
+
+                if (bestLocation.Value.Score >= EarlyExitScore)
+                {
+                    break;
+                }
+            }
+            finally
             {
-                bestLocation = new TemplateLocation(bounds, score);
+                if (ownsScaled)
+                {
+                    scaledTemplate.Dispose();
+                }
             }
         }
 
@@ -108,13 +122,10 @@ internal sealed class WarOverviewDetector
         return new Rect(left, top, right - left, bottom - top);
     }
 
+    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
+
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(template.Height * scale));
         var scaledTemplate = new Mat();

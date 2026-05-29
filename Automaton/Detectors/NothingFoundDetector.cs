@@ -6,19 +6,13 @@ namespace Automaton.Detectors;
 internal static class NothingFoundDetector
 {
     private const double MinimumTemplateMatchScore = 0.62;
+    private const double EarlyExitScore = 0.90;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.9, 1.1, 0.85, 1.15];
     private static readonly Mat NothingFoundTemplate = EmbeddedResourceLoader.LoadMat("overview.nothing_found.png");
-    private static readonly Scalar FoundBoundsColor = new(120, 220, 255);
 
-    public static bool Detect(Mat screen, Rect mineOverviewBounds, bool drawDebugOverlay = true)
+    public static bool Detect(Mat screen, Rect mineOverviewBounds)
     {
-        var detected = TryLocate(screen, mineOverviewBounds, out var foundBounds);
-        if (detected && drawDebugOverlay)
-        {
-            Cv2.Rectangle(screen, foundBounds, FoundBoundsColor, 2);
-        }
-
-        return detected;
+        return TryLocate(screen, mineOverviewBounds, out _);
     }
 
     private static bool TryLocate(Mat screen, Rect mineOverviewBounds, out Rect foundBounds)
@@ -85,6 +79,11 @@ internal static class NothingFoundDetector
             if (bestLocation is null || score > bestLocation.Value.Score)
             {
                 bestLocation = new TemplateLocation(bounds, score);
+            }
+
+            if (bestLocation.Value.Score >= EarlyExitScore)
+            {
+                break;
             }
         }
 

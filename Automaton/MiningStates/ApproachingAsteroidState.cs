@@ -78,6 +78,7 @@ internal sealed class ApproachingAsteroidState(
                 capture.Image,
                 mineOverviewBounds,
                 firstAsteroidRowBounds);
+            DrawDebugOverlay(capture.Image, reachAnalysis);
             Cv2.ImWrite(capture.CapturePath, capture.Image);
             m_Logger.Information("Asteroid within reach detection. Attempt={Attempt}/{MaxAttempts}", attempt + 1, Settings.ApproachingAsteroidDistancePollingAttemptCount);
 
@@ -109,6 +110,23 @@ internal sealed class ApproachingAsteroidState(
         }
 
         return Recover(capture.CapturePath);
+    }
+
+    private static void DrawDebugOverlay(Mat image, FirstAsteroidWithinReachAnalysis analysis)
+    {
+        var items = new List<(Rect, OverlayColor)>();
+
+        if (analysis.RowSearchBounds is not null)
+        {
+            items.Add((analysis.RowSearchBounds.Value, OverlayColor.Lime));
+        }
+
+        if (analysis.UnitSearchBounds is not null)
+        {
+            items.Add((analysis.UnitSearchBounds.Value, OverlayColor.Yellow));
+        }
+
+        DebugOverlay.Annotate(image, items.ToArray());
     }
 
     private MiningAutomationStateTransition Recover(string capturePath)

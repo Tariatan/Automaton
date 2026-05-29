@@ -1,3 +1,4 @@
+using System.IO;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
@@ -12,6 +13,7 @@ public sealed class StartingGameStateTests
     public void Execute_PlayNowButtonPresent_StartsGameAndTransitionsToLogin()
     {
         // Arrange
+        if (Directory.Exists("captures")) Directory.Delete("captures", true);
         using var screen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(screen.Clone),
@@ -38,6 +40,7 @@ public sealed class StartingGameStateTests
     public void Execute_PlayNowButtonMissing_TransitionsToRecoveryWithoutInput()
     {
         // Arrange
+        if (Directory.Exists("captures")) Directory.Delete("captures", true);
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),

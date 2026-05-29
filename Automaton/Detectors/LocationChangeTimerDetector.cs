@@ -6,6 +6,7 @@ namespace Automaton.Detectors;
 internal sealed class LocationChangeTimerDetector : IDisposable
 {
     private const double MinimumMatchScore = 0.90;
+    private const double EarlyExitScore = 0.95;
     private static readonly Rect SearchBounds = new(130, 50, 50, 50);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
@@ -13,7 +14,7 @@ internal sealed class LocationChangeTimerDetector : IDisposable
 
     public void Dispose() => m_Template.Dispose();
 
-    public bool Detect(Mat screen, out LocationChangeTimerLocation location, bool drawDebugOverlay = true)
+    public bool Detect(Mat screen, out LocationChangeTimerLocation location)
     {
         location = default;
         if (screen.Empty())
@@ -26,24 +27,40 @@ internal sealed class LocationChangeTimerDetector : IDisposable
         LocationChangeTimerLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
-            using var scaledTemplate = BuildScaledTemplate(scale);
-            if (scaledTemplate.Width > searchRegion.Width ||
-                scaledTemplate.Height > searchRegion.Height)
+            var ownsScaled = !IsUnscaled(scale);
+            var scaledTemplate = ownsScaled ? BuildScaledTemplate(scale) : m_Template;
+            try
             {
-                continue;
-            }
+                if (scaledTemplate.Width > searchRegion.Width ||
+                    scaledTemplate.Height > searchRegion.Height)
+                {
+                    continue;
+                }
 
-            using var result = new Mat();
-            Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
-            Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
-            var bounds = new Rect(
-                searchBounds.X + locationPoint.X,
-                searchBounds.Y + locationPoint.Y,
-                scaledTemplate.Width,
-                scaledTemplate.Height);
-            if (bestLocation is null || score > bestLocation.Value.Score)
+                using var result = new Mat();
+                Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+                Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
+                var bounds = new Rect(
+                    searchBounds.X + locationPoint.X,
+                    searchBounds.Y + locationPoint.Y,
+                    scaledTemplate.Width,
+                    scaledTemplate.Height);
+                if (bestLocation is null || score > bestLocation.Value.Score)
+                {
+                    bestLocation = new LocationChangeTimerLocation(bounds, score);
+                }
+
+                if (bestLocation.Value.Score >= EarlyExitScore)
+                {
+                    break;
+                }
+            }
+            finally
             {
-                bestLocation = new LocationChangeTimerLocation(bounds, score);
+                if (ownsScaled)
+                {
+                    scaledTemplate.Dispose();
+                }
             }
         }
 
@@ -78,13 +95,10 @@ internal sealed class LocationChangeTimerDetector : IDisposable
         return new Rect(x, y, width, height);
     }
 
+    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
+
     private Mat BuildScaledTemplate(double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return m_Template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(m_Template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(m_Template.Height * scale));
         var scaledTemplate = new Mat();

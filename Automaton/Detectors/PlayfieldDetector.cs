@@ -3,7 +3,7 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class PlayfieldDetector
+internal sealed class PlayfieldDetector : IDisposable
 {
     private const int EdgeLowThreshold = 60;
     private const int EdgeHighThreshold = 160;
@@ -54,14 +54,19 @@ internal sealed class PlayfieldDetector
         m_TemplateSize = m_TemplateGray.Size();
     }
 
-    public PlayfieldDetectionResult Detect(Mat screenshot, bool drawDebugOverlay = true)
+    public void Dispose()
+    {
+        m_TemplateGray.Dispose();
+        m_TemplateEqualized.Dispose();
+        m_TemplateEdges.Dispose();
+    }
+
+    public PlayfieldDetectionResult Detect(Mat screenshot)
     {
         using var screenshotGray = new Mat();
         using var screenshotEqualized = new Mat();
         using var screenshotEdges = new Mat();
 
-        // Normalize the screenshot into multiple representations so template matching
-        // can still succeed when one corner is dimmed, saturated, or partially occluded.
         Cv2.CvtColor(screenshot, screenshotGray, ColorConversionCodes.BGR2GRAY);
         Cv2.EqualizeHist(screenshotGray, screenshotEqualized);
         Cv2.Canny(screenshotEqualized, screenshotEdges, EdgeLowThreshold, EdgeHighThreshold);
@@ -82,7 +87,6 @@ internal sealed class PlayfieldDetector
     {
         var candidates = new List<MarkerCandidate>();
 
-        // Start strict, then gradually widen the search and add edge-based matching when needed.
         CollectMatchCandidates(screenshotGray, m_TemplateGray, RawMatchThreshold, RawMatchWeight, StrictPassMaxMatches, candidates);
 
         if (candidates.Count < 4)
@@ -192,8 +196,6 @@ internal sealed class PlayfieldDetector
         MarkerSet? best = null;
         var bestScore = double.NegativeInfinity;
 
-        // Evaluate every plausible 3-marker or 4-marker combination and keep the
-        // most consistent rectangle, preferring fully observed corners when possible.
         for (var i = 0; i < candidates.Count; i++)
         {
             for (var j = i + 1; j < candidates.Count; j++)

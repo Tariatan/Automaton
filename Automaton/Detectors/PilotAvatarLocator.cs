@@ -8,11 +8,6 @@ internal sealed class PilotAvatarLocator
 {
     private const string PilotFolderName = "pilot";
     private const double MinimumMatchScore = 0.90;
-    private const double DebugOverlayTextScale = 0.8;
-    private const int DebugOverlayTextThickness = 2;
-    private const int DebugOverlayLeftPadding = 30;
-    private const int DebugOverlayTopPadding = 40;
-    private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10];
     private static readonly ILogger Logger = Log.ForContext<PilotAvatarLocator>();
 
@@ -32,27 +27,29 @@ internal sealed class PilotAvatarLocator
         return false;
     }
 
-    public static bool Detect(string imagePath, int requestedPilotIndex, out PilotAvatarLocation location, bool drawDebugOverlay = true)
+    public static bool Detect(string imagePath, int requestedPilotIndex, out PilotAvatarLocation location)
     {
         using var image = Cv2.ImRead(imagePath);
         var requestedMatch = TryLocateBest(image, requestedPilotIndex);
         var matchedRequestedPilot = requestedMatch is not null && requestedMatch.Value.Location.Score >= MinimumMatchScore;
-        var foundPilotIndex = matchedRequestedPilot
-            ? requestedPilotIndex
-            : TryFindBestPilotIndex(image, requestedPilotIndex);
-
-        if (drawDebugOverlay)
-        {
-            DrawDebugOverlay(image, requestedPilotIndex, foundPilotIndex, requestedMatch);
-            Cv2.ImWrite(imagePath, image);
-        }
 
         if (!matchedRequestedPilot)
         {
+            var foundPilotIndex = TryFindBestPilotIndex(image, requestedPilotIndex);
+            if (foundPilotIndex != null)
+            {
+                Logger.Information("RequestedPilotIndex={RequestedPilotIndex}, FoundPilotIndex={FoundPilotIndex}", requestedPilotIndex, foundPilotIndex);
+            }
+            else
+            {
+                Logger.Error("RequestedPilotIndex={RequestedPilotIndex} not found!", requestedPilotIndex);
+            }
+
             location = default;
             return false;
         }
 
+        Logger.Information("RequestedPilotIndex={RequestedPilotIndex}, FoundPilotIndex={FoundPilotIndex}", requestedPilotIndex, requestedPilotIndex);
         location = requestedMatch!.Value.Location;
         return true;
     }
@@ -195,46 +192,6 @@ internal sealed class PilotAvatarLocator
         }
 
         return bestMatch?.PilotIndex;
-    }
-
-    private static void DrawDebugOverlay(
-        Mat image,
-        int requestedPilotIndex,
-        int? foundPilotIndex,
-        PilotMatchResult? requestedMatch)
-    {
-        if (image.Empty())
-        {
-            return;
-        }
-
-        if (requestedMatch is not null)
-        {
-            Cv2.Rectangle(image, requestedMatch.Value.Location.Bounds, DebugOverlayColor, 2);
-        }
-
-        var overlayText = foundPilotIndex is null
-            ? $"Requested pilot: {requestedPilotIndex}; Found pilot: none"
-            : $"Requested pilot: {requestedPilotIndex}; Found pilot: {foundPilotIndex.Value}";
-
-        Cv2.PutText(
-            image,
-            overlayText,
-            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
-            HersheyFonts.HersheySimplex,
-            DebugOverlayTextScale,
-            DebugOverlayColor,
-            DebugOverlayTextThickness,
-            LineTypes.AntiAlias);
-
-        if (foundPilotIndex != null)
-        {
-            Logger.Information("RequestedPilotIndex={RequestedPilotIndex}, FoundPilotIndex={FoundPilotIndex}", requestedPilotIndex, foundPilotIndex);
-        }
-        else
-        {
-            Logger.Error("RequestedPilotIndex={RequestedPilotIndex} not found!", requestedPilotIndex);
-        }
     }
 
     private static Mat BuildSearchableScreen(Mat screen, bool useColor)

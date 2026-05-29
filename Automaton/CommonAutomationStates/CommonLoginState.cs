@@ -21,6 +21,8 @@ internal sealed class CommonLoginState(
             return false;
         }
 
+        DrawDebugOverlay(capturePath, pilotLocation.Bounds, $"Pilot {pilotIndex} found");
+
         pilotBounds = pilotLocation.Bounds;
         var delay = TimeSpan.FromMilliseconds(Delays.PilotLoginMs);
         m_Logger.Information("Logging in pilot {PilotIndex} for {DelaySeconds:0.###} seconds...", pilotIndex, delay.TotalSeconds);
@@ -33,5 +35,18 @@ internal sealed class CommonLoginState(
         automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
 
         return true;
+    }
+
+    private static void DrawDebugOverlay(string imagePath, Rect bounds, string label)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (image.Empty())
+        {
+            return;
+        }
+
+        DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
+        DebugOverlay.Label(image, label, OverlayColor.RedOrange);
+        Cv2.ImWrite(imagePath, image);
     }
 }

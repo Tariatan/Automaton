@@ -19,7 +19,7 @@ internal sealed class DiscoverState(
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
     private static readonly Rect ControlButtonBounds = new(1360, 960, 460, 30);
-    private static readonly Scalar ControlButtonOverlayColor = new(0, 255, 255);
+    private static readonly OverlayColor ControlButtonOverlayColor = OverlayColor.Yellow;
     private readonly Random m_Random = new();
     private readonly Queue<DateTime> m_SubmittedAtUtc = new();
     private readonly ILogger m_Logger = Log.ForContext<DiscoverState>();
@@ -84,8 +84,11 @@ internal sealed class DiscoverState(
         // Try to detect MaxSubmissions/SlowDown popup.
         // Transition to corresponding Recover*PopupSate
         var maxSubmissionsPopupDetection = maxSubmissionsPopupDetector.Detect(focusedCapturePath);
+        var slowDownPopupDetection = slowDownPopupDetector.Detect(focusedCapturePath);
+
         if (maxSubmissionsPopupDetection.State == PopupState.MaxSubmissions)
         {
+            DrawPopupDebugOverlay(focusedCapturePath, maxSubmissionsPopupDetection, "Maximum submissions popup detected");
             return new DiscoveryAutomationStateTransition(
                 Kind,
                 DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup,
@@ -93,9 +96,9 @@ internal sealed class DiscoverState(
                 captureSummary.CapturePath);
         }
 
-        var slowDownPopupDetection = slowDownPopupDetector.Detect(focusedCapturePath);
         if (slowDownPopupDetection.State == PopupState.SlowDown)
         {
+            DrawPopupDebugOverlay(focusedCapturePath, slowDownPopupDetection, "Slow down popup detected");
             return new DiscoveryAutomationStateTransition(
                 Kind,
                 DiscoveryAutomationStateKind.RecoverSlowDownPopup,
@@ -197,6 +200,19 @@ internal sealed class DiscoverState(
         }
     }
 
+    private static void DrawPopupDebugOverlay(string imagePath, PopupDetection detection, string label)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (image.Empty())
+        {
+            return;
+        }
+
+        DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
+        DebugOverlay.Label(image, label, OverlayColor.RedOrange);
+        Cv2.ImWrite(imagePath, image);
+    }
+
     private static void DrawControlButtonBoundsOverlay(string annotatedImagePath)
     {
         if (string.IsNullOrWhiteSpace(annotatedImagePath))
@@ -210,14 +226,14 @@ internal sealed class DiscoverState(
             return;
         }
 
-        Cv2.Rectangle(annotated, ControlButtonBounds, ControlButtonOverlayColor, 2);
+        DebugOverlay.Annotate(annotated, (ControlButtonBounds, ControlButtonOverlayColor));
         Cv2.PutText(
             annotated,
             "ControlButtonBounds",
             new Point(ControlButtonBounds.X, Math.Max(25, ControlButtonBounds.Y - 10)),
             HersheyFonts.HersheySimplex,
             0.7,
-            ControlButtonOverlayColor,
+            ControlButtonOverlayColor.ToScalar(),
             2,
             LineTypes.AntiAlias);
         Cv2.ImWrite(annotatedImagePath, annotated);

@@ -3,16 +3,21 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class MiningLaserDetector
+internal sealed class MiningLaserDetector : IDisposable
 {
     private const double MinimumLaserMatchScore = 0.74;
-    private static readonly double[] TemplateScales = [0.90, 1.0, 1.10];
-    // One combined region in top-right selected-item panel: any laser match counts as active.
+    private const double EarlyExitScore = 0.90;
+    private static readonly double[] TemplateScales = [1.0, 0.90, 1.10];
     private static readonly Rect LaserSearchBounds = new(1740, 170, 250, 160);
 
     private readonly Mat m_MiningLaserTemplate = EmbeddedResourceLoader.LoadMat("mining.mining_laser.png");
 
-    public bool Detect(Mat screen, bool drawDebugOverlay = true)
+    public void Dispose()
+    {
+        m_MiningLaserTemplate.Dispose();
+    }
+
+    public bool Detect(Mat screen)
     {
         return !screen.Empty() && TryMatchTemplate(screen, m_MiningLaserTemplate, LaserSearchBounds, MinimumLaserMatchScore);
     }
@@ -28,18 +33,34 @@ internal sealed class MiningLaserDetector
         {
             foreach (var scale in TemplateScales)
             {
-                using var scaledTemplate = BuildScaledTemplate(template, scale);
-                if (scaledTemplate.Width > region.Width || scaledTemplate.Height > region.Height)
+                var ownsScaled = !IsUnscaled(scale);
+                var scaledTemplate = ownsScaled ? BuildScaledTemplate(template, scale) : template;
+                try
                 {
-                    continue;
-                }
+                    if (scaledTemplate.Width > region.Width || scaledTemplate.Height > region.Height)
+                    {
+                        continue;
+                    }
 
-                using var result = new Mat();
-                Cv2.MatchTemplate(region, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
-                Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out _);
-                if (maxScore >= minimumScore)
+                    using var result = new Mat();
+                    Cv2.MatchTemplate(region, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+                    Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out _);
+                    if (maxScore >= EarlyExitScore)
+                    {
+                        return true;
+                    }
+
+                    if (maxScore >= minimumScore)
+                    {
+                        return true;
+                    }
+                }
+                finally
                 {
-                    return true;
+                    if (ownsScaled)
+                    {
+                        scaledTemplate.Dispose();
+                    }
                 }
             }
 
@@ -63,14 +84,10 @@ internal sealed class MiningLaserDetector
         return true;
     }
 
+    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(template.Height * scale));
         var scaledTemplate = new Mat();

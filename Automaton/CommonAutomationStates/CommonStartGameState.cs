@@ -21,6 +21,8 @@ internal sealed class CommonStartGameState(
             return false;
         }
 
+        DrawDebugOverlay(capturePath, playButtonLocation.Bounds);
+
         var delay = TimeSpan.FromMilliseconds(Delays.LauncherStartupMs);
         m_Logger.Information("Starting Game for {DelaySeconds:0.###} seconds...", delay.TotalSeconds);
         playButtonBounds = playButtonLocation.Bounds;
@@ -32,5 +34,18 @@ internal sealed class CommonStartGameState(
         automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
 
         return true;
+    }
+
+    private static void DrawDebugOverlay(string imagePath, Rect bounds)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (image.Empty())
+        {
+            return;
+        }
+
+        DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
+        DebugOverlay.Label(image, "PLAY NOW found", OverlayColor.RedOrange);
+        Cv2.ImWrite(imagePath, image);
     }
 }

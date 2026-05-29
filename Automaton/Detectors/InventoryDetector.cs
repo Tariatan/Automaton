@@ -37,7 +37,7 @@ internal sealed class InventoryDetector : IDisposable
 
     private static bool TryLocateTitle(Mat screen, Mat template, Rect searchBounds, out Rect? titleBounds)
     {
-        const double earlyExitScore = 0.95;
+        const double EarlyExitScore = 0.95;
 
         titleBounds = null;
         var clampedBounds = ClampBounds(searchBounds, screen.Size());
@@ -69,7 +69,7 @@ internal sealed class InventoryDetector : IDisposable
                     bestMatch = candidate;
                 }
 
-                if (bestMatch.Value.Score >= earlyExitScore)
+                if (bestMatch.Value.Score >= EarlyExitScore)
                 {
                     break;
                 }

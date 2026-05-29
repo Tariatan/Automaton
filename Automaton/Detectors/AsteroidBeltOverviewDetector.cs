@@ -1,6 +1,5 @@
 using Automaton.Infrastructure;
 using OpenCvSharp;
-using Serilog;
 
 namespace Automaton.Detectors;
 
@@ -8,6 +7,7 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
 {
     private const double MinimumButtonMatchScore = 0.90;
     private const double MinimumHomeStationMatchScore = 0.76;
+    private const double EarlyExitScore = 0.95;
     private const int MinimumAsteroidIconPartArea = 3;
     private const int MaximumAsteroidIconPartWidth = 24;
     private const int MaximumAsteroidIconPartHeight = 24;
@@ -19,18 +19,8 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
     private const int OverviewRegionTop = 280;
     private const int OverviewRegionWidth = 580;
     private const int OverviewRegionHeight = 1330;
-    private const double DebugOverlayTextScale = 0.8;
-    private const int DebugOverlayTextThickness = 2;
-    private const int DebugOverlayLeftPadding = 30;
-    private const int DebugOverlayTopPadding = 40;
     private static readonly double[] OverviewBeltTemplateScales = [1.0, 0.95, 1.05];
-    private static readonly double[] HomeStationTemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20, 1.30];
-    private static readonly Scalar DebugOverlayColor = new(80, 120, 255);
-    private static readonly Scalar OverviewBoundsColor = new(255, 200, 120);
-    private static readonly Scalar BeltButtonBoundsColor = new(80, 120, 255);
-    private static readonly Scalar HomeStationBoundsColor = new(120, 255, 120);
-    private static readonly Scalar AsteroidBeltBoundsColor = new(120, 220, 255);
-    private static readonly ILogger Logger = Log.ForContext<AsteroidBeltOverviewDetector>();
+    private static readonly double[] HomeStationTemplateScales = [1.0, 0.90, 1.10, 0.80, 1.20, 1.30];
 
     private readonly Mat m_OverviewBeltTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_belt.png");
     private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
@@ -41,7 +31,7 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
         m_HomeStationTemplate.Dispose();
     }
 
-    public AsteroidBeltOverviewAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
+    public AsteroidBeltOverviewAnalysis Detect(Mat screen)
     {
         if (screen.Empty())
         {
@@ -78,64 +68,12 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
             ? []
             : LocateAsteroidBelts(searchable, overviewBounds, homeStationBounds.Value);
 
-        var analysis = new AsteroidBeltOverviewAnalysis(
+        return new AsteroidBeltOverviewAnalysis(
             true,
             overviewBounds,
             overviewBeltButtonBounds,
             homeStationBounds,
             asteroidBelts);
-
-        if (drawDebugOverlay)
-        {
-            DrawDebugOverlay(screen, analysis);
-        }
-
-        return analysis;
-    }
-
-    private static void DrawDebugOverlay(Mat image, AsteroidBeltOverviewAnalysis analysis)
-    {
-        if (image.Empty())
-        {
-            return;
-        }
-
-        if (analysis.OverviewBounds is not null)
-        {
-            Cv2.Rectangle(image, analysis.OverviewBounds.Value, OverviewBoundsColor, 2);
-        }
-
-        if (analysis.OverviewBeltButtonBounds is not null)
-        {
-            Cv2.Rectangle(image, analysis.OverviewBeltButtonBounds.Value, BeltButtonBoundsColor, 2);
-        }
-
-        if (analysis.HomeStationBounds is not null)
-        {
-            Cv2.Rectangle(image, analysis.HomeStationBounds.Value, HomeStationBoundsColor, 2);
-        }
-
-        foreach (var asteroidBelt in analysis.AsteroidBelts)
-        {
-            Cv2.Rectangle(image, asteroidBelt.Bounds, AsteroidBeltBoundsColor, 2);
-        }
-
-        var overlayText =
-            $"Overview {(analysis.OverviewLocated ? "found" : "not found")}; Belts: {analysis.AsteroidBelts.Count}";
-        Cv2.PutText(
-            image,
-            overlayText,
-            new Point(DebugOverlayLeftPadding, DebugOverlayTopPadding),
-            HersheyFonts.HersheySimplex,
-            DebugOverlayTextScale,
-            DebugOverlayColor,
-            DebugOverlayTextThickness,
-            LineTypes.AntiAlias);
-
-        Logger.Information(
-            "Asteroid belt overview: OverviewLocated={OverviewLocated}, BeltCount={BeltCount}",
-            analysis.OverviewLocated,
-            analysis.AsteroidBelts.Count);
     }
 
     private static List<AsteroidBeltOverviewEntry> LocateAsteroidBelts(
@@ -217,24 +155,40 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
         TemplateLocation? bestLocation = null;
         foreach (var scale in templateScales)
         {
-            using var scaledTemplate = BuildScaledTemplate(template, scale);
-            if (scaledTemplate.Width > searchRegion.Width ||
-                scaledTemplate.Height > searchRegion.Height)
+            var ownsScaled = !IsUnscaled(scale);
+            var scaledTemplate = ownsScaled ? BuildScaledTemplate(template, scale) : template;
+            try
             {
-                continue;
-            }
+                if (scaledTemplate.Width > searchRegion.Width ||
+                    scaledTemplate.Height > searchRegion.Height)
+                {
+                    continue;
+                }
 
-            using var result = new Mat();
-            Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
-            Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
-            var bounds = new Rect(
-                searchBounds.X + locationPoint.X,
-                searchBounds.Y + locationPoint.Y,
-                scaledTemplate.Width,
-                scaledTemplate.Height);
-            if (bestLocation is null || score > bestLocation.Value.Score)
+                using var result = new Mat();
+                Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+                Cv2.MinMaxLoc(result, out _, out var score, out _, out var locationPoint);
+                var bounds = new Rect(
+                    searchBounds.X + locationPoint.X,
+                    searchBounds.Y + locationPoint.Y,
+                    scaledTemplate.Width,
+                    scaledTemplate.Height);
+                if (bestLocation is null || score > bestLocation.Value.Score)
+                {
+                    bestLocation = new TemplateLocation(bounds, score);
+                }
+
+                if (bestLocation.Value.Score >= EarlyExitScore)
+                {
+                    break;
+                }
+            }
+            finally
             {
-                bestLocation = new TemplateLocation(bounds, score);
+                if (ownsScaled)
+                {
+                    scaledTemplate.Dispose();
+                }
             }
         }
 
@@ -301,6 +255,8 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
         return Cv2.CountNonZero(mask) >= MinimumDistanceColumnBrightPixelCount;
     }
 
+    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
+
     private static Mat ConvertToColor(Mat screen)
     {
         var colorScreen = new Mat();
@@ -310,11 +266,6 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(template.Height * scale));
         var scaledTemplate = new Mat();

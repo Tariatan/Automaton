@@ -13,9 +13,9 @@ public sealed class FirstAsteroidWithinReachDetectorTests
         var detector = new FirstAsteroidWithinReachDetector();
 
         // Act
-        var mineOverviewAnalysis = mineOverviewDetector.Detect(image, drawDebugOverlay: false);
+        var mineOverviewAnalysis = mineOverviewDetector.Detect(image);
         var asteroids = mineOverviewAnalysis.MineOverviewLocated && mineOverviewAnalysis.MineOverviewBounds is not null
-            ? AsteroidRowsDetector.Detect(image, mineOverviewAnalysis.MineOverviewBounds.Value, drawDebugOverlay: false)
+            ? AsteroidRowsDetector.Detect(image, mineOverviewAnalysis.MineOverviewBounds.Value)
             : [];
         var analysis = mineOverviewAnalysis.MineOverviewLocated &&
                        mineOverviewAnalysis.MineOverviewBounds is not null &&

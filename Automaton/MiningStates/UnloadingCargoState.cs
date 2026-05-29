@@ -29,7 +29,7 @@ internal sealed class UnloadingCargoState(
         cancellationToken.ThrowIfCancellationRequested();
 
         // TryLocate Undock button
-        if (!UndockButtonDetector.Detect(captureCheckIfDocked.Image, out _, false))
+        if (!UndockButtonDetector.Detect(captureCheckIfDocked.Image, out _))
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort unloading");
@@ -130,16 +130,19 @@ internal sealed class UnloadingCargoState(
         }
 
         using var annotated = screen.Clone();
+        var items = new List<(Rect, OverlayColor)>();
+
         if (miningHoldFirstRowBounds.HasValue)
         {
-            Cv2.Rectangle(annotated, miningHoldFirstRowBounds.Value, new Scalar(0, 255, 0), 2);
+            items.Add((miningHoldFirstRowBounds.Value, OverlayColor.Lime));
         }
 
         if (itemHangarFirstRowBounds.HasValue)
         {
-            Cv2.Rectangle(annotated, itemHangarFirstRowBounds.Value, new Scalar(0, 255, 255), 2);
+            items.Add((itemHangarFirstRowBounds.Value, OverlayColor.Yellow));
         }
 
+        DebugOverlay.Annotate(annotated, items.ToArray());
         Cv2.ImWrite(capturePath, annotated);
     }
 

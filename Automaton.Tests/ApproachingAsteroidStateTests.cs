@@ -87,8 +87,7 @@ public sealed class ApproachingAsteroidStateTests
         public override FirstAsteroidWithinReachAnalysis Detect(
             OpenCvSharp.Mat screen,
             OpenCvSharp.Rect mineOverviewBounds,
-            OpenCvSharp.Rect firstAsteroidRowBounds,
-            bool drawDebugOverlay = true)
+            OpenCvSharp.Rect firstAsteroidRowBounds)
         {
             return detectHandler();
         }

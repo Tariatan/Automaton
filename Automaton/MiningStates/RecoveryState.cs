@@ -43,9 +43,9 @@ internal sealed class RecoveryState(
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
 
-        var overviewAnalysis = beltOverviewDetector.Detect(capture.Image, false);
+        var overviewAnalysis = beltOverviewDetector.Detect(capture.Image);
         var inSpace = overviewAnalysis is { OverviewLocated: true, HomeStationLocated: true };
-        var docked = UndockButtonDetector.Detect(capture.Image, out _, false);
+        var docked = UndockButtonDetector.Detect(capture.Image, out _);
 
         if (inSpace)
         {
@@ -72,7 +72,7 @@ internal sealed class RecoveryState(
         }
 
         // Game crashed?
-        var playNowFound = playNowButtonDetector.Detect(capture.CapturePath, out _);
+        var playNowFound = playNowButtonDetector.Detect(capture.CapturePath, out var _);
         if (playNowFound)
         {
             m_Logger.Error("Game crashed => Restarting...");

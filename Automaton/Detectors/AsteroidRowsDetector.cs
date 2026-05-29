@@ -11,7 +11,7 @@ internal static class AsteroidRowsDetector
     private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 90;
     private const int MinimumDistanceColumnBrightPixelCount = 10;
 
-    public static IReadOnlyList<AsteroidOverviewEntry> Detect(Mat screen, Rect mineOverviewBounds, bool drawDebugOverlay = true)
+    public static IReadOnlyList<AsteroidOverviewEntry> Detect(Mat screen, Rect mineOverviewBounds)
     {
         if (screen.Empty())
         {
@@ -57,14 +57,7 @@ internal static class AsteroidRowsDetector
 
         using var probeGray = new Mat();
         using var probeMask = new Mat();
-        var result = Array.FindAll(candidates, row => RowLooksSelectable(screen, row.Bounds, probeGray, probeMask));
-
-        if (drawDebugOverlay)
-        {
-            // do nothing
-        }
-
-        return result;
+        return Array.FindAll(candidates, row => RowLooksSelectable(screen, row.Bounds, probeGray, probeMask));
     }
 
     private static List<List<int>> GroupIconCenters(IReadOnlyList<int> iconCenters)

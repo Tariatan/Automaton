@@ -1,9 +1,9 @@
+using System.IO;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
-using Serilog;
 using OpenCvSharp;
-using System.IO;
+using Serilog;
 
 namespace Automaton.MiningStates;
 
@@ -171,10 +171,42 @@ internal sealed class SelectBeltAndWarpState(
 
         if (File.Exists(capturePath))
         {
+            DrawDebugOverlay(screen, analysis);
             Cv2.ImWrite(capturePath, screen);
         }
 
         return analysis;
+    }
+
+    private static void DrawDebugOverlay(Mat image, AsteroidBeltOverviewAnalysis analysis)
+    {
+        var items = new List<(Rect, OverlayColor)>();
+
+        if (analysis.OverviewBounds is not null)
+        {
+            items.Add((analysis.OverviewBounds.Value, OverlayColor.LightBlue));
+        }
+
+        if (analysis.OverviewBeltButtonBounds is not null)
+        {
+            items.Add((analysis.OverviewBeltButtonBounds.Value, OverlayColor.RedOrange));
+        }
+
+        if (analysis.HomeStationBounds is not null)
+        {
+            items.Add((analysis.HomeStationBounds.Value, OverlayColor.Green));
+        }
+
+        foreach (var asteroidBelt in analysis.AsteroidBelts)
+        {
+            items.Add((asteroidBelt.Bounds, OverlayColor.Amber));
+        }
+
+        DebugOverlay.Annotate(image, items.ToArray());
+        DebugOverlay.Label(
+            image,
+            $"Overview {(analysis.OverviewLocated ? "found" : "not found")}; Belts: {analysis.AsteroidBelts.Count}",
+            OverlayColor.RedOrange);
     }
 
     private MiningAutomationStateTransition Recover(string capturePath)

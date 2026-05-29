@@ -2,6 +2,7 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using OpenCvSharp;
 using Serilog;
 
 namespace Automaton;
@@ -108,9 +109,23 @@ internal sealed class MiningAutomationService(
             return false;
         }
 
+        DrawPopupDebugOverlay(capture.CapturePath, detection, "Connection lost popup detected");
         Logger.Error("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
         m_CurrentState = CreateState(MiningAutomationStateKind.RecoverConnectionLostPopup);
         return true;
+    }
+
+    private static void DrawPopupDebugOverlay(string imagePath, PopupDetection detection, string label)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (image.Empty())
+        {
+            return;
+        }
+
+        DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
+        DebugOverlay.Label(image, label, OverlayColor.RedOrange);
+        Cv2.ImWrite(imagePath, image);
     }
 
     private IMiningAutomationState CreateState(MiningAutomationStateKind stateKind)

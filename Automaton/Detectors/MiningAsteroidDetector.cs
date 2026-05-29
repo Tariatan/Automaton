@@ -3,10 +3,11 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal sealed class MiningAsteroidDetector
+internal sealed class MiningAsteroidDetector : IDisposable
 {
     private const double MinimumAsteroidMatchScore = 0.74;
-    private static readonly double[] TemplateScales = [0.80, 0.90, 1.0, 1.10, 1.20];
+    private const double EarlyExitScore = 0.90;
+    private static readonly double[] TemplateScales = [1.0, 0.90, 1.10, 0.80, 1.20];
     private static readonly Rect AsteroidBounds = new(1800, 60, 76, 66);
 
     private readonly Mat[] m_AsteroidTemplates =
@@ -16,7 +17,15 @@ internal sealed class MiningAsteroidDetector
         EmbeddedResourceLoader.LoadMat("mining.asteroid_veldspar.png")
     ];
 
-    public bool Detect(Mat screen, bool drawDebugOverlay = true)
+    public void Dispose()
+    {
+        foreach (var template in m_AsteroidTemplates)
+        {
+            template.Dispose();
+        }
+    }
+
+    public bool Detect(Mat screen)
     {
         if (screen.Empty())
         {
@@ -39,18 +48,34 @@ internal sealed class MiningAsteroidDetector
         {
             foreach (var scale in TemplateScales)
             {
-                using var scaledTemplate = BuildScaledTemplate(template, scale);
-                if (scaledTemplate.Width > region.Width || scaledTemplate.Height > region.Height)
+                var ownsScaled = !IsUnscaled(scale);
+                var scaledTemplate = ownsScaled ? BuildScaledTemplate(template, scale) : template;
+                try
                 {
-                    continue;
-                }
+                    if (scaledTemplate.Width > region.Width || scaledTemplate.Height > region.Height)
+                    {
+                        continue;
+                    }
 
-                using var result = new Mat();
-                Cv2.MatchTemplate(region, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
-                Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out _);
-                if (maxScore >= minimumScore)
+                    using var result = new Mat();
+                    Cv2.MatchTemplate(region, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+                    Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out _);
+                    if (maxScore >= EarlyExitScore)
+                    {
+                        return true;
+                    }
+
+                    if (maxScore >= minimumScore)
+                    {
+                        return true;
+                    }
+                }
+                finally
                 {
-                    return true;
+                    if (ownsScaled)
+                    {
+                        scaledTemplate.Dispose();
+                    }
                 }
             }
 
@@ -83,18 +108,14 @@ internal sealed class MiningAsteroidDetector
         return true;
     }
 
+    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
+
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(template.Height * scale));
         var scaledTemplate = new Mat();
         Cv2.Resize(template, scaledTemplate, new Size(width, height));
         return scaledTemplate;
     }
-
 }

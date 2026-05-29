@@ -7,8 +7,6 @@ internal class FirstAsteroidWithinReachDetector : IDisposable
 {
     private const double MinimumMetersTemplateMatchScore = 0.95;
     private static readonly double[] TemplateScales = [1.0, 0.98, 1.02, 0.97, 1.03, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
-    private static readonly Scalar RowSearchBoundsColor = new(0, 255, 0);
-    private static readonly Scalar UnitSearchBoundsColor = new(0, 255, 255);
     private readonly Mat m_DistanceMetersTemplateGray = LoadGray("overview.distance_m.png");
 
     private static Mat LoadGray(string resourceFileName)
@@ -21,7 +19,7 @@ internal class FirstAsteroidWithinReachDetector : IDisposable
 
     public void Dispose() => m_DistanceMetersTemplateGray.Dispose();
 
-    public virtual FirstAsteroidWithinReachAnalysis Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds, bool drawDebugOverlay = true)
+    public virtual FirstAsteroidWithinReachAnalysis Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds)
     {
         if (screen.Empty())
         {
@@ -47,12 +45,6 @@ internal class FirstAsteroidWithinReachDetector : IDisposable
             MinimumMetersTemplateMatchScore,
             out var bestScore,
             out var matchedScale);
-
-        if (drawDebugOverlay)
-        {
-            Cv2.Rectangle(screen, rowSearchBounds, RowSearchBoundsColor, 2);
-            Cv2.Rectangle(screen, unitBounds, UnitSearchBoundsColor, 2);
-        }
 
         return new FirstAsteroidWithinReachAnalysis(
             isWithinReach,
