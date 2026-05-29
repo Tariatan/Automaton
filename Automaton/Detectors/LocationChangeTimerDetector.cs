@@ -23,11 +23,11 @@ internal sealed class LocationChangeTimerDetector : IDisposable
         }
 
         var searchBounds = BuildSearchBounds(screen.Size());
-        using var searchRegion = BuildSearchRegion(screen, searchBounds);
+        using var searchRegion = new Mat(screen, searchBounds);
         LocationChangeTimerLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
-            var ownsScaled = !IsUnscaled(scale);
+            var ownsScaled = scale != 1.0;
             var scaledTemplate = ownsScaled ? BuildScaledTemplate(scale) : m_Template;
             try
             {
@@ -73,19 +73,6 @@ internal sealed class LocationChangeTimerDetector : IDisposable
         return true;
     }
 
-    private static Mat BuildSearchRegion(Mat screen, Rect searchBounds)
-    {
-        using var roi = new Mat(screen, searchBounds);
-        if (roi.Channels() == 3)
-        {
-            return roi.Clone();
-        }
-
-        var bgr = new Mat();
-        Cv2.CvtColor(roi, bgr, ColorConversionCodes.GRAY2BGR);
-        return bgr;
-    }
-
     private static Rect BuildSearchBounds(Size imageSize)
     {
         var x = Math.Clamp(SearchBounds.X, 0, Math.Max(0, imageSize.Width - 1));
@@ -94,8 +81,6 @@ internal sealed class LocationChangeTimerDetector : IDisposable
         var height = Math.Clamp(SearchBounds.Height, 1, imageSize.Height - y);
         return new Rect(x, y, width, height);
     }
-
-    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
 
     private Mat BuildScaledTemplate(double scale)
     {
