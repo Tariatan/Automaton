@@ -18,7 +18,7 @@ internal sealed class InventoryDetector : IDisposable
         m_MiningHoldTemplate.Dispose();
     }
 
-    public InventoryAnalysis Detect(Mat screen, bool drawDebugOverlay = true)
+    public InventoryAnalysis Detect(Mat screen)
     {
         if (screen.Empty())
         {
@@ -37,31 +37,49 @@ internal sealed class InventoryDetector : IDisposable
 
     private static bool TryLocateTitle(Mat screen, Mat template, Rect searchBounds, out Rect? titleBounds)
     {
+        const double earlyExitScore = 0.95;
+
         titleBounds = null;
         var clampedBounds = ClampBounds(searchBounds, screen.Size());
         using var searchRegion = new Mat(screen, clampedBounds);
         TemplateMatch? bestMatch = null;
         foreach (var scale in TemplateScales)
         {
-            using var scaledTemplate = BuildScaledTemplate(template, scale);
-            if (scaledTemplate.Width > searchRegion.Width || scaledTemplate.Height > searchRegion.Height)
+            var ownsTemplate = !IsUnscaled(scale);
+            var effectiveTemplate = ownsTemplate ? BuildScaledTemplate(template, scale) : template;
+            try
             {
-                continue;
-            }
+                if (effectiveTemplate.Width > searchRegion.Width || effectiveTemplate.Height > searchRegion.Height)
+                {
+                    continue;
+                }
 
-            using var result = new Mat();
-            Cv2.MatchTemplate(searchRegion, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
-            Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out var maxLocation);
-            var candidate = new TemplateMatch(
-                new Rect(
-                    clampedBounds.X + maxLocation.X,
-                    clampedBounds.Y + maxLocation.Y,
-                    scaledTemplate.Width,
-                    scaledTemplate.Height),
-                maxScore);
-            if (bestMatch is null || candidate.Score > bestMatch.Value.Score)
+                using var result = new Mat();
+                Cv2.MatchTemplate(searchRegion, effectiveTemplate, result, TemplateMatchModes.CCoeffNormed);
+                Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out var maxLocation);
+                var candidate = new TemplateMatch(
+                    new Rect(
+                        clampedBounds.X + maxLocation.X,
+                        clampedBounds.Y + maxLocation.Y,
+                        effectiveTemplate.Width,
+                        effectiveTemplate.Height),
+                    maxScore);
+                if (bestMatch is null || candidate.Score > bestMatch.Value.Score)
+                {
+                    bestMatch = candidate;
+                }
+
+                if (bestMatch.Value.Score >= earlyExitScore)
+                {
+                    break;
+                }
+            }
+            finally
             {
-                bestMatch = candidate;
+                if (ownsTemplate)
+                {
+                    effectiveTemplate.Dispose();
+                }
             }
         }
 
@@ -74,6 +92,8 @@ internal sealed class InventoryDetector : IDisposable
         return true;
     }
 
+    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
+
     private static Rect ClampBounds(Rect bounds, Size imageSize)
     {
         var x = Math.Clamp(bounds.X, 0, Math.Max(0, imageSize.Width - 1));
@@ -85,11 +105,6 @@ internal sealed class InventoryDetector : IDisposable
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-        {
-            return template.Clone();
-        }
-
         var width = Math.Max(1, (int)Math.Round(template.Width * scale));
         var height = Math.Max(1, (int)Math.Round(template.Height * scale));
         var scaledTemplate = new Mat();
