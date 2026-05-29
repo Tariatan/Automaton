@@ -3,13 +3,23 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal class FirstAsteroidWithinReachDetector
+internal class FirstAsteroidWithinReachDetector : IDisposable
 {
     private const double MinimumMetersTemplateMatchScore = 0.95;
     private static readonly double[] TemplateScales = [1.0, 0.98, 1.02, 0.97, 1.03, 0.95, 1.05, 0.90, 1.10, 0.85, 1.15];
     private static readonly Scalar RowSearchBoundsColor = new(0, 255, 0);
     private static readonly Scalar UnitSearchBoundsColor = new(0, 255, 255);
-    private readonly Mat m_DistanceMetersTemplate = EmbeddedResourceLoader.LoadMat("overview.distance_m.png");
+    private readonly Mat m_DistanceMetersTemplateGray = LoadGray("overview.distance_m.png");
+
+    private static Mat LoadGray(string resourceFileName)
+    {
+        using var color = EmbeddedResourceLoader.LoadMat(resourceFileName);
+        var gray = new Mat();
+        Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
+        return gray;
+    }
+
+    public void Dispose() => m_DistanceMetersTemplateGray.Dispose();
 
     public virtual FirstAsteroidWithinReachAnalysis Detect(Mat screen, Rect mineOverviewBounds, Rect firstAsteroidRowBounds, bool drawDebugOverlay = true)
     {
@@ -33,7 +43,7 @@ internal class FirstAsteroidWithinReachDetector
 
         var isWithinReach = TryMatchTemplate(
             region,
-            m_DistanceMetersTemplate,
+            m_DistanceMetersTemplateGray,
             MinimumMetersTemplateMatchScore,
             out var bestScore,
             out var matchedScale);
@@ -72,7 +82,7 @@ internal class FirstAsteroidWithinReachDetector
 
     private static bool TryMatchTemplate(
         Mat searchRegion,
-        Mat template,
+        Mat templateGray,
         double minimumScore,
         out double bestScore,
         out double? matchedScale)
@@ -83,56 +93,49 @@ internal class FirstAsteroidWithinReachDetector
         bestScore = 0;
         matchedScale = null;
         var fitScale = Math.Min(
-            searchGray.Width / (double)template.Width,
-            searchGray.Height / (double)template.Height);
+            searchGray.Width / (double)templateGray.Width,
+            searchGray.Height / (double)templateGray.Height);
 
+        var lastProcessedScale = -1.0;
         foreach (var scale in TemplateScales)
         {
             var adjustedScale = Math.Min(scale, fitScale);
-            if (adjustedScale <= 0)
+            if (adjustedScale <= 0 || Math.Abs(adjustedScale - lastProcessedScale) < 1e-9)
             {
                 continue;
             }
 
-            using var scaledTemplate = BuildScaledTemplate(template, adjustedScale);
-            using var templateGray = new Mat();
-            Cv2.CvtColor(scaledTemplate, templateGray, ColorConversionCodes.BGR2GRAY);
-            if (templateGray.Width > searchGray.Width || templateGray.Height > searchGray.Height)
+            lastProcessedScale = adjustedScale;
+
+            var width = Math.Max(1, (int)Math.Round(templateGray.Width * adjustedScale));
+            var height = Math.Max(1, (int)Math.Round(templateGray.Height * adjustedScale));
+            if (width > searchGray.Width || height > searchGray.Height)
             {
                 continue;
             }
 
-            using var grayscaleResult = new Mat();
-            Cv2.MatchTemplate(searchGray, templateGray, grayscaleResult, TemplateMatchModes.CCoeffNormed);
-            Cv2.MinMaxLoc(grayscaleResult, out _, out var grayscaleScore, out _, out _);
+            using var scaledTemplate = new Mat();
+            Cv2.Resize(templateGray, scaledTemplate, new Size(width, height));
 
-            if (grayscaleScore >= minimumScore)
+            using var result = new Mat();
+            Cv2.MatchTemplate(searchGray, scaledTemplate, result, TemplateMatchModes.CCoeffNormed);
+            Cv2.MinMaxLoc(result, out _, out var score, out _, out _);
+
+            if (score >= minimumScore)
             {
-                bestScore = grayscaleScore;
+                bestScore = score;
                 matchedScale = adjustedScale;
                 break;
             }
 
-            if (grayscaleScore > bestScore)
+            if (score > bestScore)
             {
-                bestScore = grayscaleScore;
+                bestScore = score;
                 matchedScale = adjustedScale;
             }
         }
 
         return bestScore >= minimumScore;
-    }
-
-    private static Mat BuildScaledTemplate(Mat template, double scale)
-    {
-        if (Math.Abs(scale - 1.0) < double.Epsilon)
-            return template.Clone();
-
-        var width = Math.Max(1, (int)Math.Round(template.Width * scale));
-        var height = Math.Max(1, (int)Math.Round(template.Height * scale));
-        var scaledTemplate = new Mat();
-        Cv2.Resize(template, scaledTemplate, new Size(width, height));
-        return scaledTemplate;
     }
 }
 

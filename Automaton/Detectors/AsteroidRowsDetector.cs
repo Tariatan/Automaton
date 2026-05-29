@@ -10,7 +10,6 @@ internal static class AsteroidRowsDetector
     private const int AsteroidIconGroupMaximumDistance = 18;
     private const int MinimumAsteroidRowCenterOffsetFromMineOverviewTop = 90;
     private const int MinimumDistanceColumnBrightPixelCount = 10;
-    private static readonly Scalar RowBoundsColor = new(0, 165, 255);
 
     public static IReadOnlyList<AsteroidOverviewEntry> Detect(Mat screen, Rect mineOverviewBounds, bool drawDebugOverlay = true)
     {
