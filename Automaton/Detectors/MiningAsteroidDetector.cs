@@ -7,7 +7,7 @@ internal sealed class MiningAsteroidDetector : IDisposable
 {
     private const double MinimumAsteroidMatchScore = 0.74;
     private static readonly double[] TemplateScales = [1.0, 0.90, 1.10, 0.80, 1.20];
-    private static readonly Rect AsteroidBounds = new(1800, 60, 76, 66);
+    private static readonly Rect AsteroidBounds = new(1800, 20, 120, 120);
 
     private readonly Mat[][] m_TemplateVariants;
 

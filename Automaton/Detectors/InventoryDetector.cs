@@ -1,5 +1,4 @@
 using Automaton.Infrastructure;
-using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -7,6 +6,9 @@ namespace Automaton.Detectors;
 internal sealed class InventoryDetector : IDisposable
 {
     private const double MinimumTitleMatchScore = 0.82;
+    private const int FirstRowTopOffsetFromTemplateBottom = 110;
+    private const int FirstRowWidth = 300;
+    private const int FirstRowHeight = 30;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
     private readonly Mat m_ItemHangarTemplate = EmbeddedResourceLoader.LoadMat("mining.item_hangar.png");
@@ -25,23 +27,21 @@ internal sealed class InventoryDetector : IDisposable
             return InventoryAnalysis.NotFound;
         }
 
-        var itemHangarFound = TryLocateTitle(screen, m_ItemHangarTemplate, Settings.ItemHangarBounds, out var itemHangarTitleBounds);
-        var miningHoldFound = TryLocateTitle(screen, m_MiningHoldTemplate, Settings.MiningHoldBounds, out var miningHoldTitleBounds);
+        var itemHangarFound = TryLocateTitle(screen, m_ItemHangarTemplate, out var itemHangarTitleBounds);
+        var miningHoldFound = TryLocateTitle(screen, m_MiningHoldTemplate, out var miningHoldTitleBounds);
 
         return new InventoryAnalysis(
             miningHoldTitleBounds,
             itemHangarTitleBounds,
-            miningHoldFound ? Settings.MiningHoldFirstRowBounds : null,
-            itemHangarFound ? Settings.ItemHangarFirstRowBounds : null);
+            miningHoldFound ? BuildFirstRowBounds(miningHoldTitleBounds!.Value, screen.Size()) : null,
+            itemHangarFound ? BuildFirstRowBounds(itemHangarTitleBounds!.Value, screen.Size()) : null);
     }
 
-    private static bool TryLocateTitle(Mat screen, Mat template, Rect searchBounds, out Rect? titleBounds)
+    private static bool TryLocateTitle(Mat screen, Mat template, out Rect? titleBounds)
     {
         const double EarlyExitScore = 0.95;
 
         titleBounds = null;
-        var clampedBounds = ClampBounds(searchBounds, screen.Size());
-        using var searchRegion = new Mat(screen, clampedBounds);
         TemplateMatch? bestMatch = null;
         foreach (var scale in TemplateScales)
         {
@@ -49,18 +49,18 @@ internal sealed class InventoryDetector : IDisposable
             var effectiveTemplate = ownsTemplate ? BuildScaledTemplate(template, scale) : template;
             try
             {
-                if (effectiveTemplate.Width > searchRegion.Width || effectiveTemplate.Height > searchRegion.Height)
+                if (effectiveTemplate.Width > screen.Width || effectiveTemplate.Height > screen.Height)
                 {
                     continue;
                 }
 
                 using var result = new Mat();
-                Cv2.MatchTemplate(searchRegion, effectiveTemplate, result, TemplateMatchModes.CCoeffNormed);
+                Cv2.MatchTemplate(screen, effectiveTemplate, result, TemplateMatchModes.CCoeffNormed);
                 Cv2.MinMaxLoc(result, out _, out var maxScore, out _, out var maxLocation);
                 var candidate = new TemplateMatch(
                     new Rect(
-                        clampedBounds.X + maxLocation.X,
-                        clampedBounds.Y + maxLocation.Y,
+                        maxLocation.X,
+                        maxLocation.Y,
                         effectiveTemplate.Width,
                         effectiveTemplate.Height),
                     maxScore);
@@ -92,14 +92,24 @@ internal sealed class InventoryDetector : IDisposable
         return true;
     }
 
+    private static Rect BuildFirstRowBounds(Rect titleBounds, Size screenSize)
+    {
+        var firstRowBounds = new Rect(
+            titleBounds.Left,
+            titleBounds.Bottom + FirstRowTopOffsetFromTemplateBottom,
+            FirstRowWidth,
+            FirstRowHeight);
+        return ClampToScreen(firstRowBounds, screenSize);
+    }
+
     private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
 
-    private static Rect ClampBounds(Rect bounds, Size imageSize)
+    private static Rect ClampToScreen(Rect bounds, Size imageSize)
     {
         var x = Math.Clamp(bounds.X, 0, Math.Max(0, imageSize.Width - 1));
         var y = Math.Clamp(bounds.Y, 0, Math.Max(0, imageSize.Height - 1));
-        var width = Math.Clamp(bounds.Width, 1, imageSize.Width - x);
-        var height = Math.Clamp(bounds.Height, 1, imageSize.Height - y);
+        var width = Math.Clamp(bounds.Width, 1, Math.Max(1, imageSize.Width - x));
+        var height = Math.Clamp(bounds.Height, 1, Math.Max(1, imageSize.Height - y));
         return new Rect(x, y, width, height);
     }
 

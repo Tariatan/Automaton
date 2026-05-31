@@ -1,5 +1,5 @@
 using Automaton.Detectors;
-using Automaton.Primitives;
+using OpenCvSharp;
 
 namespace Automaton.Tests;
 
@@ -20,8 +20,10 @@ public sealed class InventoryDetectorTests
         Assert.NotNull(analysis.MiningHoldTitleBounds);
         Assert.NotNull(analysis.ItemHangarFirstRowBounds);
         Assert.NotNull(analysis.MiningHoldFirstRowBounds);
-        Assert.Equal(Settings.ItemHangarFirstRowBounds, analysis.ItemHangarFirstRowBounds!.Value);
-        Assert.Equal(Settings.MiningHoldFirstRowBounds, analysis.MiningHoldFirstRowBounds!.Value);
+        var expectedItemHangarFirstRowBounds = BuildExpectedFirstRowBounds(analysis.ItemHangarTitleBounds!.Value, image.Size());
+        var expectedMiningHoldFirstRowBounds = BuildExpectedFirstRowBounds(analysis.MiningHoldTitleBounds!.Value, image.Size());
+        Assert.Equal(expectedItemHangarFirstRowBounds, analysis.ItemHangarFirstRowBounds!.Value);
+        Assert.Equal(expectedMiningHoldFirstRowBounds, analysis.MiningHoldFirstRowBounds!.Value);
     }
 
     [Fact]
@@ -37,5 +39,15 @@ public sealed class InventoryDetectorTests
         // Assert
         Assert.Null(analysis.MiningHoldTitleBounds);
         Assert.Null(analysis.ItemHangarTitleBounds);
+    }
+
+    private static Rect BuildExpectedFirstRowBounds(Rect titleBounds, Size screenSize)
+    {
+        var firstRowBounds = new Rect(titleBounds.Left, titleBounds.Bottom + 110, 300, 30);
+        var x = Math.Clamp(firstRowBounds.X, 0, Math.Max(0, screenSize.Width - 1));
+        var y = Math.Clamp(firstRowBounds.Y, 0, Math.Max(0, screenSize.Height - 1));
+        var width = Math.Clamp(firstRowBounds.Width, 1, Math.Max(1, screenSize.Width - x));
+        var height = Math.Clamp(firstRowBounds.Height, 1, Math.Max(1, screenSize.Height - y));
+        return new Rect(x, y, width, height);
     }
 }

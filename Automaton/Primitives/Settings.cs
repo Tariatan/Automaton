@@ -1,5 +1,3 @@
-using OpenCvSharp;
-
 namespace Automaton.Primitives;
 
 internal static class Settings
@@ -14,11 +12,5 @@ internal static class Settings
 
     // Unloading cargo
     public const string UnloadingCargoCaptureSuffix = ".mining-unloading-cargo";
-
-    // Inventory
-    public static readonly Rect ItemHangarBounds = new(55, 50, 250, 70);
-    public static readonly Rect MiningHoldBounds = new(55, 340, 250, 70);
-    public static readonly Rect ItemHangarFirstRowBounds = new(75, 205, 300, 30);
-    public static readonly Rect MiningHoldFirstRowBounds = new(75, 495, 300, 30);
 
 }

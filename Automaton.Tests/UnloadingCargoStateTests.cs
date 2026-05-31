@@ -98,7 +98,13 @@ public sealed class UnloadingCargoStateTests
     private static Mat CreateImageWithoutMiningHoldTitle()
     {
         var image = SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
-        Cv2.Rectangle(image, Settings.MiningHoldBounds, Scalar.Black, -1);
+        using var detector = new InventoryDetector();
+        var analysis = detector.Detect(image);
+        if (analysis.MiningHoldTitleBounds is not null)
+        {
+            Cv2.Rectangle(image, analysis.MiningHoldTitleBounds.Value, Scalar.Black, -1);
+        }
+
         return image;
     }
 }

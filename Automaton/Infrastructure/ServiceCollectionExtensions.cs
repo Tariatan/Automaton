@@ -34,7 +34,6 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ScreenCaptureService>();
 
         services.AddSingleton<CommonStartGameState>();
-        services.AddSingleton<CommonExitState>();
         services.AddSingleton<ConnectionLostPopupRecoveryBehavior>();
         services.AddTransient<StartingGameState>();
         services.AddTransient<LoginState>();

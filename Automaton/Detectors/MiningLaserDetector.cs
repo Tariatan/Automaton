@@ -7,7 +7,7 @@ internal sealed class MiningLaserDetector : IDisposable
 {
     private const double MinimumLaserMatchScore = 0.74;
     private static readonly double[] TemplateScales = [1.0, 0.90, 1.10];
-    private static readonly Rect LaserSearchBounds = new(1740, 170, 250, 160);
+    private static readonly Rect LaserSearchBounds = new(1800, 190, 200, 100);
 
     private readonly Mat[] m_TemplateVariants;
 
