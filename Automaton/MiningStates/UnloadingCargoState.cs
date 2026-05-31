@@ -22,7 +22,7 @@ internal sealed class UnloadingCargoState(
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var captureCheckIfDocked = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
@@ -33,7 +33,7 @@ internal sealed class UnloadingCargoState(
         {
             // Failed to detect Undock button
             m_Logger.Error("Not in Dock => abort unloading");
-            return Recover(captureCheckIfDocked.CapturePath);
+            return Recover(captureCheckIfDocked.CapturePath, MiningAutomationFailureReason.DetectionMiss);
         }
 
         if (!TryOpenInventoryWindow(
@@ -74,7 +74,7 @@ internal sealed class UnloadingCargoState(
         if (analysis.MiningHoldTitleBounds is null || analysis.ItemHangarTitleBounds is null)
         {
             m_Logger.Error("Failed to detect Item Hangar and/or Mining Hold. Capture={CapturePath}", capture.CapturePath);
-            return Recover(capture.CapturePath);
+            return Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
         }
 
         if (analysis.MiningHoldFirstRowBounds is not null)
@@ -87,7 +87,7 @@ internal sealed class UnloadingCargoState(
             if (analysis.ItemHangarFirstRowBounds is null)
             {
                 m_Logger.Error("Failed to detect Item Hangar first row");
-                return Recover(capture.CapturePath);
+                return Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
             }
 
             automationInputController.ClickUiElement(GeometryHelper.Center(analysis.ItemHangarFirstRowBounds.Value), cancellationToken);
@@ -196,12 +196,15 @@ internal sealed class UnloadingCargoState(
         return false;
     }
 
-    private MiningAutomationStateTransition Recover(string? capturePath)
+    private MiningAutomationStateTransition Recover(string? capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)
     {
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capturePath)
+        {
+            FailureReason = failureReason
+        };
     }
 }

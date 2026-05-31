@@ -27,7 +27,7 @@ internal sealed class MiningState(
 
     public MiningAutomationStateTransition Execute(MiningAutomationContext context, CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         var loopStart = DateTime.UtcNow;
         string? lastCapturePath = null;
         var dockingReason = DockingReason.Timeout;
@@ -45,7 +45,7 @@ internal sealed class MiningState(
 
             if (capture.Image.Empty())
             {
-                return Recover(capture.CapturePath);
+                return Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
             }
 
             using var warDetectionImage = capture.Image.Clone();
@@ -100,12 +100,15 @@ internal sealed class MiningState(
             lastCapturePath);
     }
 
-    private MiningAutomationStateTransition Recover(string capturePath)
+    private MiningAutomationStateTransition Recover(string capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)
     {
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capturePath)
+        {
+            FailureReason = failureReason
+        };
     }
 }

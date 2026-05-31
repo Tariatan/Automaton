@@ -14,6 +14,8 @@ internal sealed class ProjectDiscoveryAutomationService(
     IDiscoveryAutomationStateFactory discoveryAutomationStateFactory)
 {
     private const int InitialPilotIndex = 1;
+    private const int DetectionRetryAttempts = 2;
+    private const int DetectionRetryDelayMs = 1000;
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
     private ProjectDiscoveryAutomationContext m_Context = null!;
@@ -96,7 +98,24 @@ internal sealed class ProjectDiscoveryAutomationService(
     private DiscoveryAutomationStepSummary ExecuteSingleStep(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var transition = m_CurrentState.Execute(m_Context, cancellationToken);
+        DiscoveryAutomationStateTransition transition = null!;
+        for (var attempt = 1; attempt <= DetectionRetryAttempts; attempt++)
+        {
+            transition = m_CurrentState.Execute(m_Context, cancellationToken);
+            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= DetectionRetryAttempts)
+            {
+                break;
+            }
+
+            Logger.Warning(
+                "Detection miss in {State}. Retrying once before recovery. Attempt={Attempt}/{MaxAttempts}, CapturePath={CapturePath}",
+                transition.State,
+                attempt,
+                DetectionRetryAttempts,
+                transition.CapturePath);
+            automationInputController.Delay(DetectionRetryDelayMs, cancellationToken);
+        }
+
         Logger.Information(
             "Project Discovery automation step executed. State={State}, NextState={NextState}, Action={Action}",
             transition.State,
@@ -110,6 +129,11 @@ internal sealed class ProjectDiscoveryAutomationService(
             transition.NextState,
             transition.Action,
             transition.CapturePath);
+    }
+
+    private static bool ShouldRetryAfterDetectionMiss(DiscoveryAutomationStateTransition transition)
+    {
+        return transition is { Action: DiscoveryAutomationActionKind.Recover, FailureReason: DiscoveryAutomationFailureReason.DetectionMiss };
     }
 
     private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)

@@ -4,7 +4,10 @@ internal sealed record DiscoveryAutomationStateTransition(
     DiscoveryAutomationStateKind State,
     DiscoveryAutomationStateKind NextState,
     DiscoveryAutomationActionKind Action,
-    string? CapturePath = null);
+    string? CapturePath = null)
+{
+    public DiscoveryAutomationFailureReason FailureReason { get; init; } = DiscoveryAutomationFailureReason.None;
+}
 
 internal sealed record DiscoveryAutomationStepSummary(
     DiscoveryAutomationStateKind State,
@@ -35,4 +38,10 @@ internal enum DiscoveryAutomationActionKind
     RecoverMaxSubmissionsPopup,
     StopAutomation,
     NoFurtherPilotsAvailable,
+}
+
+internal enum DiscoveryAutomationFailureReason
+{
+    None,
+    DetectionMiss,
 }

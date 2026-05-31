@@ -20,7 +20,7 @@ internal sealed class ApproachingAsteroidState(
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
         // Activate propulsion module
@@ -33,7 +33,7 @@ internal sealed class ApproachingAsteroidState(
         if (!mineOverviewAnalysis.MineOverviewLocated || mineOverviewAnalysis.MineOverviewBounds is null)
         {
             m_Logger.Error("Failed to detect Mine overview tab");
-            var result = Recover(capture.CapturePath);
+            var result = Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
             capture.Dispose();
             return result;
         }
@@ -52,7 +52,7 @@ internal sealed class ApproachingAsteroidState(
         if (asteroids.Count == 0)
         {
             m_Logger.Error("Failed to detect asteroid rows in MINE overview");
-            var result = Recover(capture.CapturePath);
+            var result = Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
             capture.Dispose();
             return result;
         }
@@ -116,7 +116,7 @@ internal sealed class ApproachingAsteroidState(
             automationInputController.Delay(Delays.ApproachAsteroidDistancePollingMs, cancellationToken);
         }
 
-        return Recover(capture.CapturePath);
+        return Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
     }
 
     private static void DrawDebugOverlay(Mat image, FirstAsteroidWithinReachAnalysis analysis)
@@ -136,12 +136,15 @@ internal sealed class ApproachingAsteroidState(
         DebugOverlay.Annotate(image, items.ToArray());
     }
 
-    private MiningAutomationStateTransition Recover(string capturePath)
+    private MiningAutomationStateTransition Recover(string capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)
     {
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capturePath)
+        {
+            FailureReason = failureReason
+        };
     }
 }

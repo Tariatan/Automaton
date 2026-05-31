@@ -23,7 +23,7 @@ internal sealed class RecoveryState(
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (context.LastAction == MiningAutomationActionKind.Relogin)

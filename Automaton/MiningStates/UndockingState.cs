@@ -21,7 +21,7 @@ internal sealed class UndockingState(
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
@@ -39,7 +39,10 @@ internal sealed class UndockingState(
                 Kind,
                 MiningAutomationStateKind.Recovery,
                 MiningAutomationActionKind.Recover,
-                capture.CapturePath);
+                capture.CapturePath)
+            {
+                FailureReason = MiningAutomationFailureReason.DetectionMiss
+            };
             capture.Dispose();
             return result;
         }
@@ -77,6 +80,9 @@ internal sealed class UndockingState(
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capture.CapturePath);
+            capture.CapturePath)
+        {
+            FailureReason = MiningAutomationFailureReason.DetectionMiss
+        };
     }
 }

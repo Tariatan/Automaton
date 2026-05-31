@@ -19,7 +19,7 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         if (!m_CommonLoginState.TryLoginPilot(
             context.ScreenCaptureService,
             PilotIndex,
@@ -27,7 +27,7 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
             cancellationToken,
             out var capturePath))
         {
-            return Recover(capturePath);
+            return Recover(capturePath, MiningAutomationFailureReason.DetectionMiss);
         }
 
         if( context.LastAction == MiningAutomationActionKind.StartGame)
@@ -42,12 +42,15 @@ internal sealed class LoginState(IAutomationInputController automationInputContr
             capturePath);
     }
 
-    private MiningAutomationStateTransition Recover(string capturePath)
+    private MiningAutomationStateTransition Recover(string capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)
     {
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capturePath)
+        {
+            FailureReason = failureReason
+        };
     }
 }

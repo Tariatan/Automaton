@@ -24,6 +24,8 @@ internal sealed class MiningAutomationService(
     ConnectionLostPopupDetector connectionLostPopupDetector,
     CommonAutomationStates.ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior)
 {
+    private const int DetectionRetryAttempts = 2;
+    private const int DetectionRetryDelayMs = 150;
     private static readonly ILogger Logger = Log.ForContext<MiningAutomationService>();
     private readonly MiningAutomationContext m_Context = new(screenCaptureService, automationClock);
     private IMiningAutomationState m_CurrentState = null!;
@@ -87,7 +89,24 @@ internal sealed class MiningAutomationService(
     private MiningAutomationStepSummary ExecuteSingleStep(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var transition = m_CurrentState.Execute(m_Context, cancellationToken);
+        MiningAutomationStateTransition transition = null!;
+        for (var attempt = 1; attempt <= DetectionRetryAttempts; attempt++)
+        {
+            transition = m_CurrentState.Execute(m_Context, cancellationToken);
+            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= DetectionRetryAttempts)
+            {
+                break;
+            }
+
+            Logger.Warning(
+                "Detection miss in {State}. Retrying once before recovery. Attempt={Attempt}/{MaxAttempts}, CapturePath={CapturePath}",
+                transition.State,
+                attempt,
+                DetectionRetryAttempts,
+                transition.CapturePath);
+            automationInputController.Delay(DetectionRetryDelayMs, cancellationToken);
+        }
+
         Logger.Information(
             "Mining automation step executed. State={State}, NextState={NextState}, Action={Action}",
             transition.State,
@@ -101,6 +120,12 @@ internal sealed class MiningAutomationService(
             transition.NextState,
             transition.Action,
             transition.CapturePath);
+    }
+
+    private static bool ShouldRetryAfterDetectionMiss(MiningAutomationStateTransition transition)
+    {
+        return transition.Action == MiningAutomationActionKind.Recover &&
+               transition.FailureReason == MiningAutomationFailureReason.DetectionMiss;
     }
 
     private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)

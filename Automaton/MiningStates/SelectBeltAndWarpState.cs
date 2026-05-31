@@ -25,7 +25,7 @@ internal sealed class SelectBeltAndWarpState(
 
     public MiningAutomationStateTransition Execute(MiningAutomationContext context, CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         var analysis = Analyze(capture.CapturePath, capture.Image);
@@ -34,7 +34,7 @@ internal sealed class SelectBeltAndWarpState(
         if (!analysis.OverviewLocated || analysis.OverviewBeltButtonBounds is null)
         {
             m_Logger.Error("Failed to detect Belt overview tab");
-            var result = Recover(capture.CapturePath);
+            var result = Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
             capture.Dispose();
             return result;
         }
@@ -61,7 +61,7 @@ internal sealed class SelectBeltAndWarpState(
         if (analysis.AsteroidBelts.Count == 0)
         {
             m_Logger.Error("Failed to detect any belts");
-            var result = Recover(capture.CapturePath);
+            var result = Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
             capture.Dispose();
             return result;
         }
@@ -162,7 +162,7 @@ internal sealed class SelectBeltAndWarpState(
             automationInputController.Delay(Delays.LandingPollingMs, cancellationToken);
         }
 
-        return Recover(capture.CapturePath);
+        return Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
     }
 
     private AsteroidBeltOverviewAnalysis Analyze(string capturePath, Mat screen)
@@ -209,12 +209,15 @@ internal sealed class SelectBeltAndWarpState(
             OverlayColor.RedOrange);
     }
 
-    private MiningAutomationStateTransition Recover(string capturePath)
+    private MiningAutomationStateTransition Recover(string capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)
     {
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capturePath)
+        {
+            FailureReason = failureReason
+        };
     }
 }

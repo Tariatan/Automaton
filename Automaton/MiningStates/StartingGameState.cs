@@ -21,7 +21,7 @@ internal sealed class StartingGameState(
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         if (!m_CommonStartGameState.TryStartGame(
             context.ScreenCaptureService,
             CaptureSuffix,

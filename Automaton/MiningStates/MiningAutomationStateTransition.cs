@@ -4,7 +4,10 @@ internal sealed record MiningAutomationStateTransition(
     MiningAutomationStateKind State,
     MiningAutomationStateKind NextState,
     MiningAutomationActionKind Action,
-    string? CapturePath = null);
+    string? CapturePath = null)
+{
+    public MiningAutomationFailureReason FailureReason { get; init; } = MiningAutomationFailureReason.None;
+}
 
 internal sealed record MiningAutomationStepSummary(
     MiningAutomationStateKind State,
@@ -46,4 +49,10 @@ internal enum MiningAutomationActionKind
     Relogin,
     Recover,
     RecoverConnectionLostPopup
+}
+
+internal enum MiningAutomationFailureReason
+{
+    None,
+    DetectionMiss,
 }

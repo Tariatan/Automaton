@@ -19,7 +19,7 @@ internal sealed class DockingState(
 
     public MiningAutomationStateTransition Execute(MiningAutomationContext context, CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing {State}", Kind);
+        m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
@@ -27,7 +27,7 @@ internal sealed class DockingState(
         if (!analysis.OverviewLocated || !analysis.HomeStationLocated)
         {
             m_Logger.Error("Failed to detect home station. CapturePath={CapturePath}", capture.CapturePath);
-            var result = Recover(capture.CapturePath);
+            var result = Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);
             capture.Dispose();
             return result;
         }
@@ -73,12 +73,15 @@ internal sealed class DockingState(
         return transitionResult;
     }
 
-    private MiningAutomationStateTransition Recover(string capturePath)
+    private MiningAutomationStateTransition Recover(string capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)
     {
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
             MiningAutomationActionKind.Recover,
-            capturePath);
+            capturePath)
+        {
+            FailureReason = failureReason
+        };
     }
 }

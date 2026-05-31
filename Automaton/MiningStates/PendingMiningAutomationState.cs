@@ -13,7 +13,7 @@ internal sealed class PendingMiningAutomationState(MiningAutomationStateKind kin
         MiningAutomationContext context,
         CancellationToken cancellationToken)
     {
-        m_Logger.Debug("Executing pending {State}", Kind);
+        m_Logger.Information("Executing pending {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
         return new MiningAutomationStateTransition(
             Kind,
