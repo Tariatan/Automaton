@@ -33,10 +33,12 @@ internal sealed class AutomationInputController : IAutomationInputController
         }
 
         var captureFileInfo = new FileInfo(capturePathToValidate);
-        // Hide UI if captured file size is more than 1Mb
-        if (captureFileInfo is { Exists: true, Length: > 1024 * 1024 })
+        // Hide UI if captured file size exceeds max threshold
+        if (captureFileInfo is { Exists: true, Length: > Settings.HideUiFileSizeThreshold })
         {
-            m_Logger.Information("Hiding UI because capture size exceeded 1 MB ({CaptureSizeMb} MB).", captureFileInfo.Length / 1024 / 1024);
+            m_Logger.Information("Hiding UI because capture size exceeded {Threshold} Mb ({CaptureSizeMb} MB).",
+                Settings.HideUiFileSizeThreshold / 1024 / 1024,
+                captureFileInfo.Length / 1024 / 1024);
             PressHideUiChord(cancellationToken);
             Delay(Delays.HideUiMs, cancellationToken);
         }

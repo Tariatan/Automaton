@@ -13,6 +13,7 @@ internal sealed class UnloadingCargoState(
     DowntimeDetector downtimeDetector)
     : IMiningAutomationState
 {
+    public const string UnloadingCargoCaptureSuffix = ".mining-unloading-cargo";
     private const int OpenWindowAttemptCount = 5;
     private readonly ILogger m_Logger = Log.ForContext<UnloadingCargoState>();
 
@@ -25,7 +26,7 @@ internal sealed class UnloadingCargoState(
         m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var captureCheckIfDocked = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
+        using var captureCheckIfDocked = context.ScreenCaptureService.CaptureCurrentScreen(UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
         // TryLocate Undock button
@@ -62,7 +63,7 @@ internal sealed class UnloadingCargoState(
                 MiningAutomationActionKind.Relogin);
         }
 
-        using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
+        using var capture = context.ScreenCaptureService.CaptureCurrentScreen(UnloadingCargoCaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
         var analysis = inventoryDetector.Detect(capture.Image);
@@ -153,7 +154,7 @@ internal sealed class UnloadingCargoState(
         string windowName,
         CancellationToken cancellationToken)
     {
-        using (var initialCapture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix))
+        using (var initialCapture = context.ScreenCaptureService.CaptureCurrentScreen(UnloadingCargoCaptureSuffix))
         {
             var initialAnalysis = inventoryDetector.Detect(initialCapture.Image);
             if (isWindowVisible(initialAnalysis))
@@ -170,7 +171,7 @@ internal sealed class UnloadingCargoState(
             automationInputController.PressKeyChord(VirtualKeys.Alt, inventoryVirtualKey, cancellationToken);
             automationInputController.Delay(Delays.LoadWindowMs, cancellationToken);
 
-            using var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.UnloadingCargoCaptureSuffix);
+            using var capture = context.ScreenCaptureService.CaptureCurrentScreen(UnloadingCargoCaptureSuffix);
             var analysis = inventoryDetector.Detect(capture.Image);
             if (isWindowVisible(analysis))
             {

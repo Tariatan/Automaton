@@ -26,6 +26,7 @@ internal static class Delays
 
     // Project Discovery
     public const int SubmissionWindowMs = 70_000;
+    public const int SubmitActivationMs = 1_000;
     public const int SubmitResultMs = 5_000;
 
     // Mining: docking

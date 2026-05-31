@@ -13,14 +13,14 @@ internal sealed class DiscoverState(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
     IAutomationClock automationClock,
+    ControlButtonDetector controlButtonDetector,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
     SlowDownPopupDetector slowDownPopupDetector) : IProjectDiscoveryAutomationState
 {
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
-    private static readonly Rect ControlButtonBounds = new(1360, 960, 460, 30);
-    private static readonly OverlayColor ControlButtonOverlayColor = OverlayColor.Yellow;
-    private readonly Random m_Random = new();
+    private static readonly OverlayColor ControlButtonSearchOverlayColor = OverlayColor.Yellow;
+    private static readonly OverlayColor ControlButtonMatchOverlayColor = OverlayColor.Cyan;
     private readonly Queue<DateTime> m_SubmittedAtUtc = new();
     private readonly ILogger m_Logger = Log.ForContext<DiscoverState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Discover;
@@ -39,7 +39,6 @@ internal sealed class DiscoverState(
         using var traceImages = new TraceImageScope(context.KeepDebugImages);
         var captureSummary = screenCaptureService.CaptureAndAnalyzeCurrentScreen();
         traceImages.Track(captureSummary);
-        DrawControlButtonBoundsOverlay(captureSummary.Analysis.Result.OutputPath);
 
         if (captureSummary.Analysis.Result.PlayfieldFound)
         {
@@ -64,10 +63,28 @@ internal sealed class DiscoverState(
 
         // Polygons
         ClickPolygonPoints(captureSummary.Analysis.Polygons, cancellationToken);
-        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        automationInputController.Delay(Delays.SubmitActivationMs, cancellationToken);
+
+        var playfieldBounds = captureSummary.Analysis.PlayfieldDetection.Bounds;
+        using var postPolygonCapture = screenCaptureService.CaptureCurrentScreen(".discovery-post-polygons");
+        traceImages.Track(postPolygonCapture.CapturePath);
+        var enabledButtonDetection = controlButtonDetector.Detect(
+            postPolygonCapture.Image,
+            playfieldBounds,
+            ControlButtonState.Enabled);
+        DrawControlButtonDetectionOverlay(postPolygonCapture.CapturePath, enabledButtonDetection);
+        if (!enabledButtonDetection.IsFound || enabledButtonDetection.ButtonBounds is null)
+        {
+            m_Logger.Warning("Enabled submit button was not detected after polygon clicking. Transitioning to overlap recovery");
+            return new DiscoveryAutomationStateTransition(
+                Kind,
+                DiscoveryAutomationStateKind.RecoverOverlap,
+                DiscoveryAutomationActionKind.RecoverOverlap,
+                captureSummary.CapturePath);
+        }
 
         // Focus button area.
-        FocusControlButton(cancellationToken);
+        FocusControlButton(enabledButtonDetection.ButtonBounds.Value, cancellationToken);
 
         // Wait before Submit click if we are too fast
         DelayBeforeRateLimitedSubmit(cancellationToken);
@@ -141,11 +158,11 @@ internal sealed class DiscoverState(
         }
     }
 
-    private void FocusControlButton(CancellationToken cancellationToken)
+    private void FocusControlButton(Rect controlButtonBounds, CancellationToken cancellationToken)
     {
         var anchor = new Point(
-            m_Random.Next(ControlButtonBounds.X, ControlButtonBounds.Right),
-            m_Random.Next(ControlButtonBounds.Y, ControlButtonBounds.Bottom));
+            controlButtonBounds.X + controlButtonBounds.Width / 2,
+            controlButtonBounds.Y + controlButtonBounds.Height / 2);
         automationInputController.MoveTo(anchor);
         automationInputController.Delay(Delays.HoverMs, cancellationToken);
     }
@@ -213,7 +230,7 @@ internal sealed class DiscoverState(
         Cv2.ImWrite(imagePath, image);
     }
 
-    private static void DrawControlButtonBoundsOverlay(string annotatedImagePath)
+    private static void DrawControlButtonDetectionOverlay(string annotatedImagePath, ControlButtonDetection detection)
     {
         if (string.IsNullOrWhiteSpace(annotatedImagePath))
         {
@@ -226,14 +243,23 @@ internal sealed class DiscoverState(
             return;
         }
 
-        DebugOverlay.Annotate(annotated, (ControlButtonBounds, ControlButtonOverlayColor));
+        if (detection.SearchBounds.Width > 0 && detection.SearchBounds.Height > 0)
+        {
+            DebugOverlay.Annotate(annotated, (detection.SearchBounds, ControlButtonSearchOverlayColor));
+        }
+
+        if (detection.ButtonBounds is not null)
+        {
+            DebugOverlay.Annotate(annotated, (detection.ButtonBounds.Value, ControlButtonMatchOverlayColor));
+        }
+
         Cv2.PutText(
             annotated,
-            "ControlButtonBounds",
-            new Point(ControlButtonBounds.X, Math.Max(25, ControlButtonBounds.Y - 10)),
+            $"{detection.TargetState} score={detection.Score:0.000} hsvD={detection.DisabledHsvDistance:0.00}",
+            new Point(detection.SearchBounds.X, Math.Max(25, detection.SearchBounds.Y - 10)),
             HersheyFonts.HersheySimplex,
-            0.7,
-            ControlButtonOverlayColor.ToScalar(),
+            0.55,
+            ControlButtonSearchOverlayColor.ToScalar(),
             2,
             LineTypes.AntiAlias);
         Cv2.ImWrite(annotatedImagePath, annotated);

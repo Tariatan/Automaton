@@ -12,6 +12,7 @@ internal sealed class DiscoveryAutomationStateFactory(IServiceProvider servicePr
             DiscoveryAutomationStateKind.Login => serviceProvider.GetRequiredService<LoginState>(),
             DiscoveryAutomationStateKind.Discover => serviceProvider.GetRequiredService<DiscoverState>(),
             DiscoveryAutomationStateKind.Recovery => serviceProvider.GetRequiredService<RecoveryState>(),
+            DiscoveryAutomationStateKind.RecoverOverlap => serviceProvider.GetRequiredService<RecoverOverlapState>(),
             DiscoveryAutomationStateKind.RecoverSlowDownPopup => serviceProvider.GetRequiredService<RecoverSlowDownPopupState>(),
             DiscoveryAutomationStateKind.RecoverConnectionLostPopup => serviceProvider.GetRequiredService<RecoverConnectionLostPopupState>(),
             DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup => serviceProvider.GetRequiredService<RecoverMaxSubmissionsPopupState>(),

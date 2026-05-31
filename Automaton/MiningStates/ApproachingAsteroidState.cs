@@ -12,6 +12,8 @@ internal sealed class ApproachingAsteroidState(
     FirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector)
     : IMiningAutomationState
 {
+    public const string ApproachingAsteroidCaptureSuffix = ".mining-approaching-asteroid";
+
     private readonly ILogger m_Logger = Log.ForContext<ApproachingAsteroidState>();
 
     public MiningAutomationStateKind Kind => MiningAutomationStateKind.ApproachingAsteroid;
@@ -26,7 +28,7 @@ internal sealed class ApproachingAsteroidState(
         // Activate propulsion module
         automationInputController.PressKey(VirtualKeys.F4, cancellationToken);
 
-        var capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.ApproachingAsteroidCaptureSuffix);
+        var capture = context.ScreenCaptureService.CaptureCurrentScreen(ApproachingAsteroidCaptureSuffix);
         var mineOverviewAnalysis = mineOverviewDetector.Detect(capture.Image);
 
         // Failed to detect Mine overview tab
@@ -68,7 +70,7 @@ internal sealed class ApproachingAsteroidState(
         for (var attempt = 0; attempt < Settings.ApproachingAsteroidDistancePollingAttemptCount; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            capture = context.ScreenCaptureService.CaptureCurrentScreen(Settings.ApproachingAsteroidCaptureSuffix);
+            capture = context.ScreenCaptureService.CaptureCurrentScreen(ApproachingAsteroidCaptureSuffix);
             var currentAsteroids = AsteroidRowsDetector.Detect(capture.Image, mineOverviewBounds);
             var firstAsteroidRowBounds = currentAsteroids.Count > 0
                 ? currentAsteroids[0].Bounds

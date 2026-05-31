@@ -7,7 +7,7 @@ namespace Automaton.Detectors;
 internal static class PopupDetectionEngine
 {
     private const int ExpectedPopupLeft = 960;
-    private const int ExpectedPopupTop = 830;
+    private const int ExpectedPopupTop = 800;
     private const int ExpectedPopupWidth = 630;
     private const int ExpectedPopupHeight = 390;
     private const int PopupSearchMarginX = 190;

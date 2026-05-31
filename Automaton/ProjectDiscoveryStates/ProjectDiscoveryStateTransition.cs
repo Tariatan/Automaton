@@ -21,6 +21,7 @@ internal enum DiscoveryAutomationStateKind
     Login,
     Discover,
     Recovery,
+    RecoverOverlap,
     RecoverSlowDownPopup,
     RecoverConnectionLostPopup,
     RecoverMaxSubmissionsPopup
@@ -33,6 +34,7 @@ internal enum DiscoveryAutomationActionKind
     LoginNextPilot,
     DiscoverAndSubmit,
     Recover,
+    RecoverOverlap,
     RecoverSlowDownPopup,
     RecoverConnectionLostPopup,
     RecoverMaxSubmissionsPopup,

@@ -15,6 +15,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IAutomationClock, SystemAutomationClock>();
 
         services.AddSingleton<PlayfieldDetector>();
+        services.AddSingleton<ControlButtonDetector>();
         services.AddSingleton<PlayNowButtonDetector>();
         services.AddSingleton<KnownSampleMatcher>();
         services.AddSingleton<MaxSubmissionsPopupDetector>();
@@ -39,6 +40,7 @@ internal static class ServiceCollectionExtensions
         services.AddTransient<LoginState>();
         services.AddTransient<DiscoverState>();
         services.AddTransient<RecoveryState>();
+        services.AddTransient<RecoverOverlapState>();
         services.AddTransient<RecoverSlowDownPopupState>();
         services.AddTransient<RecoverConnectionLostPopupState>();
         services.AddTransient<RecoverMaxSubmissionsPopupState>();
