@@ -75,7 +75,7 @@ internal sealed class DiscoverState(
         // Left-click the 'Submit' button.
         automationInputController.LeftClick(cancellationToken);
         RecordSubmit(automationClock.UtcNow);
-        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        automationInputController.Delay(Delays.SubmitResultMs, cancellationToken);
 
         // Take focused screen to trace the result of submission
         var focusedCapturePath = CaptureFocusedScreenTrace(captureSummary, cancellationToken);

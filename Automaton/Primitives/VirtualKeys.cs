@@ -18,6 +18,8 @@ internal static class VirtualKeys
     public const ushort Shift = 0x10;
     public const ushort Control = 0x11;
     public const ushort Alt = 0x12;
+    public const ushort LeftShift = 0xA0;
+    public const ushort LeftControl = 0xA2;
 
     public const ushort F1 = 0x70;
     public const ushort F2 = 0x71;

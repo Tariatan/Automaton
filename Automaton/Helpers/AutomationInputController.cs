@@ -15,6 +15,9 @@ internal sealed class AutomationInputController : IAutomationInputController
     private const uint LeftUpEvent = 0x0004;
     private const uint InputKeyboard = 1;
     private const uint KeyUpEvent = 0x0002;
+    private const uint ScanCodeEvent = 0x0008;
+    private const int KeyboardTransitionDelayMs = 30;
+    private const int HideUiTransitionDelayMs = 80;
 
     public void ClickUiElement(Point point, CancellationToken cancellationToken)
     {
@@ -34,7 +37,7 @@ internal sealed class AutomationInputController : IAutomationInputController
         if (captureFileInfo is { Exists: true, Length: > 1024 * 1024 })
         {
             m_Logger.Information("Hiding UI because capture size exceeded 1 MB ({CaptureSizeMb} MB).", captureFileInfo.Length / 1024 / 1024);
-            PressKeyChord(VirtualKeys.Control, VirtualKeys.Shift, VirtualKeys.F9, cancellationToken);
+            PressHideUiChord(cancellationToken);
             Delay(Delays.HideUiMs, cancellationToken);
         }
     }
@@ -72,9 +75,9 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        SendKeyboardInputs(
-            BuildKeyDownInput(virtualKey),
-            BuildKeyUpInput(virtualKey));
+        SendKeyboardInput(BuildKeyDownInput(virtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyUpInput(virtualKey));
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
@@ -82,11 +85,13 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        SendKeyboardInputs(
-            BuildKeyDownInput(modifierVirtualKey),
-            BuildKeyDownInput(virtualKey),
-            BuildKeyUpInput(virtualKey),
-            BuildKeyUpInput(modifierVirtualKey));
+        SendKeyboardInput(BuildKeyDownInput(modifierVirtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyDownInput(virtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyUpInput(virtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyUpInput(modifierVirtualKey));
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
@@ -98,13 +103,36 @@ internal sealed class AutomationInputController : IAutomationInputController
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        SendKeyboardInputs(
-            BuildKeyDownInput(firstModifierVirtualKey),
-            BuildKeyDownInput(secondModifierVirtualKey),
-            BuildKeyDownInput(virtualKey),
-            BuildKeyUpInput(virtualKey),
-            BuildKeyUpInput(secondModifierVirtualKey),
-            BuildKeyUpInput(firstModifierVirtualKey));
+        SendKeyboardInput(BuildKeyDownInput(firstModifierVirtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyDownInput(secondModifierVirtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyDownInput(virtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyUpInput(virtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyUpInput(secondModifierVirtualKey));
+        WaitForKeyboardTransition(cancellationToken);
+        SendKeyboardInput(BuildKeyUpInput(firstModifierVirtualKey));
+        Thread.Sleep(Delays.MouseDownMs);
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static void PressHideUiChord(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        SendKeyboardInput(BuildKeyDownInput(VirtualKeys.LeftControl));
+        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
+        SendKeyboardInput(BuildKeyDownInput(VirtualKeys.LeftShift));
+        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
+        SendKeyboardInput(BuildKeyDownInput(VirtualKeys.F9));
+        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(VirtualKeys.F9));
+        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(VirtualKeys.LeftShift));
+        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(VirtualKeys.LeftControl));
+
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
@@ -168,6 +196,22 @@ internal sealed class AutomationInputController : IAutomationInputController
 
     private static INPUT BuildKeyDownInput(ushort virtualKey)
     {
+        var scanCode = (ushort)MapVirtualKey(virtualKey, 0);
+        if (scanCode == 0)
+        {
+            return new INPUT
+            {
+                type = InputKeyboard,
+                U = new InputUnion
+                {
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = virtualKey
+                    }
+                }
+            };
+        }
+
         return new INPUT
         {
             type = InputKeyboard,
@@ -175,7 +219,9 @@ internal sealed class AutomationInputController : IAutomationInputController
             {
                 ki = new KEYBDINPUT
                 {
-                    wVk = virtualKey
+                    wVk = 0,
+                    wScan = scanCode,
+                    dwFlags = ScanCodeEvent
                 }
             }
         };
@@ -183,6 +229,23 @@ internal sealed class AutomationInputController : IAutomationInputController
 
     private static INPUT BuildKeyUpInput(ushort virtualKey)
     {
+        var scanCode = (ushort)MapVirtualKey(virtualKey, 0);
+        if (scanCode == 0)
+        {
+            return new INPUT
+            {
+                type = InputKeyboard,
+                U = new InputUnion
+                {
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = virtualKey,
+                        dwFlags = KeyUpEvent
+                    }
+                }
+            };
+        }
+
         return new INPUT
         {
             type = InputKeyboard,
@@ -190,21 +253,46 @@ internal sealed class AutomationInputController : IAutomationInputController
             {
                 ki = new KEYBDINPUT
                 {
-                    wVk = virtualKey,
-                    dwFlags = KeyUpEvent
+                    wVk = 0,
+                    wScan = scanCode,
+                    dwFlags = ScanCodeEvent | KeyUpEvent
                 }
             }
         };
     }
 
-    private static void SendKeyboardInputs(params INPUT[] inputs)
+    private static void WaitForKeyboardTransition(CancellationToken cancellationToken, int delayMs = KeyboardTransitionDelayMs)
     {
-        if (inputs.Length == 0)
+        cancellationToken.ThrowIfCancellationRequested();
+        Thread.Sleep(delayMs);
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static void SendKeyboardInput(INPUT input)
+    {
+        var inputs = new[] { input };
+        var sent = SendInput(1, inputs, Marshal.SizeOf<INPUT>());
+        if (sent == 1)
         {
             return;
         }
 
-        _ = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        SendLegacyKeyboardEvent(input);
+    }
+
+    private static void SendLegacyKeyboardEvent(INPUT input)
+    {
+        var keyboard = input.U.ki;
+        var isKeyUp = (keyboard.dwFlags & KeyUpEvent) == KeyUpEvent;
+
+        if (keyboard.wVk != 0)
+        {
+            keybd_event((byte)keyboard.wVk, 0, isKeyUp ? KeyUpEvent : 0, UIntPtr.Zero);
+            return;
+        }
+
+        var virtualKey = (byte)MapVirtualKey(keyboard.wScan, 3);
+        keybd_event(virtualKey, 0, isKeyUp ? KeyUpEvent : 0, UIntPtr.Zero);
     }
 
     [DllImport("user32.dll")]
@@ -215,6 +303,12 @@ internal sealed class AutomationInputController : IAutomationInputController
 
     [DllImport("user32.dll")]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT

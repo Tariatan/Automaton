@@ -82,6 +82,13 @@ internal sealed class ApproachingAsteroidState(
             Cv2.ImWrite(capture.CapturePath, capture.Image);
             m_Logger.Information("Asteroid within reach detection. Attempt={Attempt}/{MaxAttempts}", attempt + 1, Settings.ApproachingAsteroidDistancePollingAttemptCount);
 
+            if (attempt == Settings.ApproachingAsteroidDistancePollingAttemptCount / 2)
+            {
+                m_Logger.Warning("Reached halfway attempt while approaching asteroid => retrying approach command");
+                automationInputController.ClickUiElement(GeometryHelper.Center(firstAsteroidRowBounds), cancellationToken);
+                automationInputController.PressKey(VirtualKeys.A, cancellationToken);
+            }
+
             // Nearest asteroid is within reach
             if (reachAnalysis.IsWithinReach)
             {

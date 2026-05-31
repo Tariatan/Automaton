@@ -24,8 +24,9 @@ internal static class Delays
     public const int QuitGameConfirmMs = 2_000;
     public const int WindowActivationMs = 1_000;
 
-    // Project Discovery: launcher & login
+    // Project Discovery
     public const int SubmissionWindowMs = 70_000;
+    public const int SubmitResultMs = 5_000;
 
     // Mining: docking
     public const int BeforeDockMs = 1_000;

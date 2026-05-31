@@ -14,7 +14,6 @@ internal sealed record DiscoveryAutomationStepSummary(
 
 internal enum DiscoveryAutomationStateKind
 {
-    None,
     StartingGame,
     Login,
     Discover,
@@ -26,7 +25,6 @@ internal enum DiscoveryAutomationStateKind
 
 internal enum DiscoveryAutomationActionKind
 {
-    None,
     StartGame,
     LoginPilot,
     LoginNextPilot,

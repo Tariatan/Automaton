@@ -80,6 +80,35 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(0, automationInputControllerMock.ClickCount);
     }
 
+    [Fact]
+    public void Execute_AsteroidNeverWithinReach_RetriesApproachAtHalfAttempts()
+    {
+        // Arrange
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputControllerMock = new StubAutomationInputController();
+        var state = new ApproachingAsteroidState(
+            automationInputControllerMock,
+            new MineOverviewDetector(),
+            new StubFirstAsteroidWithinReachDetector(
+                () => new FirstAsteroidWithinReachAnalysis(false, null, null, 0.99, 1.0)));
+
+        // Act
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
+            CancellationToken.None);
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(2, automationInputControllerMock.ClickCount);
+        Assert.Equal(
+            [VirtualKeys.F4, VirtualKeys.A, VirtualKeys.A],
+            automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
+    }
+
     private sealed class StubFirstAsteroidWithinReachDetector(
         Func<FirstAsteroidWithinReachAnalysis> detectHandler)
         : FirstAsteroidWithinReachDetector
