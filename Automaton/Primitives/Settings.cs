@@ -3,6 +3,9 @@ namespace Automaton.Primitives;
 public static class Settings
 {
     public const string ProjectDiscoverySamplesFolderName = "samples";
+    public const string ProjectDiscoveryExpectedFolderName = "expected";
+    public const string CapturesFolderName = "captures";
+    public const string LogsFolderName = "logs";
 
     public const long HideUiFileSizeThreshold = 1024 * 1024 * 2;
     // MINE overview

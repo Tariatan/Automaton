@@ -1,37 +1,33 @@
 using System.IO;
-using Automaton.Properties;
 
 namespace Automaton.Infrastructure;
 
 internal static class TelemetryRootDirectory
 {
-    private const string CapturesFolderName = "captures";
-    private const string LogsFolderName = "logs";
-    private const string ExpectedFolderName = "expected";
 
     public static string GetCapturesDirectory()
     {
-        return BuildDirectoryPath(CapturesFolderName);
+        return BuildDirectoryPath(Primitives.Settings.CapturesFolderName);
     }
 
     public static string GetLogsDirectory()
     {
-        return BuildDirectoryPath(LogsFolderName);
+        return BuildDirectoryPath(Primitives.Settings.LogsFolderName);
     }
 
     public static string GetExpectedDirectory()
     {
         var hallmarkRootDirectory = GetConfiguredHallmarkRootDirectory();
         return !string.IsNullOrWhiteSpace(hallmarkRootDirectory)
-            ? Path.Combine(hallmarkRootDirectory, ExpectedFolderName)
-            : BuildDirectoryPath(ExpectedFolderName);
+            ? Path.Combine(hallmarkRootDirectory, Primitives.Settings.ProjectDiscoveryExpectedFolderName)
+            : BuildDirectoryPath(Primitives.Settings.ProjectDiscoveryExpectedFolderName);
     }
 
     public static string? GetConfiguredRootDirectory()
     {
         try
         {
-            var configuredRootDirectory = Settings.Default.TelemetryRootDirectory;
+            var configuredRootDirectory = Properties.Settings.Default.TelemetryRootDirectory;
             return string.IsNullOrWhiteSpace(configuredRootDirectory) ? null : configuredRootDirectory;
         }
         catch (Exception) when (!OperatingSystem.IsWindows())
@@ -43,15 +39,15 @@ internal static class TelemetryRootDirectory
     public static void SetConfiguredRootDirectory(string rootDirectory)
     {
         var fullRootDirectory = Path.GetFullPath(rootDirectory);
-        Settings.Default.TelemetryRootDirectory = fullRootDirectory;
-        Settings.Default.Save();
+        Properties.Settings.Default.TelemetryRootDirectory = fullRootDirectory;
+        Properties.Settings.Default.Save();
     }
 
     public static string? GetConfiguredHallmarkRootDirectory()
     {
         try
         {
-            var configuredRootDirectory = Settings.Default.HallmarkRootDirectory;
+            var configuredRootDirectory = Properties.Settings.Default.HallmarkRootDirectory;
             return string.IsNullOrWhiteSpace(configuredRootDirectory) ? null : configuredRootDirectory;
         }
         catch (Exception) when (!OperatingSystem.IsWindows())
@@ -63,8 +59,8 @@ internal static class TelemetryRootDirectory
     public static void SetConfiguredHallmarkRootDirectory(string rootDirectory)
     {
         var fullRootDirectory = Path.GetFullPath(rootDirectory);
-        Settings.Default.HallmarkRootDirectory = fullRootDirectory;
-        Settings.Default.Save();
+        Properties.Settings.Default.HallmarkRootDirectory = fullRootDirectory;
+        Properties.Settings.Default.Save();
     }
 
     private static string BuildDirectoryPath(string folderName)
