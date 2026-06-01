@@ -133,7 +133,7 @@ internal sealed class MiningAutomationService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var capture = m_Context.ScreenCaptureService.CaptureCurrentScreen(".mining-connection-lost-popup-check");
-        var detection = connectionLostPopupDetector.Detect(capture.CapturePath);
+        var detection = connectionLostPopupDetector.Detect(capture.Image);
         if (detection.State != PopupState.ConnectionLost)
         {
             return false;

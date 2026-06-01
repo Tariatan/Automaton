@@ -68,11 +68,12 @@ internal sealed class DiscoverState(
         var playfieldBounds = captureSummary.Analysis.PlayfieldDetection.Bounds;
         using var postPolygonCapture = screenCaptureService.CaptureCurrentScreen(".discovery-post-polygons");
         traceImages.Track(postPolygonCapture.CapturePath);
-        var enabledButtonDetection = controlButtonDetector.Detect(
-            postPolygonCapture.Image,
-            playfieldBounds,
-            ControlButtonState.Enabled);
+
+        // Try to detect enabled Submit button after outlining polygons
+        var enabledButtonDetection = controlButtonDetector.Detect(postPolygonCapture.Image, playfieldBounds, ControlButtonState.Enabled);
         DrawControlButtonDetectionOverlay(postPolygonCapture.CapturePath, enabledButtonDetection);
+
+        // Disabled Submit button most probably means overlapping polygons.
         if (!enabledButtonDetection.IsFound || enabledButtonDetection.ButtonBounds is null)
         {
             m_Logger.Warning("Enabled submit button was not detected after polygon clicking. Transitioning to overlap recovery");
@@ -86,7 +87,7 @@ internal sealed class DiscoverState(
         // Focus button area.
         FocusControlButton(enabledButtonDetection.ButtonBounds.Value, cancellationToken);
 
-        // Wait before Submit click if we are too fast
+        // Wait before Submit click if we are too fast.
         DelayBeforeRateLimitedSubmit(cancellationToken);
 
         // Left-click the 'Submit' button.
@@ -94,15 +95,13 @@ internal sealed class DiscoverState(
         RecordSubmit(automationClock.UtcNow);
         automationInputController.Delay(Delays.SubmitResultMs, cancellationToken);
 
-        // Take focused screen to trace the result of submission
+        // Take focused screen to trace the result of submission.
         var focusedCapturePath = CaptureFocusedScreenTrace(captureSummary, cancellationToken);
         traceImages.Track(focusedCapturePath);
 
-        // Try to detect MaxSubmissions/SlowDown popup.
-        // Transition to corresponding Recover*PopupSate
-        var maxSubmissionsPopupDetection = maxSubmissionsPopupDetector.Detect(focusedCapturePath);
-        var slowDownPopupDetection = slowDownPopupDetector.Detect(focusedCapturePath);
-
+        // Try to detect MaxSubmissions popup first.
+        using var focusedImage = Cv2.ImRead(focusedCapturePath);
+        var maxSubmissionsPopupDetection = maxSubmissionsPopupDetector.Detect(focusedImage);
         if (maxSubmissionsPopupDetection.State == PopupState.MaxSubmissions)
         {
             DrawPopupDebugOverlay(focusedCapturePath, maxSubmissionsPopupDetection, "Maximum submissions popup detected");
@@ -113,6 +112,8 @@ internal sealed class DiscoverState(
                 captureSummary.CapturePath);
         }
 
+        // Now try to detect SlowDown popup.
+        var slowDownPopupDetection = slowDownPopupDetector.Detect(focusedImage);
         if (slowDownPopupDetection.State == PopupState.SlowDown)
         {
             DrawPopupDebugOverlay(focusedCapturePath, slowDownPopupDetection, "Slow down popup detected");
@@ -243,7 +244,7 @@ internal sealed class DiscoverState(
             return;
         }
 
-        if (detection.SearchBounds.Width > 0 && detection.SearchBounds.Height > 0)
+        if (detection.SearchBounds is { Width: > 0, Height: > 0 })
         {
             DebugOverlay.Annotate(annotated, (detection.SearchBounds, ControlButtonSearchOverlayColor));
         }

@@ -8,9 +8,8 @@ internal abstract class PopupDetectorBase
 
     protected abstract PopupDetection DetectCore(Mat image);
 
-    public PopupDetection Detect(string imagePath)
+    public PopupDetection Detect(Mat image)
     {
-        using var image = Cv2.ImRead(imagePath);
         var coreDetection = DetectCore(image);
         return coreDetection.State == TargetState
             ? coreDetection

@@ -140,7 +140,7 @@ internal sealed class ProjectDiscoveryAutomationService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var capture = ScreenCaptureService.CaptureCurrentScreen(".discovery-connection-lost-popup-check");
-        var detection = connectionLostPopupDetector.Detect(capture.CapturePath);
+        var detection = connectionLostPopupDetector.Detect(capture.Image);
         if (detection.State != PopupState.ConnectionLost)
         {
             return false;
