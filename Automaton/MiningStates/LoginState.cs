@@ -7,6 +7,7 @@ namespace Automaton.MiningStates;
 
 internal sealed class LoginState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     PilotAvatarDetector pilotAvatarDetector)
     : IMiningAutomationState
 {
@@ -35,7 +36,7 @@ internal sealed class LoginState(
 
         if( context.LastAction == MiningAutomationActionKind.StartGame)
         {
-            automationInputController.TryHideUi(capturePath, cancellationToken);
+            gameActionService.TryHideUi(capturePath, cancellationToken);
         }
 
         return new MiningAutomationStateTransition(

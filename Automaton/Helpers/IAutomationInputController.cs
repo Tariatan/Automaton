@@ -10,17 +10,11 @@ internal interface IAutomationInputController
 
     void PressKey(ushort virtualKey, CancellationToken cancellationToken);
 
-    void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken);
+    void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30);
 
-    void QuitGame(CancellationToken cancellationToken);
-
-    void RebootOperatingSystem(CancellationToken cancellationToken);
-
-    void Logout(CancellationToken cancellationToken);
+    void PressKeyChord(ushort firstModifier, ushort secondModifier, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30);
 
     void ClickUiElement(Point point, CancellationToken cancellationToken);
-
-    void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken);
 
     void Delay(TimeSpan milliseconds, CancellationToken cancellationToken);
     void Delay(int milliseconds, CancellationToken cancellationToken);

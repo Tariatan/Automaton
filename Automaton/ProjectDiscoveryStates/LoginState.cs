@@ -8,6 +8,7 @@ namespace Automaton.ProjectDiscoveryStates;
 internal sealed class LoginState(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     PilotAvatarDetector pilotAvatarDetector) : IProjectDiscoveryAutomationState
 {
     private const string CaptureSuffix = ".discovery-login";
@@ -53,7 +54,7 @@ internal sealed class LoginState(
 
         if (context.LastAction == DiscoveryAutomationActionKind.StartGame)
         {
-            automationInputController.TryHideUi(capturePath, cancellationToken);
+            gameActionService.TryHideUi(capturePath, cancellationToken);
         }
 
         m_Logger.Information("Pilot {PilotIndex} login succeeded. CapturePath={CapturePath}", context.CurrentPilotIndex, capturePath);

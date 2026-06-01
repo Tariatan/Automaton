@@ -10,12 +10,11 @@ namespace Automaton;
 internal sealed class ProjectDiscoveryAutomationService(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     ConnectionLostPopupDetector connectionLostPopupDetector,
     IDiscoveryAutomationStateFactory discoveryAutomationStateFactory)
 {
     private const int InitialPilotIndex = 1;
-    private const int DetectionRetryAttempts = 2;
-    private const int DetectionRetryDelayMs = 1000;
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
     private ProjectDiscoveryAutomationContext m_Context = null!;
@@ -53,7 +52,7 @@ internal sealed class ProjectDiscoveryAutomationService(
                                               DiscoveryAutomationActionKind.LoginPilot or
                                               DiscoveryAutomationActionKind.LoginNextPilot))
                 {
-                    automationInputController.TryHideUi(lastSummary.CapturePath, cancellationToken);
+                    gameActionService.TryHideUi(lastSummary.CapturePath, cancellationToken);
                 }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
@@ -99,10 +98,10 @@ internal sealed class ProjectDiscoveryAutomationService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         DiscoveryAutomationStateTransition transition = null!;
-        for (var attempt = 1; attempt <= DetectionRetryAttempts; attempt++)
+        for (var attempt = 1; attempt <= Settings.DetectionRetryAttempts; attempt++)
         {
             transition = m_CurrentState.Execute(m_Context, cancellationToken);
-            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= DetectionRetryAttempts)
+            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= Settings.DetectionRetryAttempts)
             {
                 break;
             }
@@ -111,9 +110,9 @@ internal sealed class ProjectDiscoveryAutomationService(
                 "Detection miss in {State}. Retrying once before recovery. Attempt={Attempt}/{MaxAttempts}, CapturePath={CapturePath}",
                 transition.State,
                 attempt,
-                DetectionRetryAttempts,
+                Settings.DetectionRetryAttempts,
                 transition.CapturePath);
-            automationInputController.Delay(DetectionRetryDelayMs, cancellationToken);
+            automationInputController.Delay(Settings.DetectionRetryDelayMs, cancellationToken);
         }
 
         Logger.Information(

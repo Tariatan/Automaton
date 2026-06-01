@@ -17,7 +17,8 @@ public sealed class UnloadingCargoStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new UnloadingCargoState(automationInputController, new InventoryDetector(), new DowntimeDetector());
+        var gameActionService = new StubGameActionService();
+        var state = new UnloadingCargoState(automationInputController, gameActionService, new InventoryDetector(), new DowntimeDetector());
 
         // Act
         var transition = state.Execute(
@@ -48,8 +49,10 @@ public sealed class UnloadingCargoStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new UnloadingCargoState(
             automationInputController,
+            gameActionService,
             new InventoryDetector(),
             new DowntimeDetector(new TimeOnly(19, 0), TimeSpan.FromMinutes(20)));
 
@@ -61,7 +64,7 @@ public sealed class UnloadingCargoStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.QuitGameAndExitApplication, transition.Action);
-        Assert.True(automationInputController.QuitGameCalled);
+        Assert.True(gameActionService.QuitGameCalled);
     }
 
     [Fact]
@@ -80,7 +83,8 @@ public sealed class UnloadingCargoStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var state = new UnloadingCargoState(automationInputController, new InventoryDetector(), new DowntimeDetector());
+        var gameActionService = new StubGameActionService();
+        var state = new UnloadingCargoState(automationInputController, gameActionService, new InventoryDetector(), new DowntimeDetector());
 
         // Act
         var transition = state.Execute(

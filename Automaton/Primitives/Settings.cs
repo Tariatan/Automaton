@@ -1,6 +1,6 @@
 namespace Automaton.Primitives;
 
-internal static class Settings
+public static class Settings
 {
     public const long HideUiFileSizeThreshold = 1024 * 1024 * 2;
     // MINE overview
@@ -9,4 +9,7 @@ internal static class Settings
 
     // Approaching asteroid
     public const int ApproachingAsteroidDistancePollingAttemptCount = 60;
+
+    public const int DetectionRetryAttempts = 2;
+    public const int DetectionRetryDelayMs = 500;
 }

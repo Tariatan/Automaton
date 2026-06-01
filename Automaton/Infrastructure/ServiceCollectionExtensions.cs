@@ -12,6 +12,7 @@ internal static class ServiceCollectionExtensions
     {
         services.AddSingleton<IScreenCaptureProvider, ScreenCaptureProvider>();
         services.AddSingleton<IAutomationInputController, AutomationInputController>();
+        services.AddSingleton<IGameActionService, GameActionService>();
         services.AddSingleton<IAutomationClock, SystemAutomationClock>();
 
         services.AddSingleton<PlayfieldDetector>();

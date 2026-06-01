@@ -24,8 +24,10 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
+            gameActionService,
             beltOverviewDetector,
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
@@ -52,8 +54,10 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
+            gameActionService,
             beltOverviewDetector,
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
@@ -80,8 +84,10 @@ public sealed class RecoveryStateTests
             new StubScreenCaptureProvider(screen.Clone),
             new SampleImageProcessor());
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
+            gameActionService,
             beltOverviewDetector,
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
@@ -106,8 +112,10 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
+            gameActionService,
             beltOverviewDetector,
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
@@ -118,7 +126,7 @@ public sealed class RecoveryStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.StartingGame, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.None, transition.Action);
-        Assert.True(automationInputController.QuitGameCalled);
+        Assert.True(gameActionService.QuitGameCalled);
         Assert.Equal([Delays.RecoveryMs, Delays.RecoveryMs], automationInputController.Delays);
     }
 
@@ -133,8 +141,10 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
+            gameActionService,
             beltOverviewDetector,
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
@@ -148,7 +158,7 @@ public sealed class RecoveryStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.StartingGame, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.None, transition.Action);
-        Assert.True(automationInputController.QuitGameCalled);
+        Assert.True(gameActionService.QuitGameCalled);
         Assert.Equal([Delays.RecoveryMs, Delays.RecoveryMs], automationInputController.Delays);
     }
 
@@ -163,8 +173,10 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
+            gameActionService,
             beltOverviewDetector,
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
@@ -178,7 +190,7 @@ public sealed class RecoveryStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.StartingGame, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.None, transition.Action);
-        Assert.True(automationInputController.QuitGameCalled);
+        Assert.True(gameActionService.QuitGameCalled);
         Assert.Equal([Delays.RecoveryMs, Delays.RecoveryMs], automationInputController.Delays);
     }
 
@@ -193,8 +205,10 @@ public sealed class RecoveryStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
+            gameActionService,
             beltOverviewDetector,
             new PlayNowButtonDetector());
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
@@ -209,7 +223,7 @@ public sealed class RecoveryStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.StartingGame, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Reboot, transition.Action);
-        Assert.True(automationInputController.RebootOperatingSystemCalled);
+        Assert.True(gameActionService.RebootOperatingSystemCalled);
     }
 
     private static Mat CreatePlayButtonScreen(Point playButtonLocation)

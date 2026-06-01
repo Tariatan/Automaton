@@ -19,7 +19,7 @@ internal sealed class ScreenCaptureService(
     private const int GameCaptureWidth = 2_560;
     private const int GameCaptureHeight = 2_160;
     private const int CaptureAttemptCount = 2;
-    private const int CaptureRetryDelayMilliseconds = 100;
+    private const int CaptureRetryDelayMilliseconds = 300;
     internal const int VirtualScreenLeftMetric = 76;
     internal const int VirtualScreenTopMetric = 77;
     internal const int VirtualScreenWidthMetric = 78;

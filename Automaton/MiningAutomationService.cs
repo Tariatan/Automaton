@@ -10,6 +10,7 @@ namespace Automaton;
 internal sealed class MiningAutomationService(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     IAutomationClock automationClock,
     PlayNowButtonDetector playNowButtonDetector,
     LocationChangeTimerDetector locationChangeTimerDetector,
@@ -25,8 +26,6 @@ internal sealed class MiningAutomationService(
     CommonAutomationStates.ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior,
     PilotAvatarDetector pilotAvatarDetector)
 {
-    private const int DetectionRetryAttempts = 2;
-    private const int DetectionRetryDelayMs = 150;
     private static readonly ILogger Logger = Log.ForContext<MiningAutomationService>();
     private readonly MiningAutomationContext m_Context = new(screenCaptureService, automationClock);
     private IMiningAutomationState m_CurrentState = null!;
@@ -51,7 +50,7 @@ internal sealed class MiningAutomationService(
 
                 if (lastSummary.Action is not (MiningAutomationActionKind.StartGame or MiningAutomationActionKind.LoginPilot))
                 {
-                    automationInputController.TryHideUi(lastSummary.CapturePath, cancellationToken);
+                    gameActionService.TryHideUi(lastSummary.CapturePath, cancellationToken);
                 }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
@@ -91,10 +90,10 @@ internal sealed class MiningAutomationService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         MiningAutomationStateTransition transition = null!;
-        for (var attempt = 1; attempt <= DetectionRetryAttempts; attempt++)
+        for (var attempt = 1; attempt <= Settings.DetectionRetryAttempts; attempt++)
         {
             transition = m_CurrentState.Execute(m_Context, cancellationToken);
-            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= DetectionRetryAttempts)
+            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= Settings.DetectionRetryAttempts)
             {
                 break;
             }
@@ -103,9 +102,9 @@ internal sealed class MiningAutomationService(
                 "Detection miss in {State}. Retrying once before recovery. Attempt={Attempt}/{MaxAttempts}, CapturePath={CapturePath}",
                 transition.State,
                 attempt,
-                DetectionRetryAttempts,
+                Settings.DetectionRetryAttempts,
                 transition.CapturePath);
-            automationInputController.Delay(DetectionRetryDelayMs, cancellationToken);
+            automationInputController.Delay(Settings.DetectionRetryDelayMs, cancellationToken);
         }
 
         Logger.Information(
@@ -125,8 +124,7 @@ internal sealed class MiningAutomationService(
 
     private static bool ShouldRetryAfterDetectionMiss(MiningAutomationStateTransition transition)
     {
-        return transition.Action == MiningAutomationActionKind.Recover &&
-               transition.FailureReason == MiningAutomationFailureReason.DetectionMiss;
+        return transition is { Action: MiningAutomationActionKind.Recover, FailureReason: MiningAutomationFailureReason.DetectionMiss };
     }
 
     private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)
@@ -163,14 +161,14 @@ internal sealed class MiningAutomationService(
         return stateKind switch
         {
             MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, playNowButtonDetector),
-            MiningAutomationStateKind.Login => new LoginState(automationInputController, pilotAvatarDetector),
+            MiningAutomationStateKind.Login => new LoginState(automationInputController, gameActionService, pilotAvatarDetector),
             MiningAutomationStateKind.Dock => new DockingState(automationInputController, asteroidBeltOverviewDetector),
-            MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, inventoryDetector, downtimeDetector),
+            MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, gameActionService, inventoryDetector, downtimeDetector),
             MiningAutomationStateKind.Undocking => new UndockingState(automationInputController, locationChangeTimerDetector),
-            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(automationInputController, asteroidBeltOverviewDetector, mineOverviewDetector, warOverviewDetector, Random.Shared.Next),
+            MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(automationInputController, gameActionService, asteroidBeltOverviewDetector, mineOverviewDetector, warOverviewDetector, Random.Shared.Next),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(automationInputController, mineOverviewDetector, firstAsteroidWithinReachDetector),
             MiningAutomationStateKind.Mining => new MiningState(automationInputController, miningAsteroidDetector, miningLaserDetector, warOverviewDetector),
-            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, asteroidBeltOverviewDetector, playNowButtonDetector),
+            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, gameActionService, asteroidBeltOverviewDetector, playNowButtonDetector),
             MiningAutomationStateKind.RecoverConnectionLostPopup => new RecoverConnectionLostPopupState(connectionLostPopupRecoveryBehavior),
             _ => new PendingMiningAutomationState(stateKind)
         };

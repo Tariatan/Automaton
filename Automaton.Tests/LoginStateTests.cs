@@ -20,7 +20,7 @@ public sealed class LoginStateTests
             new StubScreenCaptureProvider(pilotScreen.Clone),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState(automationInputControllerMock, new PilotAvatarDetector());
+        var state = new LoginState(automationInputControllerMock, new StubGameActionService(), new PilotAvatarDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -63,7 +63,7 @@ public sealed class LoginStateTests
             new StubScreenCaptureProvider(blankScreen.Clone),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState(automationInputControllerMock, new PilotAvatarDetector());
+        var state = new LoginState(automationInputControllerMock, new StubGameActionService(), new PilotAvatarDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();

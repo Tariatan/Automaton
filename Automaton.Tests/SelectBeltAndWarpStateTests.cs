@@ -26,6 +26,7 @@ public sealed class SelectBeltAndWarpStateTests
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             automationInputController,
+            new StubGameActionService(),
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),
@@ -64,6 +65,7 @@ public sealed class SelectBeltAndWarpStateTests
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             automationInputController,
+            new StubGameActionService(),
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),
@@ -106,6 +108,7 @@ public sealed class SelectBeltAndWarpStateTests
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             automationInputController,
+            new StubGameActionService(),
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),

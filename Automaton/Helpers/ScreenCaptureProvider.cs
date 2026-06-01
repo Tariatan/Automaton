@@ -10,7 +10,7 @@ internal sealed class ScreenCaptureProvider : IScreenCaptureProvider
 {
     public Mat CaptureScreen()
     {
-        var bounds = GetPhysicalGameCaptureBounds();
+        var bounds = ScreenCaptureService.BuildGameCaptureBounds(GetPhysicalVirtualScreenBounds());
 
         using var bitmap = new Bitmap(bounds.Width, bounds.Height);
         using var graphics = Graphics.FromImage(bitmap);
@@ -18,11 +18,6 @@ internal sealed class ScreenCaptureProvider : IScreenCaptureProvider
         using var ms = new MemoryStream();
         bitmap.Save(ms, ImageFormat.Png);
         return Cv2.ImDecode(ms.ToArray(), ImreadModes.Color);
-    }
-
-    private static Rectangle GetPhysicalGameCaptureBounds()
-    {
-        return ScreenCaptureService.BuildGameCaptureBounds(GetPhysicalVirtualScreenBounds());
     }
 
     private static Rectangle GetPhysicalVirtualScreenBounds()

@@ -9,6 +9,7 @@ namespace Automaton.MiningStates;
 
 internal sealed class SelectBeltAndWarpState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     AsteroidBeltOverviewDetector beltOverviewDetector,
     MineOverviewDetector mineOverviewDetector,
     WarOverviewDetector warOverviewDetector,
@@ -43,7 +44,7 @@ internal sealed class SelectBeltAndWarpState(
         if (!analysis.HomeStationLocated)
         {
             m_Logger.Error("Failed to detect Home Station in the Belt overview");
-            automationInputController.QuitGame(cancellationToken);
+            gameActionService.QuitGame(cancellationToken);
             var result = Recover(capture.CapturePath);
             capture.Dispose();
             return result;

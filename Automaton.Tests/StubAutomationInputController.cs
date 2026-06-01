@@ -9,9 +9,6 @@ internal sealed class StubAutomationInputController : IAutomationInputController
     public List<int> Delays { get; } = [];
     public List<KeyboardInput> KeyInputs { get; } = [];
     public int ClickCount { get; private set; }
-    public bool QuitGameCalled { get; private set; }
-    public bool RebootOperatingSystemCalled { get; private set; }
-    public bool LogoutCalled { get; private set; }
     public Action<int>? OnDelay { get; init; }
     public Action<ushort, ushort>? OnPressKeyChord { get; init; }
 
@@ -21,11 +18,6 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         MoveTargets.Add(point);
         ClickCount++;
         MoveTargets.Add(new Point(250, 250));
-    }
-
-    public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
     }
 
     public void MoveTo(Point point)
@@ -45,29 +37,17 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         KeyInputs.Add(new KeyboardInput(null, null, virtualKey));
     }
 
-    public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
+    public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30)
     {
         cancellationToken.ThrowIfCancellationRequested();
         KeyInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey));
         OnPressKeyChord?.Invoke(modifierVirtualKey, virtualKey);
     }
 
-    public void QuitGame(CancellationToken cancellationToken)
+    public void PressKeyChord(ushort firstModifier, ushort secondModifier, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        QuitGameCalled = true;
-    }
-
-    public void RebootOperatingSystem(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        RebootOperatingSystemCalled = true;
-    }
-
-    public void Logout(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        LogoutCalled = true;
+        KeyInputs.Add(new KeyboardInput(firstModifier, secondModifier, virtualKey));
     }
 
     public void Delay(TimeSpan milliseconds, CancellationToken cancellationToken)

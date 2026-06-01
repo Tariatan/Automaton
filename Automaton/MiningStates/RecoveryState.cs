@@ -7,6 +7,7 @@ namespace Automaton.MiningStates;
 
 internal sealed class RecoveryState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     AsteroidBeltOverviewDetector beltOverviewDetector,
     PlayNowButtonDetector playNowButtonDetector)
     : IMiningAutomationState
@@ -29,7 +30,7 @@ internal sealed class RecoveryState(
         if (context.LastAction == MiningAutomationActionKind.Relogin)
         {
             m_Logger.Error("Logging out...");
-            automationInputController.Logout(cancellationToken);
+            gameActionService.Logout(cancellationToken);
 
             return new MiningAutomationStateTransition(
                 Kind,
@@ -86,7 +87,7 @@ internal sealed class RecoveryState(
 
         // Last resort
         m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
-        automationInputController.QuitGame(cancellationToken);
+        gameActionService.QuitGame(cancellationToken);
         // Debounce
         automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
         return BuildStartingGameTransition(
@@ -113,7 +114,7 @@ internal sealed class RecoveryState(
         m_Logger.Error(
             "StartingGame transition count exceeded threshold ({Threshold}). Triggering operating system reboot.",
             MaximumStartingGameTransitionsBeforeReboot);
-        automationInputController.RebootOperatingSystem(cancellationToken);
+        gameActionService.RebootOperatingSystem(cancellationToken);
         return new MiningAutomationStateTransition(state, nextState, MiningAutomationActionKind.Reboot, capturePath);
     }
 

@@ -9,6 +9,7 @@ namespace Automaton.MiningStates;
 
 internal sealed class UnloadingCargoState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     InventoryDetector inventoryDetector,
     DowntimeDetector downtimeDetector)
     : IMiningAutomationState
@@ -104,7 +105,7 @@ internal sealed class UnloadingCargoState(
         if (downtimeDetector.IsDowntimeImminent(context.AutomationClock.UtcNow))
         {
             m_Logger.Warning("Downtime imminent => quit game and exit application. Now={Now}", context.AutomationClock.UtcNow);
-            automationInputController.QuitGame(cancellationToken);
+            gameActionService.QuitGame(cancellationToken);
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,

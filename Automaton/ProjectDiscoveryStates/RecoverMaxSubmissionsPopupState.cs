@@ -5,7 +5,7 @@ using Serilog;
 namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class RecoverMaxSubmissionsPopupState(
-    IAutomationInputController automationInputController) : IProjectDiscoveryAutomationState
+    IGameActionService gameActionService) : IProjectDiscoveryAutomationState
 {
     private readonly ILogger m_Logger = Log.ForContext<RecoverMaxSubmissionsPopupState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup;
@@ -16,10 +16,9 @@ internal sealed class RecoverMaxSubmissionsPopupState(
             context.LastAction,
             context.CurrentPilotIndex);
 
-        // Logout current pilot
         var delay = TimeSpan.FromMilliseconds(Delays.PilotLogoutMs);
         m_Logger.Information("Logging out pilot {CurrentPilotIndex} for {DelaySeconds:0.###} seconds...", context.CurrentPilotIndex, delay.TotalSeconds);
-        automationInputController.Logout(cancellationToken);
+        gameActionService.Logout(cancellationToken);
 
         return new DiscoveryAutomationStateTransition(
             Kind,

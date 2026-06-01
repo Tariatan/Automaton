@@ -1,8 +1,6 @@
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
-using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Automaton.Helpers;
@@ -16,8 +14,7 @@ internal sealed class AutomationInputController : IAutomationInputController
     private const uint InputKeyboard = 1;
     private const uint KeyUpEvent = 0x0002;
     private const uint ScanCodeEvent = 0x0008;
-    private const int KeyboardTransitionDelayMs = 30;
-    private const int HideUiTransitionDelayMs = 80;
+    private const int DefaultTransitionDelayMs = 50;
 
     public void ClickUiElement(Point point, CancellationToken cancellationToken)
     {
@@ -25,28 +22,12 @@ internal sealed class AutomationInputController : IAutomationInputController
         LeftClick(cancellationToken);
     }
 
-    public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(capturePathToValidate))
-        {
-            return;
-        }
-
-        var captureFileInfo = new FileInfo(capturePathToValidate);
-        // Hide UI if captured file size exceeds max threshold
-        if (captureFileInfo is { Exists: true, Length: > Settings.HideUiFileSizeThreshold })
-        {
-            m_Logger.Information("Hiding UI because capture size exceeded {Threshold} Mb ({CaptureSizeMb} MB).",
-                Settings.HideUiFileSizeThreshold / 1024 / 1024,
-                captureFileInfo.Length / 1024 / 1024);
-            PressHideUiChord(cancellationToken);
-            Delay(Delays.HideUiMs, cancellationToken);
-        }
-    }
-
     public void MoveTo(Point point)
     {
-        _ = SetCursorPos(point.X, point.Y);
+        if (!SetCursorPos(point.X, point.Y))
+        {
+            m_Logger.Warning("SetCursorPos failed for ({X}, {Y})", point.X, point.Y);
+        }
     }
 
     public void LeftClick(CancellationToken cancellationToken)
@@ -77,112 +58,54 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        SendKeyboardInput(BuildKeyDownInput(virtualKey));
+        var scanCode = MapScanCode(virtualKey);
+        SendKeyboardInput(BuildKeyDownInput(virtualKey, scanCode));
         WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyUpInput(virtualKey));
+        SendKeyboardInput(BuildKeyUpInput(virtualKey, scanCode));
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken)
+    public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = DefaultTransitionDelayMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        SendKeyboardInput(BuildKeyDownInput(modifierVirtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyDownInput(virtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyUpInput(virtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyUpInput(modifierVirtualKey));
+        var modScan = MapScanCode(modifierVirtualKey);
+        var keyScan = MapScanCode(virtualKey);
+        SendKeyboardInput(BuildKeyDownInput(modifierVirtualKey, modScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyDownInput(virtualKey, keyScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(virtualKey, keyScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(modifierVirtualKey, modScan));
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private static void PressKeyChord(
-        ushort firstModifierVirtualKey,
-        ushort secondModifierVirtualKey,
+    public void PressKeyChord(
+        ushort firstModifier,
+        ushort secondModifier,
         ushort virtualKey,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int transitionDelayMs = DefaultTransitionDelayMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        SendKeyboardInput(BuildKeyDownInput(firstModifierVirtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyDownInput(secondModifierVirtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyDownInput(virtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyUpInput(virtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyUpInput(secondModifierVirtualKey));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyUpInput(firstModifierVirtualKey));
+        var firstScan = MapScanCode(firstModifier);
+        var secondScan = MapScanCode(secondModifier);
+        var keyScan = MapScanCode(virtualKey);
+        SendKeyboardInput(BuildKeyDownInput(firstModifier, firstScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyDownInput(secondModifier, secondScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyDownInput(virtualKey, keyScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(virtualKey, keyScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(secondModifier, secondScan));
+        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        SendKeyboardInput(BuildKeyUpInput(firstModifier, firstScan));
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
-    }
-
-    private static void PressHideUiChord(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        SendKeyboardInput(BuildKeyDownInput(VirtualKeys.LeftControl));
-        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
-        SendKeyboardInput(BuildKeyDownInput(VirtualKeys.LeftShift));
-        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
-        SendKeyboardInput(BuildKeyDownInput(VirtualKeys.F9));
-        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(VirtualKeys.F9));
-        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(VirtualKeys.LeftShift));
-        WaitForKeyboardTransition(cancellationToken, HideUiTransitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(VirtualKeys.LeftControl));
-
-        Thread.Sleep(Delays.MouseDownMs);
-        cancellationToken.ThrowIfCancellationRequested();
-    }
-
-    public void QuitGame(CancellationToken cancellationToken)
-    {
-        PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
-        Delay(Delays.QuitGameConfirmMs, cancellationToken);
-        PressKey(VirtualKeys.Enter, cancellationToken);
-    }
-
-    public void RebootOperatingSystem(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        m_Logger.Error("Scheduling safe operating system reboot.");
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "shutdown.exe",
-            Arguments = "/r /t 30 /c \"Automaton recovery threshold exceeded\"",
-            CreateNoWindow = true,
-            UseShellExecute = false
-        };
-
-        using var process = Process.Start(startInfo);
-        if (process is null)
-        {
-            throw new InvalidOperationException("Failed to schedule operating system reboot.");
-        }
-    }
-
-    public void Logout(CancellationToken cancellationToken)
-    {
-        Delay(Delays.WindowActivationMs, cancellationToken);
-
-        // Activate Logout window
-        PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
-        Delay(Delays.WindowActivationMs, cancellationToken);
-
-        // Confirm Logout
-        PressKey(VirtualKeys.Enter, cancellationToken);
-
-        var delay = TimeSpan.FromMilliseconds(Delays.PilotLogoutMs);
-        m_Logger.Information("Logging out for {Seconds} seconds", delay.TotalSeconds);
-        // Wait for full logout
-        Delay(delay, cancellationToken);
-
-        // Close any window on login screen
-        PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
     }
 
     public void Delay(TimeSpan milliseconds, CancellationToken cancellationToken)
@@ -196,9 +119,13 @@ internal sealed class AutomationInputController : IAutomationInputController
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private static INPUT BuildKeyDownInput(ushort virtualKey)
+    private static ushort MapScanCode(ushort virtualKey)
     {
-        var scanCode = (ushort)MapVirtualKey(virtualKey, 0);
+        return (ushort)MapVirtualKey(virtualKey, 0);
+    }
+
+    private static INPUT BuildKeyDownInput(ushort virtualKey, ushort scanCode)
+    {
         if (scanCode == 0)
         {
             return new INPUT
@@ -229,9 +156,8 @@ internal sealed class AutomationInputController : IAutomationInputController
         };
     }
 
-    private static INPUT BuildKeyUpInput(ushort virtualKey)
+    private static INPUT BuildKeyUpInput(ushort virtualKey, ushort scanCode)
     {
-        var scanCode = (ushort)MapVirtualKey(virtualKey, 0);
         if (scanCode == 0)
         {
             return new INPUT
@@ -263,10 +189,9 @@ internal sealed class AutomationInputController : IAutomationInputController
         };
     }
 
-    private static void WaitForKeyboardTransition(CancellationToken cancellationToken, int delayMs = KeyboardTransitionDelayMs)
+    private static void WaitForKeyboardTransition(CancellationToken cancellationToken, int delayMs = DefaultTransitionDelayMs)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        Thread.Sleep(delayMs);
+        cancellationToken.WaitHandle.WaitOne(delayMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 

@@ -12,6 +12,7 @@ namespace Automaton.ProjectDiscoveryStates;
 internal sealed class DiscoverState(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     IAutomationClock automationClock,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
     SlowDownPopupDetector slowDownPopupDetector) : IProjectDiscoveryAutomationState
@@ -51,7 +52,7 @@ internal sealed class DiscoverState(
             if (context.ConsecutivePlayfieldMisses >= MaximumConsecutivePlayfieldMisses)
             {
                 m_Logger.Error("Playfield was not found for {Times} times in a row => Restarting", MaximumConsecutivePlayfieldMisses);
-                automationInputController.QuitGame(cancellationToken);
+                gameActionService.QuitGame(cancellationToken);
                 return new DiscoveryAutomationStateTransition(
                     Kind,
                     DiscoveryAutomationStateKind.StartingGame,
