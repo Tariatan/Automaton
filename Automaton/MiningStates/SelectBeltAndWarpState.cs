@@ -110,9 +110,11 @@ internal sealed class SelectBeltAndWarpState(
                 m_Logger.Information("Landed on asteroid belt => detecting asteroids");
 
                 using var warDetectionImage = capture.Image.Clone();
-                if (warOverviewDetector.Detect(warDetectionImage, out var warOverviewBounds))
+                var warAnalysis = warOverviewDetector.Detect(warDetectionImage);
+                DrawWarOverviewOverlay(warDetectionImage, warAnalysis);
+                if (warAnalysis is { WarOverviewLocated: true, WarOverviewBounds: not null })
                 {
-                    var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warOverviewBounds);
+                    var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warAnalysis.WarOverviewBounds.Value);
                     if (!warOverviewNothingFound)
                     {
                         context.BlacklistAsteroidBelt(selectedAsteroidBelt.Bounds);
@@ -207,6 +209,14 @@ internal sealed class SelectBeltAndWarpState(
             image,
             $"Overview {(analysis.OverviewLocated ? "found" : "not found")}; Belts: {analysis.AsteroidBelts.Count}",
             OverlayColor.RedOrange);
+    }
+
+    private static void DrawWarOverviewOverlay(Mat image, WarOverviewAnalysis analysis)
+    {
+        if (analysis.WarOverviewBounds is not null)
+        {
+            DebugOverlay.Annotate(image, (analysis.WarOverviewBounds.Value, OverlayColor.RedOrange));
+        }
     }
 
     private MiningAutomationStateTransition Recover(string capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)

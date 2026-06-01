@@ -1,6 +1,7 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
+using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.MiningStates;
@@ -49,9 +50,11 @@ internal sealed class MiningState(
             }
 
             using var warDetectionImage = capture.Image.Clone();
-            if (warOverviewDetector.Detect(warDetectionImage, out var warOverviewBounds))
+            var warAnalysis = warOverviewDetector.Detect(warDetectionImage);
+            DrawWarOverviewOverlay(warDetectionImage, warAnalysis);
+            if (warAnalysis is { WarOverviewLocated: true, WarOverviewBounds: not null })
             {
-                var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warOverviewBounds);
+                var warOverviewNothingFound = NothingFoundDetector.Detect(warDetectionImage, warAnalysis.WarOverviewBounds.Value);
                 if (!warOverviewNothingFound)
                 {
                     if (context.TryGetCurrentAsteroidBelt(out var currentAsteroidBeltBounds))
@@ -98,6 +101,14 @@ internal sealed class MiningState(
             MiningAutomationStateKind.Dock,
             MiningAutomationActionKind.None,
             lastCapturePath);
+    }
+
+    private static void DrawWarOverviewOverlay(Mat image, WarOverviewAnalysis analysis)
+    {
+        if (analysis.WarOverviewBounds is not null)
+        {
+            DebugOverlay.Annotate(image, (analysis.WarOverviewBounds.Value, OverlayColor.RedOrange));
+        }
     }
 
     private MiningAutomationStateTransition Recover(string capturePath, MiningAutomationFailureReason failureReason = MiningAutomationFailureReason.None)

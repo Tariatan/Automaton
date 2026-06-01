@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 using Serilog;
@@ -28,14 +29,14 @@ internal static class ConnectionLostPopupDetectionEngine
             return new PopupDetection(PopupState.None, new Rect());
         }
 
-        var searchBounds = BuildClampedBounds(
+        var searchBounds = GeometryHelper.BuildClampedBounds(
             ExpectedPopupLeft - PopupSearchMarginX,
             ExpectedPopupTop - PopupSearchMarginY,
             ExpectedPopupWidth + (PopupSearchMarginX * 2),
             ExpectedPopupHeight + (PopupSearchMarginY * 2),
             image.Size());
 
-        var popupBounds = BuildClampedBounds(
+        var popupBounds = GeometryHelper.BuildClampedBounds(
             ExpectedPopupLeft,
             ExpectedPopupTop,
             ExpectedPopupWidth,
@@ -93,9 +94,9 @@ internal static class ConnectionLostPopupDetectionEngine
             popupBounds.Y - searchBounds.Y,
             popupBounds.Width,
             popupBounds.Height);
-        var iconBounds = BuildRelativeBounds(localPopupBounds, 0.02, 0.02, 0.20, 0.28);
-        var buttonBounds = BuildRelativeBounds(localPopupBounds, 0.03, 0.74, 0.94, 0.20);
-        var titleBounds = BuildRelativeBounds(localPopupBounds, 0.16, 0.02, 0.80, 0.34);
+        var iconBounds = GeometryHelper.BuildRelativeBounds(localPopupBounds, 0.02, 0.02, 0.20, 0.28);
+        var buttonBounds = GeometryHelper.BuildRelativeBounds(localPopupBounds, 0.03, 0.74, 0.94, 0.20);
+        var titleBounds = GeometryHelper.BuildRelativeBounds(localPopupBounds, 0.16, 0.02, 0.80, 0.34);
 
         using var iconRoi = new Mat(searchGray, iconBounds);
         using var buttonRoi = new Mat(searchGray, buttonBounds);
@@ -159,32 +160,13 @@ internal static class ConnectionLostPopupDetectionEngine
 
         var estimatedPopupX = searchBounds.X + best.Location.X - (int)Math.Round(ExpectedPopupWidth * 0.16);
         var estimatedPopupY = searchBounds.Y + best.Location.Y - (int)Math.Round(ExpectedPopupHeight * 0.02);
-        popupBounds = BuildClampedBounds(
+        popupBounds = GeometryHelper.BuildClampedBounds(
             estimatedPopupX,
             estimatedPopupY,
             ExpectedPopupWidth,
             ExpectedPopupHeight,
             imageSize);
         return true;
-    }
-
-    private static Rect BuildRelativeBounds(Rect bounds, double leftRatio, double topRatio, double widthRatio, double heightRatio)
-    {
-        return BuildClampedBounds(
-            bounds.X + (int)Math.Round(bounds.Width * leftRatio),
-            bounds.Y + (int)Math.Round(bounds.Height * topRatio),
-            Math.Max(1, (int)Math.Round(bounds.Width * widthRatio)),
-            Math.Max(1, (int)Math.Round(bounds.Height * heightRatio)),
-            new Size(bounds.Right, bounds.Bottom));
-    }
-
-    private static Rect BuildClampedBounds(int x, int y, int width, int height, Size containingSize)
-    {
-        var clampedX = Math.Clamp(x, 0, Math.Max(0, containingSize.Width - 1));
-        var clampedY = Math.Clamp(y, 0, Math.Max(0, containingSize.Height - 1));
-        var clampedWidth = Math.Clamp(width, 1, containingSize.Width - clampedX);
-        var clampedHeight = Math.Clamp(height, 1, containingSize.Height - clampedY);
-        return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
     }
 
     private readonly record struct TemplateMatchResult(double Score, Point Location);

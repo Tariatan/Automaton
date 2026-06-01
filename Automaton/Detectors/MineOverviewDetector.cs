@@ -108,26 +108,7 @@ internal sealed class MineOverviewDetector : IDisposable
 
     private static Rect BuildFallbackSearchBounds(Size imageSize)
     {
-        return BuildRelativeBounds(imageSize, 0.62, 0.52, 0.35, 0.45);
-    }
-
-    private static Rect BuildRelativeBounds(
-        Size imageSize,
-        double leftRatio,
-        double topRatio,
-        double widthRatio,
-        double heightRatio)
-    {
-        var left = (int)Math.Round(imageSize.Width * leftRatio);
-        var top = (int)Math.Round(imageSize.Height * topRatio);
-        var width = (int)Math.Round(imageSize.Width * widthRatio);
-        var height = (int)Math.Round(imageSize.Height * heightRatio);
-
-        left = Math.Clamp(left, 0, Math.Max(0, imageSize.Width - 1));
-        top = Math.Clamp(top, 0, Math.Max(0, imageSize.Height - 1));
-        width = Math.Clamp(width, 1, imageSize.Width - left);
-        height = Math.Clamp(height, 1, imageSize.Height - top);
-        return new Rect(left, top, width, height);
+        return GeometryHelper.BuildRelativeBounds(imageSize, 0.62, 0.52, 0.35, 0.45);
     }
 
     private readonly record struct TemplateLocation(Rect Bounds, double Score);

@@ -17,28 +17,15 @@ internal sealed class WarOverviewDetector : IDisposable
         m_OverviewWarTemplate.Dispose();
     }
 
-    public bool Detect(Mat screen, out Rect warOverviewBounds)
+    public WarOverviewAnalysis Detect(Mat screen)
     {
-        warOverviewBounds = default;
         if (screen.Empty())
         {
-            return false;
+            return WarOverviewAnalysis.NotFound;
         }
 
-        if (!TryLocateByTemplate(screen, out warOverviewBounds, out _))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private bool TryLocateByTemplate(Mat screen, out Rect warOverviewBounds, out Rect headerBounds)
-    {
-        warOverviewBounds = default;
-        headerBounds = default;
         TemplateLocation? bestHeaderLocation = null;
-        foreach (var searchBounds in BuildFallbackSearchBounds(screen.Size()))
+        foreach (var searchBounds in BuildSearchBounds(screen.Size()))
         {
             if (!TryMatchTemplate(screen, m_OverviewWarTemplate, searchBounds, out var headerLocation))
             {
@@ -49,16 +36,20 @@ internal sealed class WarOverviewDetector : IDisposable
             {
                 bestHeaderLocation = headerLocation;
             }
+
+            if (bestHeaderLocation.Value.Score >= EarlyExitScore)
+            {
+                break;
+            }
         }
 
         if (bestHeaderLocation is null)
         {
-            return false;
+            return WarOverviewAnalysis.NotFound;
         }
 
-        headerBounds = bestHeaderLocation.Value.Bounds;
-        warOverviewBounds = BuildWarOverviewBounds(screen.Size(), bestHeaderLocation.Value.Bounds);
-        return true;
+        var warOverviewBounds = BuildWarOverviewBounds(screen.Size(), bestHeaderLocation.Value.Bounds);
+        return new WarOverviewAnalysis(true, bestHeaderLocation.Value.Bounds, warOverviewBounds);
     }
 
     private static bool TryMatchTemplate(Mat screen, Mat template, Rect searchBounds, out TemplateLocation location)
@@ -114,13 +105,14 @@ internal sealed class WarOverviewDetector : IDisposable
         return true;
     }
 
-    private static Rect BuildWarOverviewBounds(Size imageSize, Rect overviewWarHeaderBounds)
+    private static Rect BuildWarOverviewBounds(Size imageSize, Rect headerBounds)
     {
-        var left = Math.Clamp(overviewWarHeaderBounds.X - 10, 0, Math.Max(0, imageSize.Width - 1));
-        var top = Math.Clamp(overviewWarHeaderBounds.Y - 40, 0, Math.Max(0, imageSize.Height - 1));
-        var right = Math.Clamp(left + 180, left + 1, imageSize.Width);
-        var bottom = Math.Clamp(top + 420, top + 1, imageSize.Height);
-        return new Rect(left, top, right - left, bottom - top);
+        return GeometryHelper.BuildClampedBounds(
+            headerBounds.X - 10,
+            headerBounds.Y - 40,
+            180,
+            420,
+            imageSize);
     }
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
@@ -132,31 +124,20 @@ internal sealed class WarOverviewDetector : IDisposable
         return scaledTemplate;
     }
 
-    private static IEnumerable<Rect> BuildFallbackSearchBounds(Size imageSize)
+    private static IEnumerable<Rect> BuildSearchBounds(Size imageSize)
     {
-        yield return BuildRelativeBounds(imageSize, 0.62, 0.65, 0.35, 0.32);
-        yield return BuildRelativeBounds(imageSize, 0.62, 0.52, 0.35, 0.45);
-        yield return BuildRelativeBounds(imageSize, 0.58, 0.45, 0.39, 0.50);
-    }
-
-    private static Rect BuildRelativeBounds(
-        Size imageSize,
-        double leftRatio,
-        double topRatio,
-        double widthRatio,
-        double heightRatio)
-    {
-        var left = (int)Math.Round(imageSize.Width * leftRatio);
-        var top = (int)Math.Round(imageSize.Height * topRatio);
-        var width = (int)Math.Round(imageSize.Width * widthRatio);
-        var height = (int)Math.Round(imageSize.Height * heightRatio);
-
-        left = Math.Clamp(left, 0, Math.Max(0, imageSize.Width - 1));
-        top = Math.Clamp(top, 0, Math.Max(0, imageSize.Height - 1));
-        width = Math.Clamp(width, 1, imageSize.Width - left);
-        height = Math.Clamp(height, 1, imageSize.Height - top);
-        return new Rect(left, top, width, height);
+        yield return GeometryHelper.BuildRelativeBounds(imageSize, 0.62, 0.65, 0.35, 0.32);
+        yield return GeometryHelper.BuildRelativeBounds(imageSize, 0.62, 0.52, 0.35, 0.45);
+        yield return GeometryHelper.BuildRelativeBounds(imageSize, 0.58, 0.45, 0.39, 0.50);
     }
 
     private readonly record struct TemplateLocation(Rect Bounds, double Score);
+}
+
+internal sealed record WarOverviewAnalysis(
+    bool WarOverviewLocated,
+    Rect? HeaderBounds,
+    Rect? WarOverviewBounds)
+{
+    public static WarOverviewAnalysis NotFound { get; } = new(false, null, null);
 }

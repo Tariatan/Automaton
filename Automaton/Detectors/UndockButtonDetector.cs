@@ -1,11 +1,12 @@
+using Automaton.Helpers;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
 internal static class UndockButtonDetector
 {
-    private const int MinimumUndockButtonWidth = 280;
-    private const int MinimumUndockButtonHeight = 30;
+    private const int MinimumUndockButtonWidth = 300;
+    private const int MinimumUndockButtonHeight = 50;
     private const double MinimumUndockButtonBlueRatio = 0.12;
     private static readonly Scalar BlueUiMinimum = new(85, 35, 25);
     private static readonly Scalar BlueUiMaximum = new(110, 220, 140);
@@ -18,7 +19,7 @@ internal static class UndockButtonDetector
             return false;
         }
 
-        var searchBounds = BuildUndockButtonSearchBounds(screen.Size());
+        var searchBounds = GeometryHelper.BuildRelativeBounds(screen.Size(), 0.75, 0.13, 0.24, 0.18);
         using var searchRegion = new Mat(screen, searchBounds);
         using var blueMask = BuildBlueUiMask(searchRegion);
         Cv2.FindContours(
@@ -71,29 +72,5 @@ internal static class UndockButtonDetector
         Cv2.CvtColor(image, hsv, ColorConversionCodes.BGR2HSV);
         Cv2.InRange(hsv, BlueUiMinimum, BlueUiMaximum, mask);
         return mask;
-    }
-
-    private static Rect BuildUndockButtonSearchBounds(Size imageSize)
-    {
-        return BuildRelativeBounds(imageSize, 0.75, 0.13, 0.24, 0.18);
-    }
-
-    private static Rect BuildRelativeBounds(
-        Size imageSize,
-        double leftRatio,
-        double topRatio,
-        double widthRatio,
-        double heightRatio)
-    {
-        var left = (int)Math.Round(imageSize.Width * leftRatio);
-        var top = (int)Math.Round(imageSize.Height * topRatio);
-        var width = (int)Math.Round(imageSize.Width * widthRatio);
-        var height = (int)Math.Round(imageSize.Height * heightRatio);
-
-        left = Math.Clamp(left, 0, Math.Max(0, imageSize.Width - 1));
-        top = Math.Clamp(top, 0, Math.Max(0, imageSize.Height - 1));
-        width = Math.Clamp(width, 1, imageSize.Width - left);
-        height = Math.Clamp(height, 1, imageSize.Height - top);
-        return new Rect(left, top, width, height);
     }
 }
