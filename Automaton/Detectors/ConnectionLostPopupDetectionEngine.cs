@@ -72,8 +72,7 @@ internal static class ConnectionLostPopupDetectionEngine
 
     private static PopupState Classify(PopupScore score)
     {
-        var popupExists = score.ButtonQuit >= ButtonThreshold &&
-                          score.IconWarning >= IconThreshold;
+        var popupExists = score is { ButtonQuit: >= ButtonThreshold, IconWarning: >= IconThreshold };
         var titleLedPopupExists = score.TitleConnectionLost >= StrongTitleThreshold &&
                                   (score.ButtonQuit >= WeakSignalThreshold ||
                                    score.IconWarning >= WeakSignalThreshold);

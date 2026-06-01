@@ -4,60 +4,46 @@ using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
-internal enum ControlButtonState
-{
-    Disabled,
-    Enabled
-}
-
-internal sealed class ControlButtonDetector
+internal static class EnabledButtonDetector
 {
     private const double MinimumTemplateMatchScore = 0.88;
     private const double EarlyExitScore = 0.90;
-    private const double MinimumDisabledHsvDistanceForEnabled = 80.0;
-    private const double MaximumDisabledHsvDistanceForDisabled = 80.0;
+    private const double MinimumHsv = 80.0;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10];
     private static readonly Mat EnabledTemplate = EmbeddedResourceLoader.LoadMat("submit_enabled.png");
-    private static readonly Mat DisabledTemplate = EmbeddedResourceLoader.LoadMat("submit_disabled.png");
+    private static readonly Mat EnabledTemplateHsv = ConvertToHsv(EnabledTemplate);
 
-    public ControlButtonDetection Detect(Mat screen, Rect playfieldBounds, ControlButtonState state)
+    public static EnabledButtonDetection Detect(Mat screen, Rect playfieldBounds)
     {
         if (screen.Empty())
         {
-            return ControlButtonDetection.NotFound;
+            return EnabledButtonDetection.NotFound;
         }
 
         var searchBounds = BuildSearchBounds(screen.Size(), playfieldBounds);
         using var searchRegion = new Mat(screen, searchBounds);
 
-        var requestedTemplate = state == ControlButtonState.Enabled ? EnabledTemplate : DisabledTemplate;
-
-        var requestedMatch = MatchTemplateAcrossScales(searchRegion, requestedTemplate, searchBounds.Location);
+        var requestedMatch = MatchTemplateAcrossScales(searchRegion, EnabledTemplate, searchBounds.Location);
         if (requestedMatch is null)
         {
-            return new ControlButtonDetection(
+            return new EnabledButtonDetection(
                 false,
                 searchBounds,
                 null,
                 0.0,
-                state,
                 0.0);
         }
 
-        var requestedScore = requestedMatch.Value.Score;
-        var colorState = MeasureHsvDistances(screen, requestedMatch.Value.Bounds);
-        var hsvStatePass = state == ControlButtonState.Enabled
-            ? colorState.DisabledDistance >= MinimumDisabledHsvDistanceForEnabled
-            : colorState.DisabledDistance <= MaximumDisabledHsvDistanceForDisabled;
-        var isFound = requestedScore >= MinimumTemplateMatchScore && hsvStatePass;
+        var score = requestedMatch.Value.Score;
+        var hsv = MeasureHsv(screen, requestedMatch.Value.Bounds);
+        var isFound = score >= MinimumTemplateMatchScore && hsv >= MinimumHsv;
 
-        return new ControlButtonDetection(
+        return new EnabledButtonDetection(
             isFound,
             searchBounds,
             requestedMatch.Value.Bounds,
-            requestedScore,
-            state,
-            colorState.DisabledDistance);
+            score,
+            hsv);
     }
 
     private static TemplateMatch? MatchTemplateAcrossScales(Mat searchRegion, Mat template, Point searchOffset)
@@ -116,15 +102,12 @@ internal sealed class ControlButtonDetector
 
     private static Rect BuildSearchBounds(Size imageSize, Rect playfieldBounds)
     {
-        // Derive full Project Discovery panel from chart-local playfield bounds,
-        // then search in right 30% and lower 25% of that full panel.
         var discoveryPanelBounds = BuildDiscoveryPanelBounds(playfieldBounds, imageSize);
         var left = discoveryPanelBounds.X + (int)Math.Round(discoveryPanelBounds.Width * 0.66);
         var top = discoveryPanelBounds.Y + (int)Math.Round(discoveryPanelBounds.Height * 0.75);
         var right = discoveryPanelBounds.Right;
         var bottom = discoveryPanelBounds.Bottom;
 
-        // Keep the same center position and make the ROI 20% wider in total.
         var width = right - left;
         var horizontalPadding = (int)Math.Round(width * 0.10);
         left -= horizontalPadding;
@@ -139,8 +122,6 @@ internal sealed class ControlButtonDetector
 
     private static Rect BuildDiscoveryPanelBounds(Rect playfieldBounds, Size imageSize)
     {
-        // The full Discovery panel extends well to the right of the chart area
-        // (cards + instructions + submit region), with similar top alignment.
         var panelLeft = playfieldBounds.X;
         var panelTop = playfieldBounds.Y - (int)Math.Round(playfieldBounds.Height * 0.08);
         var panelRight = playfieldBounds.X + (int)Math.Round(playfieldBounds.Width * 2.45);
@@ -153,18 +134,16 @@ internal sealed class ControlButtonDetector
         return new Rect(panelLeft, panelTop, panelRight - panelLeft, panelBottom - panelTop);
     }
 
-    private static ControlButtonColorMetrics MeasureHsvDistances(Mat screen, Rect buttonBounds)
+    private static double MeasureHsv(Mat screen, Rect buttonBounds)
     {
         var sampleBounds = BuildColorSampleBounds(buttonBounds, screen.Size());
         if (sampleBounds.Width <= 0 || sampleBounds.Height <= 0)
         {
-            return new ControlButtonColorMetrics(0.0, 0.0);
+            return 0.0;
         }
 
         using var buttonRegion = new Mat(screen, sampleBounds);
-        var enabledDistance = ComputeHsvDistance(buttonRegion, EnabledTemplate);
-        var disabledDistance = ComputeHsvDistance(buttonRegion, DisabledTemplate);
-        return new ControlButtonColorMetrics(enabledDistance, disabledDistance);
+        return ComputeHsv(buttonRegion, EnabledTemplateHsv);
     }
 
     private static Rect BuildColorSampleBounds(Rect bounds, Size imageSize)
@@ -183,40 +162,41 @@ internal sealed class ControlButtonDetector
         return new Rect(left, top, right - left, bottom - top);
     }
 
-    private static double ComputeHsvDistance(Mat sourceBgr, Mat templateBgr)
+    private static double ComputeHsv(Mat sourceBgr, Mat templateHsv)
     {
         using var resizedSource = new Mat();
-        Cv2.Resize(sourceBgr, resizedSource, templateBgr.Size(), 0, 0, InterpolationFlags.Area);
+        Cv2.Resize(sourceBgr, resizedSource, templateHsv.Size(), 0, 0, InterpolationFlags.Area);
         using var sourceHsv = new Mat();
-        using var templateHsv = new Mat();
         Cv2.CvtColor(resizedSource, sourceHsv, ColorConversionCodes.BGR2HSV);
-        Cv2.CvtColor(templateBgr, templateHsv, ColorConversionCodes.BGR2HSV);
         using var diff = new Mat();
         Cv2.Absdiff(sourceHsv, templateHsv, diff);
         var mean = Cv2.Mean(diff);
 
-        // Hue has wrap-around behavior and is less stable near dark values, so
-        // prioritize saturation/value deltas for enabled-vs-disabled distinction.
+        // Prioritize saturation/value over hue (hue wraps and is noisy in dark regions).
         return mean.Val1 * 1.8 + mean.Val2 * 1.2 + mean.Val0 * 0.3;
     }
 
+    private static Mat ConvertToHsv(Mat bgr)
+    {
+        var hsv = new Mat();
+        Cv2.CvtColor(bgr, hsv, ColorConversionCodes.BGR2HSV);
+        return hsv;
+    }
+
     private readonly record struct TemplateMatch(Rect Bounds, double Score);
-    private readonly record struct ControlButtonColorMetrics(double EnabledDistance, double DisabledDistance);
 }
 
-internal sealed record ControlButtonDetection(
+internal sealed record EnabledButtonDetection(
     bool IsFound,
     Rect SearchBounds,
     Rect? ButtonBounds,
     double Score,
-    ControlButtonState TargetState,
-    double DisabledHsvDistance)
+    double HsvDistance)
 {
-    public static ControlButtonDetection NotFound { get; } = new(
+    public static EnabledButtonDetection NotFound { get; } = new(
         false,
         new Rect(0, 0, 1, 1),
         null,
         0.0,
-        ControlButtonState.Enabled,
         0.0);
 }

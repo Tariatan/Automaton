@@ -13,14 +13,13 @@ internal sealed class DiscoverState(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
     IAutomationClock automationClock,
-    ControlButtonDetector controlButtonDetector,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
     SlowDownPopupDetector slowDownPopupDetector) : IProjectDiscoveryAutomationState
 {
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
-    private static readonly OverlayColor ControlButtonSearchOverlayColor = OverlayColor.Yellow;
-    private static readonly OverlayColor ControlButtonMatchOverlayColor = OverlayColor.Cyan;
+    private static readonly OverlayColor EnabledButtonSearchOverlayColor = OverlayColor.Yellow;
+    private static readonly OverlayColor EnabledButtonMatchOverlayColor = OverlayColor.Cyan;
     private readonly Queue<DateTime> m_SubmittedAtUtc = new();
     private readonly ILogger m_Logger = Log.ForContext<DiscoverState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Discover;
@@ -69,9 +68,8 @@ internal sealed class DiscoverState(
         using var postPolygonCapture = screenCaptureService.CaptureCurrentScreen(".discovery-post-polygons");
         traceImages.Track(postPolygonCapture.CapturePath);
 
-        // Try to detect enabled Submit button after outlining polygons
-        var enabledButtonDetection = controlButtonDetector.Detect(postPolygonCapture.Image, playfieldBounds, ControlButtonState.Enabled);
-        DrawControlButtonDetectionOverlay(postPolygonCapture.CapturePath, enabledButtonDetection);
+        var enabledButtonDetection = EnabledButtonDetector.Detect(postPolygonCapture.Image, playfieldBounds);
+        DrawEnabledButtonDetectionOverlay(postPolygonCapture.CapturePath, enabledButtonDetection);
 
         // Disabled Submit button most probably means overlapping polygons.
         if (!enabledButtonDetection.IsFound || enabledButtonDetection.ButtonBounds is null)
@@ -84,8 +82,7 @@ internal sealed class DiscoverState(
                 captureSummary.CapturePath);
         }
 
-        // Focus button area.
-        FocusControlButton(enabledButtonDetection.ButtonBounds.Value, cancellationToken);
+        FocusEnabledButton(enabledButtonDetection.ButtonBounds.Value, cancellationToken);
 
         // Wait before Submit click if we are too fast.
         DelayBeforeRateLimitedSubmit(cancellationToken);
@@ -159,9 +156,9 @@ internal sealed class DiscoverState(
         }
     }
 
-    private void FocusControlButton(Rect controlButtonBounds, CancellationToken cancellationToken)
+    private void FocusEnabledButton(Rect buttonBounds, CancellationToken cancellationToken)
     {
-        var anchor = GeometryHelper.Center(controlButtonBounds);
+        var anchor = GeometryHelper.Center(buttonBounds);
         automationInputController.MoveTo(anchor);
         automationInputController.Delay(Delays.HoverMs, cancellationToken);
     }
@@ -229,7 +226,7 @@ internal sealed class DiscoverState(
         Cv2.ImWrite(imagePath, image);
     }
 
-    private static void DrawControlButtonDetectionOverlay(string annotatedImagePath, ControlButtonDetection detection)
+    private static void DrawEnabledButtonDetectionOverlay(string annotatedImagePath, EnabledButtonDetection detection)
     {
         if (string.IsNullOrWhiteSpace(annotatedImagePath))
         {
@@ -244,21 +241,21 @@ internal sealed class DiscoverState(
 
         if (detection.SearchBounds is { Width: > 0, Height: > 0 })
         {
-            DebugOverlay.Annotate(annotated, (detection.SearchBounds, ControlButtonSearchOverlayColor));
+            DebugOverlay.Annotate(annotated, (detection.SearchBounds, EnabledButtonSearchOverlayColor));
         }
 
         if (detection.ButtonBounds is not null)
         {
-            DebugOverlay.Annotate(annotated, (detection.ButtonBounds.Value, ControlButtonMatchOverlayColor));
+            DebugOverlay.Annotate(annotated, (detection.ButtonBounds.Value, EnabledButtonMatchOverlayColor));
         }
 
         Cv2.PutText(
             annotated,
-            $"{detection.TargetState} score={detection.Score:0.000} hsvD={detection.DisabledHsvDistance:0.00}",
+            $"score={detection.Score:0.000} hsvD={detection.HsvDistance:0.00}",
             new Point(detection.SearchBounds.X, Math.Max(25, detection.SearchBounds.Y - 10)),
             HersheyFonts.HersheySimplex,
             0.55,
-            ControlButtonSearchOverlayColor.ToScalar(),
+            EnabledButtonSearchOverlayColor.ToScalar(),
             2,
             LineTypes.AntiAlias);
         Cv2.ImWrite(annotatedImagePath, annotated);
