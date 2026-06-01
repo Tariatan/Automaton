@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -32,8 +33,6 @@ internal sealed class PlayfieldDetector : IDisposable
     private const int MaximumAlignmentDelta = 65;
     private const int MaximumSpanDelta = 120;
     private const int ScoreAlignmentPenaltyWeight = 500;
-
-    private static readonly Corner[] AllCorners = [Corner.TopLeft, Corner.TopRight, Corner.BottomLeft, Corner.BottomRight];
 
     private readonly Mat m_TemplateGray;
     private readonly Mat m_TemplateEqualized;
@@ -193,20 +192,31 @@ internal sealed class PlayfieldDetector : IDisposable
             return null;
         }
 
+        var count = candidates.Count;
+        var bounds = new Rect[count];
+        var scores = new double[count];
+        for (var i = 0; i < count; i++)
+        {
+            bounds[i] = candidates[i].Bounds;
+            scores[i] = candidates[i].Score;
+        }
+
         MarkerSet? best = null;
         var bestScore = double.NegativeInfinity;
 
-        for (var i = 0; i < candidates.Count; i++)
+        for (var i = 0; i < count; i++)
         {
-            for (var j = i + 1; j < candidates.Count; j++)
+            for (var j = i + 1; j < count; j++)
             {
-                for (var k = j + 1; k < candidates.Count; k++)
+                for (var k = j + 1; k < count; k++)
                 {
-                    EvaluateCombination([candidates[i], candidates[j], candidates[k]], imageSize, ref best, ref bestScore);
+                    var scoreSum3 = (scores[i] + scores[j] + scores[k]) * MarkerScoreWeight;
+                    EvaluateThreeMarkers(bounds[i], bounds[j], bounds[k], scoreSum3, imageSize, ref best, ref bestScore);
 
-                    for (var m = k + 1; m < candidates.Count; m++)
+                    for (var m = k + 1; m < count; m++)
                     {
-                        EvaluateCombination([candidates[i], candidates[j], candidates[k], candidates[m]], imageSize, ref best, ref bestScore);
+                        var scoreSum4 = scoreSum3 + scores[m] * MarkerScoreWeight;
+                        EvaluateFourMarkers(bounds[i], bounds[j], bounds[k], bounds[m], scoreSum4, imageSize, ref best, ref bestScore);
                     }
                 }
             }
@@ -215,82 +225,78 @@ internal sealed class PlayfieldDetector : IDisposable
         return best;
     }
 
-    private static void EvaluateCombination(
-        IReadOnlyList<MarkerCandidate> combination,
-        Size imageSize,
-        ref MarkerSet? best,
-        ref double bestScore)
+    private static void EvaluateThreeMarkers(
+        Rect b0, Rect b1, Rect b2,
+        double weightedScoreSum, Size imageSize,
+        ref MarkerSet? best, ref double bestScore)
     {
-        if (!TryBuildMarkerSet(combination, imageSize, out var set))
+        if (!TryBuildMarkerSetFromThree(b0, b1, b2, out var set) || !IsValid(set, imageSize))
         {
             return;
         }
 
-        var score = Score(set) + combination.Sum(candidate => candidate.Score) * MarkerScoreWeight - (set.InferredCorner is null ? 0 : InferredCornerPenalty);
-        if (score <= bestScore)
+        var score = Score(set) + weightedScoreSum - InferredCornerPenalty;
+        if (score > bestScore)
         {
-            return;
+            best = set;
+            bestScore = score;
         }
-
-        best = set;
-        bestScore = score;
     }
 
-    private static bool TryBuildMarkerSet(IReadOnlyList<MarkerCandidate> markers, Size imageSize, out MarkerSet set)
+    private static void EvaluateFourMarkers(
+        Rect b0, Rect b1, Rect b2, Rect b3,
+        double weightedScoreSum, Size imageSize,
+        ref MarkerSet? best, ref double bestScore)
     {
-        var candidateSet = markers.Count switch
+        var set = BuildMarkerSetFromFour(b0, b1, b2, b3);
+        if (!IsValid(set, imageSize))
         {
-            4 => TryBuildMarkerSetFromFour(markers.Select(marker => marker.Bounds).ToArray()),
-            3 => TryBuildMarkerSetFromThree(markers.Select(marker => marker.Bounds).ToArray()),
-            _ => null
-        };
+            return;
+        }
 
-        if (candidateSet is null || !IsValid(candidateSet.Value, imageSize))
+        var score = Score(set) + weightedScoreSum;
+        if (score > bestScore)
+        {
+            best = set;
+            bestScore = score;
+        }
+    }
+
+    private static MarkerSet BuildMarkerSetFromFour(Rect r0, Rect r1, Rect r2, Rect r3)
+    {
+        if (GeometryHelper.CenterY(r0) > GeometryHelper.CenterY(r1)) (r0, r1) = (r1, r0);
+        if (GeometryHelper.CenterY(r2) > GeometryHelper.CenterY(r3)) (r2, r3) = (r3, r2);
+        if (GeometryHelper.CenterY(r0) > GeometryHelper.CenterY(r2)) (r0, r2) = (r2, r0);
+        if (GeometryHelper.CenterY(r1) > GeometryHelper.CenterY(r3)) (r1, r3) = (r3, r1);
+        if (GeometryHelper.CenterY(r1) > GeometryHelper.CenterY(r2)) (r1, r2) = (r2, r1);
+
+        if (r0.X > r1.X) (r0, r1) = (r1, r0);
+        if (r2.X > r3.X) (r2, r3) = (r3, r2);
+
+        return new MarkerSet(r0, r1, r2, r3, null);
+    }
+
+    private static bool TryBuildMarkerSetFromThree(Rect r0, Rect r1, Rect r2, out MarkerSet set)
+    {
+        var leftX = Math.Min(r0.X, Math.Min(r1.X, r2.X));
+        var rightX = Math.Max(r0.X, Math.Max(r1.X, r2.X));
+        var topY = Math.Min(r0.Y, Math.Min(r1.Y, r2.Y));
+        var bottomY = Math.Max(r0.Y, Math.Max(r1.Y, r2.Y));
+        var averageWidth = (int)Math.Round((r0.Width + r1.Width + r2.Width) / 3.0);
+        var averageHeight = (int)Math.Round((r0.Height + r1.Height + r2.Height) / 3.0);
+
+        var c0 = ClassifyCorner(r0, leftX, rightX, topY, bottomY);
+        var c1 = ClassifyCorner(r1, leftX, rightX, topY, bottomY);
+        var c2 = ClassifyCorner(r2, leftX, rightX, topY, bottomY);
+
+        if (c0 == c1 || c0 == c2 || c1 == c2)
         {
             set = default;
             return false;
         }
 
-        set = candidateSet.Value;
-        return true;
-    }
-
-    private static MarkerSet? TryBuildMarkerSetFromFour(IReadOnlyList<Rect> markers)
-    {
-        var orderedByY = markers.OrderBy(CenterY).ToArray();
-        var topRow = orderedByY.Take(2).OrderBy(rect => rect.X).ToArray();
-        var bottomRow = orderedByY.Skip(2).OrderBy(rect => rect.X).ToArray();
-
-        return new MarkerSet(topRow[0], topRow[1], bottomRow[0], bottomRow[1], null);
-    }
-
-    private static MarkerSet? TryBuildMarkerSetFromThree(IReadOnlyList<Rect> markers)
-    {
-        var leftX = markers.Min(rect => rect.X);
-        var rightX = markers.Max(rect => rect.X);
-        var topY = markers.Min(rect => rect.Y);
-        var bottomY = markers.Max(rect => rect.Y);
-        var averageWidth = Math.Max(MinimumMarkerDimension, (int)Math.Round(markers.Average(rect => rect.Width)));
-        var averageHeight = Math.Max(MinimumMarkerDimension, (int)Math.Round(markers.Average(rect => rect.Height)));
-
-        var cornerMap = new Dictionary<Corner, Rect>();
-
-        if ((from marker
-                    in markers
-                let corner = ClassifyCorner(marker, leftX, rightX, topY, bottomY)
-                where !cornerMap.TryAdd(corner, marker)
-                select marker).Any())
-        {
-            return null;
-        }
-
-        if (cornerMap.Count != 3)
-        {
-            return null;
-        }
-
-        var inferredCorner = AllCorners.Single(corner => !cornerMap.ContainsKey(corner));
-        cornerMap[inferredCorner] = inferredCorner switch
+        var inferredCorner = (Corner)(6 - (int)c0 - (int)c1 - (int)c2);
+        var inferredRect = inferredCorner switch
         {
             Corner.TopLeft => new Rect(leftX, topY, averageWidth, averageHeight),
             Corner.TopRight => new Rect(rightX, topY, averageWidth, averageHeight),
@@ -299,12 +305,16 @@ internal sealed class PlayfieldDetector : IDisposable
             _ => throw new ArgumentOutOfRangeException(nameof(inferredCorner), inferredCorner, null)
         };
 
-        return new MarkerSet(
-            cornerMap[Corner.TopLeft],
-            cornerMap[Corner.TopRight],
-            cornerMap[Corner.BottomLeft],
-            cornerMap[Corner.BottomRight],
+        set = new MarkerSet(
+            CornerRect(Corner.TopLeft),
+            CornerRect(Corner.TopRight),
+            CornerRect(Corner.BottomLeft),
+            CornerRect(Corner.BottomRight),
             inferredCorner);
+        return true;
+
+        Rect CornerRect(Corner target) =>
+            c0 == target ? r0 : c1 == target ? r1 : c2 == target ? r2 : inferredRect;
     }
 
     private static Corner ClassifyCorner(Rect marker, int leftX, int rightX, int topY, int bottomY)
@@ -340,10 +350,10 @@ internal sealed class PlayfieldDetector : IDisposable
             return false;
         }
 
-        var topAlignment = Math.Abs(CenterY(set.TopLeft) - CenterY(set.TopRight));
-        var bottomAlignment = Math.Abs(CenterY(set.BottomLeft) - CenterY(set.BottomRight));
-        var leftAlignment = Math.Abs(CenterX(set.TopLeft) - CenterX(set.BottomLeft));
-        var rightAlignment = Math.Abs(CenterX(set.TopRight) - CenterX(set.BottomRight));
+        var topAlignment = Math.Abs(GeometryHelper.CenterY(set.TopLeft) - GeometryHelper.CenterY(set.TopRight));
+        var bottomAlignment = Math.Abs(GeometryHelper.CenterY(set.BottomLeft) - GeometryHelper.CenterY(set.BottomRight));
+        var leftAlignment = Math.Abs(GeometryHelper.CenterX(set.TopLeft) - GeometryHelper.CenterX(set.BottomLeft));
+        var rightAlignment = Math.Abs(GeometryHelper.CenterX(set.TopRight) - GeometryHelper.CenterX(set.BottomRight));
 
         if (topAlignment > MaximumAlignmentDelta || bottomAlignment > MaximumAlignmentDelta || leftAlignment > MaximumAlignmentDelta || rightAlignment > MaximumAlignmentDelta)
         {
@@ -371,17 +381,13 @@ internal sealed class PlayfieldDetector : IDisposable
     {
         var bounds = BuildPlayfieldBounds(set);
         var alignmentPenalty =
-            Math.Abs(CenterY(set.TopLeft) - CenterY(set.TopRight)) +
-            Math.Abs(CenterY(set.BottomLeft) - CenterY(set.BottomRight)) +
-            Math.Abs(CenterX(set.TopLeft) - CenterX(set.BottomLeft)) +
-            Math.Abs(CenterX(set.TopRight) - CenterX(set.BottomRight));
+            Math.Abs(GeometryHelper.CenterY(set.TopLeft) - GeometryHelper.CenterY(set.TopRight)) +
+            Math.Abs(GeometryHelper.CenterY(set.BottomLeft) - GeometryHelper.CenterY(set.BottomRight)) +
+            Math.Abs(GeometryHelper.CenterX(set.TopLeft) - GeometryHelper.CenterX(set.BottomLeft)) +
+            Math.Abs(GeometryHelper.CenterX(set.TopRight) - GeometryHelper.CenterX(set.BottomRight));
 
         return (bounds.Width * bounds.Height) - (alignmentPenalty * ScoreAlignmentPenaltyWeight);
     }
-
-    private static double CenterX(Rect rect) => rect.X + rect.Width / 2.0;
-
-    private static double CenterY(Rect rect) => rect.Y + rect.Height / 2.0;
 
     private static Mat LoadMarkerFromResources()
     {

@@ -161,9 +161,7 @@ internal sealed class DiscoverState(
 
     private void FocusControlButton(Rect controlButtonBounds, CancellationToken cancellationToken)
     {
-        var anchor = new Point(
-            controlButtonBounds.X + controlButtonBounds.Width / 2,
-            controlButtonBounds.Y + controlButtonBounds.Height / 2);
+        var anchor = GeometryHelper.Center(controlButtonBounds);
         automationInputController.MoveTo(anchor);
         automationInputController.Delay(Delays.HoverMs, cancellationToken);
     }
