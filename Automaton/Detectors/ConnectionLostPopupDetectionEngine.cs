@@ -12,6 +12,12 @@ internal static class ConnectionLostPopupDetectionEngine
     private const int ExpectedPopupHeight = 390;
     private const int PopupSearchMarginX = 190;
     private const int PopupSearchMarginY = 130;
+    private const double ButtonThreshold = 0.55;
+    private const double IconThreshold = 0.55;
+    private const double TitleThreshold = 0.40;
+    private const double WeakSignalThreshold = 0.45;
+    private const double StrongTitleThreshold = 0.62;
+    private const double TitleAnchorThreshold = 0.52;
     private static readonly ILogger Logger = Log.ForContext("SourceContext", "ConnectionLostPopupDetectionEngine");
     private static readonly Lazy<PopupTemplates> SPopupTemplates = new(PopupTemplates.Load);
 
@@ -36,13 +42,16 @@ internal static class ConnectionLostPopupDetectionEngine
             ExpectedPopupHeight,
             image.Size());
 
-        var score = ScorePopup(image, searchBounds, popupBounds);
+        using var searchRegion = new Mat(image, searchBounds);
+        using var searchGray = new Mat();
+        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
+
+        var score = ScorePopup(searchGray, searchBounds, popupBounds);
         Logger.Debug(
-            "Connection lost scores => button_quit: {ButtonQuit:F4}, icon_warning: {IconWarning:F4}, title_connection_lost: {TitleConnectionLost:F4}, popup_bounds: {PopupBounds}",
+            "Connection lost scores => button_quit: {ButtonQuit:F4}, icon_warning: {IconWarning:F4}, title_connection_lost: {TitleConnectionLost:F4}",
             score.ButtonQuit,
             score.IconWarning,
-            score.TitleConnectionLost,
-            score.PopupBounds);
+            score.TitleConnectionLost);
 
         var state = Classify(score);
         if (state != PopupState.None)
@@ -50,42 +59,35 @@ internal static class ConnectionLostPopupDetectionEngine
             return new PopupDetection(state, popupBounds);
         }
 
-        if (!TryFindPopupBoundsByTitleAnchor(image, searchBounds, out var anchoredPopupBounds))
+        if (!TryFindPopupBoundsByTitleAnchor(searchGray, searchBounds, image.Size(), out var anchoredPopupBounds))
         {
             return new PopupDetection(PopupState.None, popupBounds);
         }
 
-        var anchoredScore = ScorePopup(image, searchBounds, anchoredPopupBounds);
+        var anchoredScore = ScorePopup(searchGray, searchBounds, anchoredPopupBounds);
         var anchoredState = Classify(anchoredScore);
         return new PopupDetection(anchoredState, anchoredPopupBounds);
     }
 
     private static PopupState Classify(PopupScore score)
     {
-        var popupExists = score.ButtonQuit >= PopupDetectorOptions.ButtonThreshold &&
-                          score.IconWarning >= PopupDetectorOptions.IconThreshold;
-        var titleLedPopupExists = score.TitleConnectionLost >= PopupDetectorOptions.StrongTitleThreshold &&
-                                  (score.ButtonQuit >= PopupDetectorOptions.WeakSignalThreshold ||
-                                   score.IconWarning >= PopupDetectorOptions.WeakSignalThreshold);
-        if (!popupExists)
+        var popupExists = score.ButtonQuit >= ButtonThreshold &&
+                          score.IconWarning >= IconThreshold;
+        var titleLedPopupExists = score.TitleConnectionLost >= StrongTitleThreshold &&
+                                  (score.ButtonQuit >= WeakSignalThreshold ||
+                                   score.IconWarning >= WeakSignalThreshold);
+        if (!popupExists && !titleLedPopupExists)
         {
-            if (!titleLedPopupExists)
-            {
-                return PopupState.None;
-            }
+            return PopupState.None;
         }
 
-        return score.TitleConnectionLost >= PopupDetectorOptions.TitleThreshold
+        return score.TitleConnectionLost >= TitleThreshold
             ? PopupState.ConnectionLost
             : PopupState.None;
     }
 
-    private static PopupScore ScorePopup(Mat image, Rect searchBounds, Rect popupBounds)
+    private static PopupScore ScorePopup(Mat searchGray, Rect searchBounds, Rect popupBounds)
     {
-        using var searchRegion = new Mat(image, searchBounds);
-        using var searchGray = new Mat();
-        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
-
         var localPopupBounds = new Rect(
             popupBounds.X - searchBounds.X,
             popupBounds.Y - searchBounds.Y,
@@ -106,8 +108,7 @@ internal static class ConnectionLostPopupDetectionEngine
             IconWarning: MatchTemplateScore(iconRoi, templates.IconWarningGray),
             TitleConnectionLost: Math.Max(
                 MatchTemplateScore(titleRoi, templates.TitleConnectionLostGray),
-                MatchTemplateScore(titleRoiBinary, templates.TitleConnectionLostBinary)),
-            PopupBounds: popupBounds);
+                MatchTemplateScore(titleRoiBinary, templates.TitleConnectionLostBinary)));
     }
 
     private static Mat ToBinaryMask(Mat gray)
@@ -119,22 +120,7 @@ internal static class ConnectionLostPopupDetectionEngine
 
     private static double MatchTemplateScore(Mat searchRoi, Mat template)
     {
-        if (searchRoi.Empty() || template.Empty())
-        {
-            return 0.0;
-        }
-
-        if (template.Width > searchRoi.Width || template.Height > searchRoi.Height)
-        {
-            return 0.0;
-        }
-
-        var resultWidth = searchRoi.Width - template.Width + 1;
-        var resultHeight = searchRoi.Height - template.Height + 1;
-        using var result = new Mat(new Size(resultWidth, resultHeight), MatType.CV_32FC1);
-        Cv2.MatchTemplate(searchRoi, template, result, TemplateMatchModes.CCoeffNormed);
-        Cv2.MinMaxLoc(result, out _, out var maxValue, out _, out _);
-        return maxValue;
+        return MatchTemplate(searchRoi, template).Score;
     }
 
     private static TemplateMatchResult MatchTemplate(Mat searchRoi, Mat template)
@@ -157,18 +143,15 @@ internal static class ConnectionLostPopupDetectionEngine
         return new TemplateMatchResult(maxValue, maxLocation);
     }
 
-    private static bool TryFindPopupBoundsByTitleAnchor(Mat image, Rect searchBounds, out Rect popupBounds)
+    private static bool TryFindPopupBoundsByTitleAnchor(Mat searchGray, Rect searchBounds, Size imageSize, out Rect popupBounds)
     {
-        using var searchRegion = new Mat(image, searchBounds);
-        using var searchGray = new Mat();
-        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
         using var searchBinary = ToBinaryMask(searchGray);
 
         var templates = SPopupTemplates.Value;
         var titleGrayMatch = MatchTemplate(searchGray, templates.TitleConnectionLostGray);
         var titleBinaryMatch = MatchTemplate(searchBinary, templates.TitleConnectionLostBinary);
         var best = titleGrayMatch.Score >= titleBinaryMatch.Score ? titleGrayMatch : titleBinaryMatch;
-        if (best.Score < PopupDetectorOptions.TitleAnchorThreshold)
+        if (best.Score < TitleAnchorThreshold)
         {
             popupBounds = default;
             return false;
@@ -181,7 +164,7 @@ internal static class ConnectionLostPopupDetectionEngine
             estimatedPopupY,
             ExpectedPopupWidth,
             ExpectedPopupHeight,
-            image.Size());
+            imageSize);
         return true;
     }
 
@@ -204,23 +187,12 @@ internal static class ConnectionLostPopupDetectionEngine
         return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
     }
 
-    private sealed class PopupDetectorOptions
-    {
-        public static double ButtonThreshold => 0.55;
-        public static double IconThreshold => 0.55;
-        public static double TitleThreshold => 0.40;
-        public static double WeakSignalThreshold => 0.45;
-        public static double StrongTitleThreshold => 0.62;
-        public static double TitleAnchorThreshold => 0.52;
-    }
-
     private readonly record struct TemplateMatchResult(double Score, Point Location);
 
     private readonly record struct PopupScore(
         double ButtonQuit,
         double IconWarning,
-        double TitleConnectionLost,
-        Rect PopupBounds);
+        double TitleConnectionLost);
 
     private sealed class PopupTemplates : IDisposable
     {

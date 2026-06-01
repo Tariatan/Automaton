@@ -1,6 +1,5 @@
 using Automaton.Infrastructure;
 using OpenCvSharp;
-using Serilog;
 
 namespace Automaton.Detectors;
 
@@ -12,9 +11,17 @@ internal static class PopupDetectionEngine
     private const int ExpectedPopupHeight = 390;
     private const int PopupSearchMarginX = 190;
     private const int PopupSearchMarginY = 130;
+    private const double ButtonThreshold = 0.58;
+    private const double IconThreshold = 0.58;
+    private const double TitleThreshold = 0.50;
+    private const double StrongThreshold = 0.78;
+    private const double StrongTitleThreshold = 0.62;
+    private const double TitleAnchorThreshold = 0.52;
+    private const double MinimumTitleScoreGap = 0.005;
+
     private static readonly Lazy<PopupTemplates> SPopupTemplates = new(PopupTemplates.Load);
 
-    public static PopupDetection DetectPopup(Mat image)
+    public static PopupDetection Detect(Mat image)
     {
         if (image.Empty())
         {
@@ -35,19 +42,23 @@ internal static class PopupDetectionEngine
             ExpectedPopupHeight,
             image.Size());
 
-        var score = ScorePopup(image, searchBounds, popupBounds);
+        using var searchRegion = new Mat(image, searchBounds);
+        using var searchGray = new Mat();
+        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
+
+        var score = ScorePopup(searchGray, searchBounds, popupBounds);
         var state = Classify(score);
         if (state != PopupState.None)
         {
             return new PopupDetection(state, popupBounds);
         }
 
-        if (!TryFindPopupBoundsByTitleAnchor(image, searchBounds, out var anchoredPopupBounds))
+        if (!TryFindPopupBoundsByTitleAnchor(searchGray, searchBounds, image.Size(), out var anchoredPopupBounds))
         {
             return new PopupDetection(PopupState.None, popupBounds);
         }
 
-        var anchoredScore = ScorePopup(image, searchBounds, anchoredPopupBounds);
+        var anchoredScore = ScorePopup(searchGray, searchBounds, anchoredPopupBounds);
         var anchoredState = Classify(anchoredScore);
         return new PopupDetection(anchoredState, anchoredPopupBounds);
     }
@@ -55,11 +66,10 @@ internal static class PopupDetectionEngine
     private static PopupState Classify(PopupScore score)
     {
         var bestTitle = Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
-        var popupExists = (score.ButtonOk >= PopupDetectorOptions.ButtonThreshold &&
-                           score.IconInfo >= PopupDetectorOptions.IconThreshold) ||
-                          score.ButtonOk >= PopupDetectorOptions.StrongThreshold ||
-                          score.IconInfo >= PopupDetectorOptions.StrongThreshold ||
-                          bestTitle >= PopupDetectorOptions.StrongTitleThreshold;
+        var popupExists = score is { ButtonOk: >= ButtonThreshold, IconInfo: >= IconThreshold } ||
+                          score.ButtonOk >= StrongThreshold ||
+                          score.IconInfo >= StrongThreshold ||
+                          bestTitle >= StrongTitleThreshold;
         if (!popupExists)
         {
             return PopupState.None;
@@ -79,8 +89,7 @@ internal static class PopupDetectionEngine
             return titleResult;
         }
 
-        var bestOkTitle = Math.Max(score.TitleSlowDown, score.TitleMaxSubmissions);
-        if (bestOkTitle >= PopupDetectorOptions.TitleThreshold * 0.85)
+        if (bestTitle >= TitleThreshold * 0.85)
         {
             return score.TitleSlowDown >= score.TitleMaxSubmissions
                 ? PopupState.SlowDown
@@ -92,29 +101,33 @@ internal static class PopupDetectionEngine
 
     private static TitleSignalKind ResolveTitleSignal(PopupScore score)
     {
-        var candidates = new[]
+        double bestScore, secondScore;
+        TitleSignalKind bestKind;
+        if (score.TitleSlowDown >= score.TitleMaxSubmissions)
         {
-            (Kind: TitleSignalKind.SlowDown, Score: score.TitleSlowDown),
-            (Kind: TitleSignalKind.MaximumSubmissions, Score: score.TitleMaxSubmissions)
-        };
-        var best = candidates.MaxBy(candidate => candidate.Score);
-        var second = candidates.OrderByDescending(candidate => candidate.Score).Skip(1).First();
-        if (best.Score < PopupDetectorOptions.TitleThreshold)
+            bestScore = score.TitleSlowDown;
+            secondScore = score.TitleMaxSubmissions;
+            bestKind = TitleSignalKind.SlowDown;
+        }
+        else
+        {
+            bestScore = score.TitleMaxSubmissions;
+            secondScore = score.TitleSlowDown;
+            bestKind = TitleSignalKind.MaximumSubmissions;
+        }
+
+        if (bestScore < TitleThreshold)
         {
             return TitleSignalKind.None;
         }
 
-        return (best.Score - second.Score) < PopupDetectorOptions.MinimumTitleScoreGap
+        return (bestScore - secondScore) < MinimumTitleScoreGap
             ? TitleSignalKind.Ambiguous
-            : best.Kind;
+            : bestKind;
     }
 
-    private static PopupScore ScorePopup(Mat image, Rect searchBounds, Rect popupBounds)
+    private static PopupScore ScorePopup(Mat searchGray, Rect searchBounds, Rect popupBounds)
     {
-        using var searchRegion = new Mat(image, searchBounds);
-        using var searchGray = new Mat();
-        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
-
         var localPopupBounds = new Rect(
             popupBounds.X - searchBounds.X,
             popupBounds.Y - searchBounds.Y,
@@ -139,15 +152,11 @@ internal static class PopupDetectionEngine
                 MatchTemplateScore(titleRoiBinary, templates.TitleSlowDownBinary)),
             TitleMaxSubmissions: Math.Max(
                 MatchTemplateScore(titleRoi, templates.TitleMaxSubmissionsGray),
-                MatchTemplateScore(titleRoiBinary, templates.TitleMaxSubmissionsBinary)),
-            PopupBounds: popupBounds);
+                MatchTemplateScore(titleRoiBinary, templates.TitleMaxSubmissionsBinary)));
     }
 
-    private static bool TryFindPopupBoundsByTitleAnchor(Mat image, Rect searchBounds, out Rect popupBounds)
+    private static bool TryFindPopupBoundsByTitleAnchor(Mat searchGray, Rect searchBounds, Size imageSize, out Rect popupBounds)
     {
-        using var searchRegion = new Mat(image, searchBounds);
-        using var searchGray = new Mat();
-        Cv2.CvtColor(searchRegion, searchGray, ColorConversionCodes.BGR2GRAY);
         using var searchBinary = ToBinaryMask(searchGray);
 
         var templates = SPopupTemplates.Value;
@@ -156,15 +165,12 @@ internal static class PopupDetectionEngine
         var slowGray = MatchTemplate(searchGray, templates.TitleSlowDownGray);
         var slowBinary = MatchTemplate(searchBinary, templates.TitleSlowDownBinary);
 
-        var candidates = new[]
-        {
-            maxGray,
-            maxBinary,
-            slowGray,
-            slowBinary
-        };
-        var best = candidates.MaxBy(candidate => candidate.Score);
-        if (best.Score < PopupDetectorOptions.TitleAnchorThreshold)
+        var best = maxGray;
+        if (maxBinary.Score > best.Score) best = maxBinary;
+        if (slowGray.Score > best.Score) best = slowGray;
+        if (slowBinary.Score > best.Score) best = slowBinary;
+
+        if (best.Score < TitleAnchorThreshold)
         {
             popupBounds = default;
             return false;
@@ -177,7 +183,7 @@ internal static class PopupDetectionEngine
             estimatedPopupY,
             ExpectedPopupWidth,
             ExpectedPopupHeight,
-            image.Size());
+            imageSize);
         return true;
     }
 
@@ -190,22 +196,7 @@ internal static class PopupDetectionEngine
 
     private static double MatchTemplateScore(Mat searchRoi, Mat template)
     {
-        if (searchRoi.Empty() || template.Empty())
-        {
-            return 0.0;
-        }
-
-        if (template.Width > searchRoi.Width || template.Height > searchRoi.Height)
-        {
-            return 0.0;
-        }
-
-        var resultWidth = searchRoi.Width - template.Width + 1;
-        var resultHeight = searchRoi.Height - template.Height + 1;
-        using var result = new Mat(new Size(resultWidth, resultHeight), MatType.CV_32FC1);
-        Cv2.MatchTemplate(searchRoi, template, result, TemplateMatchModes.CCoeffNormed);
-        Cv2.MinMaxLoc(result, out _, out var maxValue, out _, out _);
-        return maxValue;
+        return MatchTemplate(searchRoi, template).Score;
     }
 
     private static TemplateMatchResult MatchTemplate(Mat searchRoi, Mat template)
@@ -247,17 +238,6 @@ internal static class PopupDetectionEngine
         return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
     }
 
-    private sealed class PopupDetectorOptions
-    {
-        public static double ButtonThreshold => 0.58;
-        public static double IconThreshold => 0.58;
-        public static double TitleThreshold => 0.50;
-        public static double StrongThreshold => 0.78;
-        public static double StrongTitleThreshold => 0.62;
-        public static double TitleAnchorThreshold => 0.52;
-        public static double MinimumTitleScoreGap => 0.005;
-    }
-
     private readonly record struct TemplateMatchResult(double Score, Point Location);
 
     private enum TitleSignalKind
@@ -272,8 +252,7 @@ internal static class PopupDetectionEngine
         double ButtonOk,
         double IconInfo,
         double TitleSlowDown,
-        double TitleMaxSubmissions,
-        Rect PopupBounds);
+        double TitleMaxSubmissions);
 
     private sealed class PopupTemplates : IDisposable
     {

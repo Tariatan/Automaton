@@ -447,6 +447,6 @@ public sealed class MaximumSubmissionsPopupDetectorTests
             return PopupState.ConnectionLost;
         }
 
-        return PopupDetectionEngine.DetectPopup(image).State;
+        return PopupDetectionEngine.Detect(image).State;
     }
 }

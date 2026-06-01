@@ -41,7 +41,7 @@ public sealed class ConnectionLostPopupDetectorTests
         using var image = Cv2.ImRead(imagePath);
 
         // Act
-        var detection = PopupDetectionEngine.DetectPopup(image);
+        var detection = PopupDetectionEngine.Detect(image);
 
         // Assert
         Assert.Equal(PopupState.SlowDown, detection.State);
@@ -55,7 +55,7 @@ public sealed class ConnectionLostPopupDetectorTests
         using var image = Cv2.ImRead(imagePath);
 
         // Act
-        var detection = PopupDetectionEngine.DetectPopup(image);
+        var detection = PopupDetectionEngine.Detect(image);
 
         // Assert
         Assert.Equal(PopupState.MaxSubmissions, detection.State);
