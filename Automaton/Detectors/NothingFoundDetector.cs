@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -79,7 +80,7 @@ internal static class NothingFoundDetector
         for (var i = 0; i < TemplateScales.Length; i++)
         {
             var scale = TemplateScales[i];
-            if (Math.Abs(scale - 1.0) < double.Epsilon)
+            if (GeometryHelper.IsUnscaled(scale))
             {
                 templates[i] = originalGray.Clone();
             }

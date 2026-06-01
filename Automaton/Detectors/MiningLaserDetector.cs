@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -65,7 +66,7 @@ internal sealed class MiningLaserDetector : IDisposable
         for (var i = 0; i < TemplateScales.Length; i++)
         {
             var scale = TemplateScales[i];
-            if (Math.Abs(scale - 1.0) < 1e-10)
+            if (GeometryHelper.IsUnscaled(scale))
             {
                 variants[i] = original;
             }

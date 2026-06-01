@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
@@ -19,7 +20,7 @@ public sealed class LoginStateTests
             new StubScreenCaptureProvider(pilotScreen.Clone),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState(automationInputControllerMock);
+        var state = new LoginState(automationInputControllerMock, new PilotAvatarDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -62,7 +63,7 @@ public sealed class LoginStateTests
             new StubScreenCaptureProvider(blankScreen.Clone),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState(automationInputControllerMock);
+        var state = new LoginState(automationInputControllerMock, new PilotAvatarDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();

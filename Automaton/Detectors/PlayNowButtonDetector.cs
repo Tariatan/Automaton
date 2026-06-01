@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -42,7 +43,7 @@ internal sealed class PlayNowButtonDetector : IDisposable
         PlayNowButtonLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
-            var ownsScaled = !IsUnscaled(scale);
+            var ownsScaled = !GeometryHelper.IsUnscaled(scale);
             var scaledTemplate = ownsScaled ? BuildScaledTemplate(scale) : m_Template;
             try
             {
@@ -96,8 +97,6 @@ internal sealed class PlayNowButtonDetector : IDisposable
         Cv2.CvtColor(screen, colorScreen, ColorConversionCodes.GRAY2BGR);
         return colorScreen;
     }
-
-    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
 
     private Mat BuildScaledTemplate(double scale)
     {

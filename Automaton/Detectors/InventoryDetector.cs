@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -45,7 +46,7 @@ internal sealed class InventoryDetector : IDisposable
         TemplateMatch? bestMatch = null;
         foreach (var scale in TemplateScales)
         {
-            var ownsTemplate = !IsUnscaled(scale);
+            var ownsTemplate = !GeometryHelper.IsUnscaled(scale);
             var effectiveTemplate = ownsTemplate ? BuildScaledTemplate(template, scale) : template;
             try
             {
@@ -101,8 +102,6 @@ internal sealed class InventoryDetector : IDisposable
             FirstRowHeight);
         return ClampToScreen(firstRowBounds, screenSize);
     }
-
-    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
 
     private static Rect ClampToScreen(Rect bounds, Size imageSize)
     {

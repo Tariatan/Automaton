@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -7,7 +8,7 @@ internal sealed class LocationChangeTimerDetector : IDisposable
 {
     private const double MinimumMatchScore = 0.90;
     private const double EarlyExitScore = 0.95;
-    private static readonly Rect SearchBounds = new(130, 20, 60, 60);
+    private static readonly Rect SearchBounds = new(130, 20, 80, 80);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
     private readonly Mat m_Template = EmbeddedResourceLoader.LoadMat("location_change_timer.png");
@@ -27,7 +28,7 @@ internal sealed class LocationChangeTimerDetector : IDisposable
         LocationChangeTimerLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
-            var ownsScaled = scale != 1.0;
+            var ownsScaled = !GeometryHelper.IsUnscaled(scale);
             var scaledTemplate = ownsScaled ? BuildScaledTemplate(scale) : m_Template;
             try
             {

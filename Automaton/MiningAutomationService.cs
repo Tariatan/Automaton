@@ -22,7 +22,8 @@ internal sealed class MiningAutomationService(
     MiningLaserDetector miningLaserDetector,
     WarOverviewDetector warOverviewDetector,
     ConnectionLostPopupDetector connectionLostPopupDetector,
-    CommonAutomationStates.ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior)
+    CommonAutomationStates.ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior,
+    PilotAvatarDetector pilotAvatarDetector)
 {
     private const int DetectionRetryAttempts = 2;
     private const int DetectionRetryDelayMs = 150;
@@ -162,7 +163,7 @@ internal sealed class MiningAutomationService(
         return stateKind switch
         {
             MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, playNowButtonDetector),
-            MiningAutomationStateKind.Login => new LoginState(automationInputController),
+            MiningAutomationStateKind.Login => new LoginState(automationInputController, pilotAvatarDetector),
             MiningAutomationStateKind.Dock => new DockingState(automationInputController, asteroidBeltOverviewDetector),
             MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, inventoryDetector, downtimeDetector),
             MiningAutomationStateKind.Undocking => new UndockingState(automationInputController, locationChangeTimerDetector),

@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -155,7 +156,7 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
         TemplateLocation? bestLocation = null;
         foreach (var scale in templateScales)
         {
-            var ownsScaled = !IsUnscaled(scale);
+            var ownsScaled = !GeometryHelper.IsUnscaled(scale);
             var scaledTemplate = ownsScaled ? BuildScaledTemplate(template, scale) : template;
             try
             {
@@ -254,8 +255,6 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
         Cv2.InRange(gray, new Scalar(120), new Scalar(255), mask);
         return Cv2.CountNonZero(mask) >= MinimumDistanceColumnBrightPixelCount;
     }
-
-    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
 
     private static Mat ConvertToColor(Mat screen)
     {

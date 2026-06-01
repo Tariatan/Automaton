@@ -1,15 +1,18 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.CommonAutomationStates;
 using Serilog;
 
 namespace Automaton.MiningStates;
 
-internal sealed class LoginState(IAutomationInputController automationInputController)
+internal sealed class LoginState(
+    IAutomationInputController automationInputController,
+    PilotAvatarDetector pilotAvatarDetector)
     : IMiningAutomationState
 {
     private const int PilotIndex = 2;
     private const string CaptureSuffix = ".mining-login";
-    private readonly CommonLoginState m_CommonLoginState = new(automationInputController);
+    private readonly CommonLoginState m_CommonLoginState = new(automationInputController, pilotAvatarDetector);
 
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
 

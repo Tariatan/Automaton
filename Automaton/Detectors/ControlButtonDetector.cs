@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 
@@ -64,7 +65,7 @@ internal sealed class ControlButtonDetector
         TemplateMatch? best = null;
         foreach (var scale in TemplateScales)
         {
-            var ownsScaled = Math.Abs(scale - 1.0) > double.Epsilon;
+            var ownsScaled = !GeometryHelper.IsUnscaled(scale);
             var candidateTemplate = ownsScaled ? BuildScaledTemplate(template, scale) : template;
             try
             {

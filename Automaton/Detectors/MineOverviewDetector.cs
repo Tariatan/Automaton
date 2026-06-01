@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using Automaton.Infrastructure;
 using Automaton.Primitives;
 using OpenCvSharp;
@@ -41,7 +42,7 @@ internal sealed class MineOverviewDetector : IDisposable
         TemplateLocation? bestLocation = null;
         foreach (var scale in TemplateScales)
         {
-            var ownsScaled = !IsUnscaled(scale);
+            var ownsScaled = !GeometryHelper.IsUnscaled(scale);
             var scaledTemplate = ownsScaled ? BuildScaledTemplate(template, scale) : template;
             try
             {
@@ -95,8 +96,6 @@ internal sealed class MineOverviewDetector : IDisposable
         var bottom = Math.Clamp(top + Settings.MineOverviewHeight, top, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
-
-    private static bool IsUnscaled(double scale) => Math.Abs(scale - 1.0) < double.Epsilon;
 
     private static Mat BuildScaledTemplate(Mat template, double scale)
     {

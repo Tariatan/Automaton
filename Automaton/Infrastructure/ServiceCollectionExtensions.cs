@@ -30,6 +30,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<MiningAsteroidDetector>();
         services.AddSingleton<MiningLaserDetector>();
         services.AddSingleton<WarOverviewDetector>();
+        services.AddSingleton<PilotAvatarDetector>();
 
         services.AddSingleton<SampleImageProcessor>();
         services.AddSingleton<ScreenCaptureService>();

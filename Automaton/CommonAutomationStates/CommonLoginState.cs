@@ -7,7 +7,8 @@ using Serilog;
 namespace Automaton.CommonAutomationStates;
 
 internal sealed class CommonLoginState(
-    IAutomationInputController automationInputController)
+    IAutomationInputController automationInputController,
+    PilotAvatarDetector pilotAvatarDetector)
 {
     private readonly ILogger m_Logger = Log.ForContext<CommonLoginState>();
 
@@ -25,7 +26,7 @@ internal sealed class CommonLoginState(
         capturePath = capture.CapturePath;
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!PilotAvatarLocator.Detect(capturePath, pilotIndex, out var pilotLocation))
+        if (!pilotAvatarDetector.Detect(capture.Image, pilotIndex, out var pilotLocation))
         {
             return false;
         }
