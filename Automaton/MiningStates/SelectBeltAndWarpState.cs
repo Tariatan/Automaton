@@ -72,10 +72,16 @@ internal sealed class SelectBeltAndWarpState(
             .ToArray();
         if (availableAsteroidBelts.Length == 0)
         {
+            var blacklistedAsteroidBeltIndexes = analysis.AsteroidBelts
+                .Select((asteroidBelt, index) => new { asteroidBelt.Bounds, Index = index + 1 })
+                .Where(asteroidBelt => context.IsAsteroidBeltBlacklisted(asteroidBelt.Bounds))
+                .Select(asteroidBelt => asteroidBelt.Index)
+                .ToArray();
             m_Logger.Error(
-                "No asteroid belts available after blacklist filtering. TotalBelts={TotalBelts}, BlacklistedBeltCount={BlacklistedBeltCount}",
+                "No asteroid belts available after blacklist filtering. TotalBelts={TotalBelts}, BlacklistedBeltCount={BlacklistedBeltCount}, BlacklistedBeltIndexes={BlacklistedBeltIndexes}",
                 analysis.AsteroidBelts.Count,
-                context.BlacklistedAsteroidBeltCount);
+                context.BlacklistedAsteroidBeltCount,
+                string.Join(",", blacklistedAsteroidBeltIndexes));
             var result = new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
