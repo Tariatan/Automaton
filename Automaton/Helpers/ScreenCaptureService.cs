@@ -26,15 +26,6 @@ internal sealed class ScreenCaptureService(
     internal const int VirtualScreenHeightMetric = 79;
     private static readonly ILogger Logger = Log.ForContext<ScreenCaptureService>();
 
-    public void ProcessSamples()
-    {
-        var summary = sampleImageProcessor.ProcessSamples();
-        Logger.Information(
-            "Processed samples from screen capture service. SamplesDirectory={SamplesDirectory}, ResultCount={ResultCount}",
-            summary.SamplesDirectory,
-            summary.Results.Count);
-    }
-
     public ScreenCaptureSummary CaptureAndProcessCurrentScreen()
     {
         var analysis = CaptureAndAnalyzeCurrentScreen();
@@ -46,8 +37,11 @@ internal sealed class ScreenCaptureService(
         var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
         using var capture = CaptureCurrentScreen();
         var analysis = sampleImageProcessor.AnalyzeImage(capture.Image, capture.CapturePath);
+        var annotatedPath = WriteAnnotatedOutput(capture.Image, analysis, capture.CapturePath);
+        var resultWithAnnotatedPath = analysis.Result with { OutputPath = annotatedPath };
+        var analysisWithAnnotatedPath = analysis with { Result = resultWithAnnotatedPath };
 
-        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysis);
+        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysisWithAnnotatedPath);
     }
 
     internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "")
@@ -100,6 +94,35 @@ internal sealed class ScreenCaptureService(
     private static bool IsScreenCaptureFailure(Exception exception)
     {
         return exception is ArgumentException;
+    }
+
+    internal static string WriteAnnotatedOutput(Mat image, SampleImageAnalysisResult analysis, string sourceImagePath)
+    {
+        using var annotated = image.Clone();
+        DebugOverlay.DrawPlayfieldOverlay(annotated, analysis.PlayfieldDetection, analysis.Polygons);
+
+        var outputSuffix = analysis.UsedKnownSampleTemplate
+            ? $".annotated.byexample{BuildMatchedExampleSuffix(analysis.MatchedSampleFileName)}.png"
+            : ".annotated.png";
+        var outputPath = Path.Combine(
+            Path.GetDirectoryName(sourceImagePath)!,
+            Path.GetFileNameWithoutExtension(sourceImagePath) + outputSuffix);
+        Cv2.ImWrite(outputPath, annotated);
+        return outputPath;
+    }
+
+    private static string BuildMatchedExampleSuffix(string? matchedSampleFileName)
+    {
+        if (string.IsNullOrWhiteSpace(matchedSampleFileName))
+        {
+            return string.Empty;
+        }
+
+        var sampleName = Path.GetFileNameWithoutExtension(matchedSampleFileName);
+        var firstSegment = sampleName.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+        return string.IsNullOrWhiteSpace(firstSegment)
+            ? string.Empty
+            : $".{firstSegment}";
     }
 
     internal static Rectangle BuildGameCaptureBounds(Rectangle virtualScreenBounds)

@@ -1,3 +1,4 @@
+using System.IO;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
@@ -9,11 +10,13 @@ namespace Automaton;
 
 internal sealed class ProjectDiscoveryAutomationService(
     ScreenCaptureService screenCaptureService,
+    SampleImageProcessor sampleImageProcessor,
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     ConnectionLostPopupDetector connectionLostPopupDetector,
     IDiscoveryAutomationStateFactory discoveryAutomationStateFactory)
 {
+    private const string SamplesFolderName = "samples";
     private const int InitialPilotIndex = 1;
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
@@ -21,10 +24,38 @@ internal sealed class ProjectDiscoveryAutomationService(
 
     private ScreenCaptureService ScreenCaptureService { get; } = screenCaptureService;
 
-    public void ProcessSamples()
+    public SampleProcessingSummary ProcessSamples()
     {
-        Logger.Information("Processing samples through automation service.");
-        ScreenCaptureService.ProcessSamples();
+        Logger.Information("Sample processing started. SamplesDirectory={SamplesDirectory}", SamplesFolderName);
+        if (!Directory.Exists(SamplesFolderName))
+        {
+            throw new DirectoryNotFoundException($"Samples folder was not found: {SamplesFolderName}");
+        }
+
+        var sampleFiles = Directory
+            .EnumerateFiles(SamplesFolderName, "*.*", SearchOption.TopDirectoryOnly)
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (sampleFiles.Length == 0)
+        {
+            throw new InvalidOperationException($"No files were found in {SamplesFolderName}.");
+        }
+
+        var results = new List<SampleProcessingResult>(sampleFiles.Length);
+        foreach (var sampleFile in sampleFiles)
+        {
+            using var image = Cv2.ImRead(sampleFile);
+            var analysis = sampleImageProcessor.AnalyzeImage(image, sampleFile);
+            var outputPath = ScreenCaptureService.WriteAnnotatedOutput(image, analysis, sampleFile);
+            results.Add(analysis.Result with { OutputPath = outputPath });
+        }
+
+        Logger.Information(
+            "Sample processing finished. SamplesDirectory={SamplesDirectory}, ResultCount={ResultCount}",
+            SamplesFolderName,
+            results.Count);
+        return new SampleProcessingSummary(SamplesFolderName, results);
     }
 
     public DiscoveryAutomationStepSummary Automate(
@@ -169,3 +200,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         return discoveryAutomationStateFactory.Create(stateKind);
     }
 }
+
+internal sealed record SampleProcessingSummary(
+    string SamplesDirectory,
+    IReadOnlyList<SampleProcessingResult> Results);

@@ -2,6 +2,8 @@ namespace Automaton.Primitives;
 
 public static class Settings
 {
+    public const string ProjectDiscoverySamplesFolderName = "samples";
+
     public const long HideUiFileSizeThreshold = 1024 * 1024 * 2;
     // MINE overview
     public const int MineOverviewWidth = 185;

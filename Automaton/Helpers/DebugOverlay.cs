@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.Helpers;
@@ -17,15 +18,29 @@ internal readonly record struct OverlayColor(byte R, byte G, byte B)
 
 internal static class DebugOverlay
 {
+    private const int StrokeThickness = 2;
+    private const int PointRadius = 4;
     private const double TextScale = 0.8;
     private const int TextThickness = 2;
+    private const int LabelYOffset = 14;
+    private const int MinimumLabelY = 30;
     private static readonly Point TextOrigin = new(30, 40);
+
+    private static readonly Scalar[] Palette =
+    [
+        new Scalar(0, 255, 255),
+        new Scalar(255, 180, 0),
+        new Scalar(0, 220, 120),
+        new Scalar(220, 120, 255),
+        new Scalar(80, 180, 255),
+        new Scalar(255, 120, 120)
+    ];
 
     public static void Annotate(Mat image, params (Rect Bounds, OverlayColor Color)[] items)
     {
         foreach (var (bounds, color) in items)
         {
-            Cv2.Rectangle(image, bounds, color.ToScalar(), 2);
+            Cv2.Rectangle(image, bounds, color.ToScalar(), StrokeThickness);
         }
     }
 
@@ -38,6 +53,46 @@ internal static class DebugOverlay
             HersheyFonts.HersheySimplex,
             TextScale,
             color.ToScalar(),
+            TextThickness,
+            LineTypes.AntiAlias);
+    }
+
+    public static void DrawPlayfieldOverlay(Mat image, PlayfieldDetectionResult playfieldDetection, IReadOnlyList<Point[]> polygons)
+    {
+        if (playfieldDetection.IsFound)
+        {
+            Cv2.Rectangle(image, playfieldDetection.Bounds, new Scalar(70, 150, 255), StrokeThickness);
+
+            foreach (var marker in playfieldDetection.MarkerBounds)
+            {
+                Cv2.Rectangle(image, marker, new Scalar(255, 120, 80), StrokeThickness);
+            }
+        }
+
+        for (var index = 0; index < polygons.Count; index++)
+        {
+            var color = Palette[index % Palette.Length];
+            Cv2.Polylines(image, [polygons[index]], true, color, StrokeThickness, LineTypes.AntiAlias);
+
+            foreach (var point in polygons[index])
+            {
+                Cv2.Circle(image, point, PointRadius, color, -1, LineTypes.AntiAlias);
+            }
+        }
+
+        Cv2.PutText(
+            image,
+            playfieldDetection.IsFound
+                ? $"Playfield found, clusters: {polygons.Count}"
+                : polygons.Count > 0
+                    ? $"Playfield not found, using fallback: {polygons.Count}"
+                    : "Playfield not found",
+            new Point(
+                playfieldDetection.IsFound ? playfieldDetection.Bounds.X : TextOrigin.X,
+                playfieldDetection.IsFound ? Math.Max(MinimumLabelY, playfieldDetection.Bounds.Y - LabelYOffset) : TextOrigin.Y),
+            HersheyFonts.HersheySimplex,
+            TextScale,
+            playfieldDetection.IsFound ? new Scalar(80, 220, 120) : new Scalar(80, 120, 255),
             TextThickness,
             LineTypes.AntiAlias);
     }

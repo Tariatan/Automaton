@@ -8,38 +8,27 @@ namespace Automaton.Tests;
 public sealed class SampleImageProcessorTests
 {
     [Fact]
-    public void ProcessSamples_SamplesDirectoryDoesNotExist_ThrowsDirectoryNotFoundException()
+    public void AnalyzeImageFile_SamplesDirectoryDoesNotExist_ThrowsOnMissingFile()
     {
         // Arrange
-        using var workspace = new TemporaryDirectory();
-        var processor = new SampleImageProcessor();
+        var processor = new SampleImageProcessor(new PlayfieldDetector(), null);
+        var missingPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "missing.png");
 
-        // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-        DirectoryNotFoundException exception;
-
-        try
-        {
-            exception = Assert.Throws<DirectoryNotFoundException>(() => processor.ProcessSamples());
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
-
-        // Assert
-        Assert.Contains("Samples folder was not found", exception.Message);
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => processor.AnalyzeImageFile(missingPath));
     }
 
     [Fact]
-    public void ProcessSamples_SupportedImageExists_ReturnsAnnotatedResult()
+    public void AnalyzeImageFile_SupportedImageExists_ReturnsAnnotatedResult()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var processor = new SampleImageProcessor();
-        SampleProcessingSummary summary;
         CreateDefaultFallbackExample(workspace.Path);
+        var imagePath = Path.Combine(workspace.Path, "01.png");
+        CreateSolidImage(imagePath, 900, 900);
+
+        var processor = new SampleImageProcessor(new PlayfieldDetector(), null);
+        SampleImageAnalysisResult analysis;
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -47,9 +36,7 @@ public sealed class SampleImageProcessorTests
 
         try
         {
-            Directory.CreateDirectory("samples");
-            CreateSolidImage(Path.Combine("samples", "01.png"), 900, 900);
-            summary = processor.ProcessSamples();
+            analysis = processor.AnalyzeImageFile(imagePath);
         }
         finally
         {
@@ -57,33 +44,37 @@ public sealed class SampleImageProcessorTests
         }
 
         // Assert
-        var result = Assert.Single(summary.Results);
+        var result = analysis.Result;
         Assert.Equal("01.png", result.FileName);
         Assert.False(result.PlayfieldFound);
         Assert.Equal(3, result.ClusterCount);
-        Assert.True(File.Exists(Path.Combine(workspace.Path, result.OutputPath)));
     }
 
     [Fact]
-    public void ProcessSamples_RealAndBlankSamplesExist_ReturnsDetectionResultsForEachImage()
+    public void AnalyzeImageFile_RealAndBlankSamplesExist_ReturnsDetectionResultsForEachImage()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var processor = new SampleImageProcessor();
-        SampleProcessingSummary summary;
-
-        Directory.CreateDirectory(Path.Combine(workspace.Path, "samples"));
         CreateDefaultFallbackExample(workspace.Path);
-        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), Path.Combine(workspace.Path, "samples", "05.sample.png"));
-        CreateSolidImage(Path.Combine(workspace.Path, "samples", "99.png"), 900, 900);
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), Path.Combine(workspace.Path, "05.sample.png"));
+        CreateSolidImage(Path.Combine(workspace.Path, "99.png"), 900, 900);
+
+        var processor = new SampleImageProcessor(new PlayfieldDetector(), null);
+        var sampleFiles = Directory
+            .EnumerateFiles(workspace.Path, "*.png", SearchOption.TopDirectoryOnly)
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(workspace.Path);
 
+        List<SampleProcessingResult> results;
         try
         {
-            summary = processor.ProcessSamples();
+            results = sampleFiles
+                .Select(file => processor.AnalyzeImageFile(file).Result)
+                .ToList();
         }
         finally
         {
@@ -91,17 +82,15 @@ public sealed class SampleImageProcessorTests
         }
 
         // Assert
-        Assert.Equal(2, summary.Results.Count);
+        Assert.Equal(2, results.Count);
 
-        var foundResult = Assert.Single(summary.Results, result => result.FileName == "05.sample.png");
+        var foundResult = Assert.Single(results, result => result.FileName == "05.sample.png");
         Assert.True(foundResult.PlayfieldFound);
         Assert.True(foundResult.ClusterCount > 0);
-        Assert.True(File.Exists(Path.Combine(workspace.Path, foundResult.OutputPath)));
 
-        var blankResult = Assert.Single(summary.Results, result => result.FileName == "99.png");
+        var blankResult = Assert.Single(results, result => result.FileName == "99.png");
         Assert.False(blankResult.PlayfieldFound);
         Assert.Equal(3, blankResult.ClusterCount);
-        Assert.True(File.Exists(Path.Combine(workspace.Path, blankResult.OutputPath)));
     }
 
     [Fact]
@@ -132,7 +121,6 @@ public sealed class SampleImageProcessorTests
         Assert.False(analysis.PlayfieldDetection.IsFound);
         Assert.Equal(3, analysis.Polygons.Count);
         Assert.Equal(3, analysis.Result.ClusterCount);
-        Assert.True(File.Exists(Path.Combine(workspace.Path, analysis.Result.OutputPath)));
     }
 
     [Fact]
@@ -220,7 +208,7 @@ public sealed class SampleImageProcessorTests
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
         Assert.Equal(templatePolygons.Length, analysis.Polygons.Count);
-        Assert.Contains(".annotated.byexample.", analysis.Result.OutputPath, StringComparison.OrdinalIgnoreCase);
+        Assert.True(analysis.UsedKnownSampleTemplate);
 
         foreach (var templatePolygon in templatePolygons)
         {
@@ -1141,7 +1129,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
+        var analysis = processor.AnalyzeImageFile(imagePath);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
@@ -1157,7 +1145,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
+        var analysis = processor.AnalyzeImageFile(imagePath);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
@@ -1172,7 +1160,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
+        var analysis = processor.AnalyzeImageFile(imagePath);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);
@@ -1190,7 +1178,7 @@ public sealed class SampleImageProcessorTests
         var processor = new SampleImageProcessor();
 
         // Act
-        var analysis = processor.AnalyzeImageFile(imagePath, writeAnnotatedOutput: false);
+        var analysis = processor.AnalyzeImageFile(imagePath);
 
         // Assert
         Assert.True(analysis.PlayfieldDetection.IsFound);

@@ -1,7 +1,11 @@
+using System.IO;
 using System.Windows;
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
+using Automaton.Primitives;
 using Microsoft.Extensions.DependencyInjection;
+using OpenCvSharp;
 using Serilog;
 
 namespace Automaton;
@@ -68,11 +72,35 @@ public partial class App
     private static void RunSampleProcessing()
     {
         Log.ForContext<App>().Information("Command-line sample processing started.");
-        var processor = new SampleImageProcessor();
-        var summary = processor.ProcessSamples();
+
+        var processor = new SampleImageProcessor(new PlayfieldDetector(), null);
+        if (!Directory.Exists(Settings.ProjectDiscoverySamplesFolderName))
+        {
+            throw new DirectoryNotFoundException($"Samples folder was not found: {Settings.ProjectDiscoverySamplesFolderName}");
+        }
+
+        var sampleFiles = Directory
+            .EnumerateFiles(Settings.ProjectDiscoverySamplesFolderName, "*.*", SearchOption.TopDirectoryOnly)
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (sampleFiles.Length == 0)
+        {
+            throw new InvalidOperationException($"No files were found in {Settings.ProjectDiscoverySamplesFolderName}.");
+        }
+
+        var results = new List<SampleProcessingResult>(sampleFiles.Length);
+        foreach (var sampleFile in sampleFiles)
+        {
+            using var image = Cv2.ImRead(sampleFile);
+            var analysis = processor.AnalyzeImage(image, sampleFile);
+            var outputPath = ScreenCaptureService.WriteAnnotatedOutput(image, analysis, sampleFile);
+            results.Add(analysis.Result with { OutputPath = outputPath });
+        }
+
         Log.ForContext<App>().Information(
             "Command-line sample processing finished. SamplesDirectory={SamplesDirectory}, ResultCount={ResultCount}",
-            summary.SamplesDirectory,
-            summary.Results.Count);
+            Settings.ProjectDiscoverySamplesFolderName,
+            results.Count);
     }
 }

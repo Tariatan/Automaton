@@ -9,51 +9,50 @@ internal sealed class SampleImageProcessor(
     PlayfieldDetector playfieldDetector,
     KnownSampleMatcher? knownSampleMatcher)
 {
-    private const string SamplesFolderName = "samples";
     private const int SaturationThreshold = 45;
     private const int BrightnessThreshold = 55;
     private const int BinaryMaskMaxValue = 255;
     private const int CandidateOpenKernelSize = 2;
-    private static readonly int CandidateRefineCloseKernelSize = ReadInt32FromEnvironment("AUTOMATON_CANDIDATE_REFINE_CLOSE_KERNEL_SIZE", 5);
-    private static readonly int ClusterBlurSigma = ReadInt32FromEnvironment("AUTOMATON_CLUSTER_BLUR_SIGMA", 20);
-    private static readonly int ClusterDilateKernelSize = ReadInt32FromEnvironment("AUTOMATON_CLUSTER_DILATE_KERNEL_SIZE", 15);
-    private static readonly int ClusterThreshold = ReadInt32FromEnvironment("AUTOMATON_CLUSTER_THRESHOLD", 10);
-    private static readonly int ClusterCloseKernelSize = ReadInt32FromEnvironment("AUTOMATON_CLUSTER_CLOSE_KERNEL_SIZE", 31);
-    private static readonly int ClusterOpenKernelSize = ReadInt32FromEnvironment("AUTOMATON_CLUSTER_OPEN_KERNEL_SIZE", 5);
+    private const int CandidateRefineCloseKernelSize = 5;
+    private const int ClusterBlurSigma = 20;
+    private const int ClusterDilateKernelSize = 15;
+    private const int ClusterThreshold = 10;
+    private const int ClusterCloseKernelSize = 31;
+    private const int ClusterOpenKernelSize = 5;
     private const int MinimumClusterArea = 900;
-    private static readonly int MinimumContourAreaForMultiPolygonSplit = ReadInt32FromEnvironment("AUTOMATON_MIN_CONTOUR_AREA_FOR_MULTI_POLYGON_SPLIT", 12000);
+    private const int MinimumContourAreaForMultiPolygonSplit = 12000;
     private const int MinimumRefinedComponentArea = 450;
-    private static readonly int MinimumRefinedComponentBoundingArea = ReadInt32FromEnvironment("AUTOMATON_MIN_REFINED_COMPONENT_BOUNDING_AREA", 15_000);
+    private const int MinimumRefinedComponentBoundingArea = 15_000;
     private const int SparseRecoveryMinimumCandidatePoints = 300;
     private const int SparseRecoveryMinimumGapBelowPrimaryCluster = 12;
     private const int SparseRecoveryBlurSigma = 14;
     private const int SparseRecoveryDilateKernelSize = 15;
     private const int SparseRecoveryThreshold = 4;
     private const int SparseRecoveryMinimumContourArea = 1200;
-    private static readonly int MinimumSplitSegmentHeight = ReadInt32FromEnvironment("AUTOMATON_MIN_SPLIT_SEGMENT_HEIGHT", 70);
-    private static readonly int MinimumSplitSegmentWidth = ReadInt32FromEnvironment("AUTOMATON_MIN_SPLIT_SEGMENT_WIDTH", 70);
-    private static readonly int MinimumContourHeightForSideBySideSplit = ReadInt32FromEnvironment("AUTOMATON_MIN_CONTOUR_HEIGHT_FOR_SIDE_BY_SIDE_SPLIT", 140);
-    private static readonly int MinimumSplitPointCount = ReadInt32FromEnvironment("AUTOMATON_MIN_SPLIT_POINT_COUNT", 180);
-    private static readonly double MinimumSplitAspectRatio = ReadDoubleFromEnvironment("AUTOMATON_MIN_SPLIT_ASPECT_RATIO", 1.10);
-    private static readonly int HistogramSmoothingRadius = ReadInt32FromEnvironment("AUTOMATON_HISTOGRAM_SMOOTHING_RADIUS", 6);
-    private static readonly double MaximumSplitValleyRatio = ReadDoubleFromEnvironment("AUTOMATON_MAX_SPLIT_VALLEY_RATIO", 0.72);
-    private static readonly int MinimumSplitPeakDensity = ReadInt32FromEnvironment("AUTOMATON_MIN_SPLIT_PEAK_DENSITY", 10);
-    private static readonly int DensitySeedBlurSigma = ReadInt32FromEnvironment("AUTOMATON_DENSITY_SEED_BLUR_SIGMA", 12);
-    private static readonly double DensitySeedThresholdRatio = ReadDoubleFromEnvironment("AUTOMATON_DENSITY_SEED_THRESHOLD_RATIO", 0.42);
-    private static readonly int DensitySeedMinimumContourArea = ReadInt32FromEnvironment("AUTOMATON_DENSITY_SEED_MINIMUM_CONTOUR_AREA", 180);
-    private static readonly int DensitySeedMinimumCentroidDistance = ReadInt32FromEnvironment("AUTOMATON_DENSITY_SEED_MINIMUM_CENTROID_DISTANCE", 70);
-    private static readonly int MaximumDensitySeedCount = ReadInt32FromEnvironment("AUTOMATON_MAX_DENSITY_SEED_COUNT", 4);
-    private static readonly int MaximumPointClusterCount = ReadInt32FromEnvironment("AUTOMATON_MAX_POINT_CLUSTER_COUNT", 3);
-    private static readonly int PointClusterAttempts = ReadInt32FromEnvironment("AUTOMATON_POINT_CLUSTER_ATTEMPTS", 5);
-    private static readonly int PointClusterMinimumCentroidDistance = ReadInt32FromEnvironment("AUTOMATON_POINT_CLUSTER_MINIMUM_CENTROID_DISTANCE", 90);
-    private static readonly double PointClusterMinimumSeparationRatio = ReadDoubleFromEnvironment("AUTOMATON_POINT_CLUSTER_MINIMUM_SEPARATION_RATIO", 1.20);
+    private const int MinimumSplitSegmentHeight = 70;
+    private const int MinimumSplitSegmentWidth = 70;
+    private const int MinimumContourHeightForSideBySideSplit = 140;
+    private const int MinimumSplitPointCount = 180;
+    private const double MinimumSplitAspectRatio = 1.10;
+    private const int HistogramSmoothingRadius = 6;
+    private const double MaximumSplitValleyRatio = 0.72;
+    private const int MinimumSplitPeakDensity = 10;
+    private const int DensitySeedBlurSigma = 12;
+    private const double DensitySeedThresholdRatio = 0.42;
+    private const int DensitySeedMinimumContourArea = 180;
+    private const int DensitySeedMinimumCentroidDistance = 70;
+    private const int MaximumDensitySeedCount = 4;
+    private const int MaximumPointClusterCount = 3;
+    private const int PointClusterAttempts = 5;
+    private const int PointClusterMinimumCentroidDistance = 90;
+    private const double PointClusterMinimumSeparationRatio = 1.20;
     private const int SplitPolygonSeparationPixels = 2;
     private const double MinimumNeighboringPolygonPointSpacing = 30.0;
     private const double MinimumInterPolygonPointSpacing = 15.0;
     private const int MaximumPointSpacingResolutionPasses = 15;
     private const int MaximumPolygonsPerSession = 8;
     private const int MaximumPolygonPoints = 10;
-    private static readonly int MinimumPolygonBoundingArea = ReadInt32FromEnvironment("AUTOMATON_MIN_POLYGON_BOUNDING_AREA", 35_000);
+    private const int MinimumPolygonBoundingArea = 35_000;
     private const double MinimumSimplificationEpsilon = 3.0;
     private const double SimplificationEpsilonScale = 0.01;
     private const double SimplificationGrowthFactor = 1.35;
@@ -69,31 +68,14 @@ internal sealed class SampleImageProcessor(
     private const int PointCloudMargin = 6;
     private const double MinimumOverlapArea = 1.0;
     private const int MaximumCollisionResolutionPasses = 6;
-    private static readonly int MaximumSiblingPolygonMergeGap = ReadInt32FromEnvironment("AUTOMATON_MAX_SIBLING_POLYGON_MERGE_GAP", 16);
-    private static readonly double MinimumSiblingAxisOverlapRatio = ReadDoubleFromEnvironment("AUTOMATON_MIN_SIBLING_AXIS_OVERLAP_RATIO", 0.70);
-    private static readonly double MaximumSiblingAreaRatio = ReadDoubleFromEnvironment("AUTOMATON_MAX_SIBLING_AREA_RATIO", 0.55);
-    private const int OverlayStrokeThickness = 2;
-    private const int OverlayPointRadius = 4;
-    private const double OverlayTextScale = 0.8;
-    private const int OverlayTextThickness = 2;
-    private const int OverlayLeftPadding = 30;
-    private const int OverlayTopPadding = 40;
-    private const int OverlayLabelYOffset = 14;
-    private const int OverlayMinimumLabelY = 30;
+    private const int MaximumSiblingPolygonMergeGap = 16;
+    private const double MinimumSiblingAxisOverlapRatio = 0.70;
+    private const double MaximumSiblingAreaRatio = 0.55;
     private const double TopMarkerBandPolygonCentroidScale = 1.5;
     private const double RandomizedPointRatio = 0.90;
     private const int MinimumRandomizedPointDistance = 10;
     private const int MaximumRandomizedPointDistance = 35;
 
-    private static readonly Scalar[] Palette =
-    [
-        new Scalar(0, 255, 255),
-        new Scalar(255, 180, 0),
-        new Scalar(0, 220, 120),
-        new Scalar(220, 120, 255),
-        new Scalar(80, 180, 255),
-        new Scalar(255, 120, 120)
-    ];
     private static readonly ILogger Logger = Log.ForContext<SampleImageProcessor>();
 
     private readonly KnownSampleMatcher m_KnownSampleMatcher = knownSampleMatcher ?? new KnownSampleMatcher(playfieldDetector);
@@ -103,59 +85,7 @@ internal sealed class SampleImageProcessor(
     {
     }
 
-    private static int ReadInt32FromEnvironment(string variableName, int fallbackValue)
-    {
-        var rawValue = Environment.GetEnvironmentVariable(variableName);
-        return int.TryParse(rawValue, out var parsedValue) && parsedValue > 0
-            ? parsedValue
-            : fallbackValue;
-    }
-
-    private static double ReadDoubleFromEnvironment(string variableName, double fallbackValue)
-    {
-        var rawValue = Environment.GetEnvironmentVariable(variableName);
-        return double.TryParse(rawValue, out var parsedValue) && parsedValue > 0
-            ? parsedValue
-            : fallbackValue;
-    }
-
-    public SampleProcessingSummary ProcessSamples()
-    {
-        Logger.Information("Sample processing started. SamplesDirectory={SamplesDirectory}", SamplesFolderName);
-        if (!Directory.Exists(SamplesFolderName))
-        {
-            throw new DirectoryNotFoundException($"Samples folder was not found: {SamplesFolderName}");
-        }
-
-        var sampleFiles = Directory
-            .EnumerateFiles(SamplesFolderName, "*.*", SearchOption.TopDirectoryOnly)
-            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        if (sampleFiles.Length == 0)
-        {
-            throw new InvalidOperationException($"No files were found in {SamplesFolderName}.");
-        }
-
-        var results = new List<SampleProcessingResult>(sampleFiles.Length);
-        results.AddRange(sampleFiles.Select(ProcessImageFile));
-
-        // Each sample goes through the full pipeline: detect the playfield, isolate
-        // the colored density cloud inside it, then annotate the original screenshot.
-
-        Logger.Information(
-            "Sample processing finished. SamplesDirectory={SamplesDirectory}, ResultCount={ResultCount}",
-            SamplesFolderName,
-            results.Count);
-        return new SampleProcessingSummary(SamplesFolderName, results);
-    }
-
-    private SampleProcessingResult ProcessImageFile(string imagePath)
-    {
-        return AnalyzeImageFile(imagePath, writeAnnotatedOutput: true).Result;
-    }
-
-    internal SampleImageAnalysisResult AnalyzeImageFile(string imagePath, bool writeAnnotatedOutput = true)
+    internal SampleImageAnalysisResult AnalyzeImageFile(string imagePath)
     {
         using var image = Cv2.ImRead(imagePath);
         if (image.Empty())
@@ -164,16 +94,15 @@ internal sealed class SampleImageProcessor(
             throw new InvalidOperationException($"Could not read image: {imagePath}");
         }
 
-        return AnalyzeImage(image, imagePath, writeAnnotatedOutput);
+        return AnalyzeImage(image, imagePath);
     }
 
-    internal SampleImageAnalysisResult AnalyzeImage(Mat image, string imagePath, bool writeAnnotatedOutput = true)
+    internal SampleImageAnalysisResult AnalyzeImage(Mat image, string imagePath)
     {
         var playfieldDetection = playfieldDetector.Detect(image);
         IReadOnlyList<Point[]> polygons;
         var usedKnownSampleTemplate = false;
         string? matchedSampleFileName = null;
-        using var launcherProbe = image.Clone();
 
         if (!playfieldDetection.IsFound)
         {
@@ -191,8 +120,9 @@ internal sealed class SampleImageProcessor(
             }
             else
             {
-                using var candidateMask = BuildCandidateMask(playfieldImage);
-                using var candidateDensityMap = BuildCandidateDensityMap(playfieldImage);
+                var (candidateMask, candidateDensityMap) = BuildCandidateMaskAndDensityMap(playfieldImage);
+                using var mask = candidateMask;
+                using var densityMap = candidateDensityMap;
                 using var clusterMask = BuildClusterMask(candidateMask);
 
                 polygons = BuildClusterPolygons(candidateMask, candidateDensityMap, clusterMask, playfieldDetection.Bounds);
@@ -208,50 +138,22 @@ internal sealed class SampleImageProcessor(
             polygons = mutablePolygons.ToArray();
         }
 
-        var outputPath = imagePath;
-        if (writeAnnotatedOutput)
-        {
-            using var annotated = image.Clone();
-            DrawDebugOverlay(annotated, playfieldDetection, polygons);
-
-            var outputSuffix = usedKnownSampleTemplate
-                ? $".annotated.byexample{BuildMatchedExampleSuffix(matchedSampleFileName)}.png"
-                : ".annotated.png";
-            outputPath = Path.Combine(Path.GetDirectoryName(imagePath)!, Path.GetFileNameWithoutExtension(imagePath) + outputSuffix);
-            Cv2.ImWrite(outputPath, annotated);
-        }
-
         var result = new SampleProcessingResult(
             Path.GetFileName(imagePath),
             playfieldDetection.IsFound,
             polygons.Count,
-            outputPath);
+            imagePath);
         Logger.Information(
-            "Analyzed image. PlayfieldFound={PlayfieldFound}, ClusterCount={ClusterCount}, OutputPath={OutputPath}, UsedKnownSampleTemplate={UsedKnownSampleTemplate}, MatchedSampleFileName={MatchedSampleFileName}",
+            "Analyzed image. PlayfieldFound={PlayfieldFound}, ClusterCount={ClusterCount}, UsedKnownSampleTemplate={UsedKnownSampleTemplate}, MatchedSampleFileName={MatchedSampleFileName}",
             result.PlayfieldFound,
             result.ClusterCount,
-            result.OutputPath,
             usedKnownSampleTemplate,
             matchedSampleFileName);
 
-        return new SampleImageAnalysisResult(result, playfieldDetection, polygons);
+        return new SampleImageAnalysisResult(result, playfieldDetection, polygons, usedKnownSampleTemplate, matchedSampleFileName);
     }
 
-    private static string BuildMatchedExampleSuffix(string? matchedSampleFileName)
-    {
-        if (string.IsNullOrWhiteSpace(matchedSampleFileName))
-        {
-            return string.Empty;
-        }
-
-        var sampleName = Path.GetFileNameWithoutExtension(matchedSampleFileName);
-        var firstSegment = sampleName.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
-        return string.IsNullOrWhiteSpace(firstSegment)
-            ? string.Empty
-            : $".{firstSegment}";
-    }
-
-    private static Mat BuildCandidateMask(Mat playfieldImage)
+    private static (Mat CandidateMask, Mat CandidateDensityMap) BuildCandidateMaskAndDensityMap(Mat playfieldImage)
     {
         using var hsv = new Mat();
         Cv2.CvtColor(playfieldImage, hsv, ColorConversionCodes.BGR2HSV);
@@ -259,49 +161,25 @@ internal sealed class SampleImageProcessor(
         var channels = Cv2.Split(hsv);
         try
         {
+            using var openKernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(CandidateOpenKernelSize, CandidateOpenKernelSize));
+
             using var saturationMask = new Mat();
             using var brightnessMask = new Mat();
             using var combinedMask = new Mat();
-            using var openedMask = new Mat();
-
+            var openedMask = new Mat();
             Cv2.Threshold(channels[1], saturationMask, SaturationThreshold, BinaryMaskMaxValue, ThresholdTypes.Binary);
             Cv2.Threshold(channels[2], brightnessMask, BrightnessThreshold, BinaryMaskMaxValue, ThresholdTypes.Binary);
             Cv2.BitwiseAnd(saturationMask, brightnessMask, combinedMask);
-
-            using var openKernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(CandidateOpenKernelSize, CandidateOpenKernelSize));
             Cv2.MorphologyEx(combinedMask, openedMask, MorphTypes.Open, openKernel);
 
-            return openedMask.Clone();
-        }
-        finally
-        {
-            foreach (var channel in channels)
-            {
-                channel.Dispose();
-            }
-        }
-    }
-
-    private static Mat BuildCandidateDensityMap(Mat playfieldImage)
-    {
-        using var hsv = new Mat();
-        Cv2.CvtColor(playfieldImage, hsv, ColorConversionCodes.BGR2HSV);
-
-        var channels = Cv2.Split(hsv);
-        try
-        {
             using var density = new Mat();
-            using var mask = new Mat();
             using var filteredDensity = new Mat();
-            using var openedDensity = new Mat();
-
+            var openedDensity = new Mat();
             Cv2.Min(channels[1], channels[2], density);
-            Cv2.Threshold(channels[1], mask, SaturationThreshold, BinaryMaskMaxValue, ThresholdTypes.Binary);
-            Cv2.BitwiseAnd(density, mask, filteredDensity);
-
-            using var openKernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(CandidateOpenKernelSize, CandidateOpenKernelSize));
+            Cv2.BitwiseAnd(density, saturationMask, filteredDensity);
             Cv2.MorphologyEx(filteredDensity, openedDensity, MorphTypes.Open, openKernel);
-            return openedDensity.Clone();
+
+            return (openedMask, openedDensity);
         }
         finally
         {
@@ -390,10 +268,7 @@ internal sealed class SampleImageProcessor(
 
             localPolygons = MergeSiblingPolygons(contour, localPolygons, clusterMask.Size());
 
-            foreach (var localPolygon in localPolygons)
-            {
-                polygons.Add(localPolygon);
-            }
+            polygons.AddRange(localPolygons);
         }
 
         polygons = polygons
@@ -600,16 +475,10 @@ internal sealed class SampleImageProcessor(
             return [];
         }
 
-        using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
-        var contourInBounds = contour
-            .Select(point => new Point(point.X - contourBounds.X, point.Y - contourBounds.Y))
-            .ToArray();
-        Cv2.FillPoly(contourMask, [contourInBounds], Scalar.All(BinaryMaskMaxValue));
-
-        using var candidateRegion = new Mat(candidateMask, contourBounds);
-        using var maskedCandidates = new Mat();
+        var (maskedCandidates, contourMask) = MaskCandidatesWithinContour(contour, contourBounds, candidateMask);
+        using var candidates = maskedCandidates;
+        using var mask = contourMask;
         using var refinedCandidates = new Mat();
-        Cv2.BitwiseAnd(candidateRegion, contourMask, maskedCandidates);
 
         using var closeKernel = Cv2.GetStructuringElement(
             MorphShapes.Ellipse,
@@ -654,18 +523,12 @@ internal sealed class SampleImageProcessor(
             return [];
         }
 
-        using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
-        var contourInRoi = contour
-            .Select(point => new Point(point.X - contourBounds.X, point.Y - contourBounds.Y))
-            .ToArray();
-        Cv2.FillPoly(contourMask, [contourInRoi], Scalar.All(BinaryMaskMaxValue));
-
-        using var candidateRegion = new Mat(candidateMask, contourBounds);
+        var (maskedCandidatesRaw, contourMask) = MaskCandidatesWithinContour(contour, contourBounds, candidateMask);
+        using var maskedCandidates = maskedCandidatesRaw;
+        using var mask = contourMask;
         using var densityRegion = new Mat(candidateDensityMap, contourBounds);
-        using var maskedCandidates = new Mat();
         using var maskedDensity = new Mat();
         using var candidatePointIndex = new Mat();
-        Cv2.BitwiseAnd(candidateRegion, contourMask, maskedCandidates);
         densityRegion.CopyTo(maskedDensity, contourMask);
         Cv2.FindNonZero(maskedCandidates, candidatePointIndex);
         Point[]? candidatePoints = null;
@@ -717,20 +580,14 @@ internal sealed class SampleImageProcessor(
     private static IReadOnlyList<Point[]> TrySplitContourByDensitySeeds(Point[] contour, Mat candidateMask, Mat candidateDensityMap, Size bounds)
     {
         var contourBounds = Cv2.BoundingRect(contour);
-        using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
-        var contourInRoi = contour
-            .Select(point => new Point(point.X - contourBounds.X, point.Y - contourBounds.Y))
-            .ToArray();
-        Cv2.FillPoly(contourMask, [contourInRoi], Scalar.All(BinaryMaskMaxValue));
-
-        using var candidateRegion = new Mat(candidateMask, contourBounds);
+        var (maskedCandidatesRaw, contourMask) = MaskCandidatesWithinContour(contour, contourBounds, candidateMask);
+        using var maskedCandidates = maskedCandidatesRaw;
+        using var mask = contourMask;
         using var densityRegion = new Mat(candidateDensityMap, contourBounds);
-        using var maskedCandidates = new Mat();
         using var maskedDensity = new Mat();
         using var blurred = new Mat();
         using var thresholded = new Mat();
         using var candidatePointIndex = new Mat();
-        Cv2.BitwiseAnd(candidateRegion, contourMask, maskedCandidates);
         densityRegion.CopyTo(maskedDensity, contourMask);
         Cv2.FindNonZero(maskedCandidates, candidatePointIndex);
 
@@ -856,18 +713,12 @@ internal sealed class SampleImageProcessor(
             return [];
         }
 
-        using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
-        var contourInRoi = contour
-            .Select(point => new Point(point.X - contourBounds.X, point.Y - contourBounds.Y))
-            .ToArray();
-        Cv2.FillPoly(contourMask, [contourInRoi], Scalar.All(BinaryMaskMaxValue));
-
-        using var candidateRegion = new Mat(candidateMask, contourBounds);
+        var (maskedCandidatesRaw, contourMask) = MaskCandidatesWithinContour(contour, contourBounds, candidateMask);
+        using var maskedCandidates = maskedCandidatesRaw;
+        using var mask = contourMask;
         using var densityRegion = new Mat(candidateDensityMap, contourBounds);
-        using var maskedCandidates = new Mat();
         using var maskedDensity = new Mat();
         using var candidatePointIndex = new Mat();
-        Cv2.BitwiseAnd(candidateRegion, contourMask, maskedCandidates);
         densityRegion.CopyTo(maskedDensity, contourMask);
         Cv2.FindNonZero(maskedCandidates, candidatePointIndex);
         Point[]? candidatePoints = null;
@@ -924,38 +775,14 @@ internal sealed class SampleImageProcessor(
             return null;
         }
 
-        var rowCounts = new int[height];
+        var rowCounts = new double[height];
         foreach (var point in candidatePoints)
         {
             rowCounts[Math.Clamp(point.Y, 0, height - 1)]++;
         }
 
         var smoothedCounts = SmoothHistogram(rowCounts, HistogramSmoothingRadius);
-        var bestRow = -1;
-        var bestValleyRatio = double.MaxValue;
-
-        for (var row = MinimumSplitSegmentHeight; row < height - MinimumSplitSegmentHeight; row++)
-        {
-            var topPeak = smoothedCounts[..row].Max();
-            var bottomPeak = smoothedCounts[(row + 1)..].Max();
-            if (topPeak < MinimumSplitPeakDensity || bottomPeak < MinimumSplitPeakDensity)
-            {
-                continue;
-            }
-
-            var valleyRatio = smoothedCounts[row] / Math.Min(topPeak, bottomPeak);
-            if (valleyRatio >= bestValleyRatio)
-            {
-                continue;
-            }
-
-            bestValleyRatio = valleyRatio;
-            bestRow = row;
-        }
-
-        return bestRow >= 0 && bestValleyRatio <= MaximumSplitValleyRatio
-            ? bestRow
-            : null;
+        return FindBestValleyIndex(smoothedCounts, MinimumSplitSegmentHeight);
     }
 
     private static int? TryFindVerticalSplitRow(Mat weightedDensityMask, int height)
@@ -981,38 +808,14 @@ internal sealed class SampleImageProcessor(
             return null;
         }
 
-        var columnCounts = new int[width];
+        var columnCounts = new double[width];
         foreach (var point in candidatePoints)
         {
             columnCounts[Math.Clamp(point.X, 0, width - 1)]++;
         }
 
         var smoothedCounts = SmoothHistogram(columnCounts, HistogramSmoothingRadius);
-        var bestColumn = -1;
-        var bestValleyRatio = double.MaxValue;
-
-        for (var column = MinimumSplitSegmentWidth; column < width - MinimumSplitSegmentWidth; column++)
-        {
-            var leftPeak = smoothedCounts[..column].Max();
-            var rightPeak = smoothedCounts[(column + 1)..].Max();
-            if (leftPeak < MinimumSplitPeakDensity || rightPeak < MinimumSplitPeakDensity)
-            {
-                continue;
-            }
-
-            var valleyRatio = smoothedCounts[column] / Math.Min(leftPeak, rightPeak);
-            if (valleyRatio >= bestValleyRatio)
-            {
-                continue;
-            }
-
-            bestValleyRatio = valleyRatio;
-            bestColumn = column;
-        }
-
-        return bestColumn >= 0 && bestValleyRatio <= MaximumSplitValleyRatio
-            ? bestColumn
-            : null;
+        return FindBestValleyIndex(smoothedCounts, MinimumSplitSegmentWidth);
     }
 
     private static int? TryFindHorizontalSplitColumn(Mat weightedDensityMask, int width)
@@ -1031,43 +834,47 @@ internal sealed class SampleImageProcessor(
         return TryFindWeightedSplitIndex(columnSums, MinimumSplitSegmentWidth);
     }
 
-    private static double[] SmoothHistogram(IReadOnlyList<int> values, int radius)
-    {
-        var smoothed = new double[values.Count];
-
-        for (var index = 0; index < values.Count; index++)
-        {
-            var start = Math.Max(0, index - radius);
-            var end = Math.Min(values.Count - 1, index + radius);
-            var sum = 0;
-
-            for (var cursor = start; cursor <= end; cursor++)
-            {
-                sum += values[cursor];
-            }
-
-            smoothed[index] = sum / (double)(end - start + 1);
-        }
-
-        return smoothed;
-    }
-
     private static int? TryFindWeightedSplitIndex(IReadOnlyList<double> values, int minimumSegmentSize)
     {
         var smoothedValues = SmoothHistogram(values, HistogramSmoothingRadius);
+        return FindBestValleyIndex(smoothedValues, minimumSegmentSize);
+    }
+
+    private static int? FindBestValleyIndex(double[] smoothed, int minimumSegmentSize)
+    {
+        var length = smoothed.Length;
+        if (length < minimumSegmentSize * 2)
+        {
+            return null;
+        }
+
+        var prefixMax = new double[length];
+        var suffixMax = new double[length];
+        prefixMax[0] = smoothed[0];
+        for (var i = 1; i < length; i++)
+        {
+            prefixMax[i] = Math.Max(prefixMax[i - 1], smoothed[i]);
+        }
+
+        suffixMax[length - 1] = smoothed[length - 1];
+        for (var i = length - 2; i >= 0; i--)
+        {
+            suffixMax[i] = Math.Max(suffixMax[i + 1], smoothed[i]);
+        }
+
         var bestIndex = -1;
         var bestValleyRatio = double.MaxValue;
 
-        for (var index = minimumSegmentSize; index < values.Count - minimumSegmentSize; index++)
+        for (var index = minimumSegmentSize; index < length - minimumSegmentSize; index++)
         {
-            var leadingPeak = smoothedValues[..index].Max();
-            var trailingPeak = smoothedValues[(index + 1)..].Max();
+            var leadingPeak = prefixMax[index - 1];
+            var trailingPeak = suffixMax[index + 1];
             if (leadingPeak < MinimumSplitPeakDensity || trailingPeak < MinimumSplitPeakDensity)
             {
                 continue;
             }
 
-            var valleyRatio = smoothedValues[index] / Math.Min(leadingPeak, trailingPeak);
+            var valleyRatio = smoothed[index] / Math.Min(leadingPeak, trailingPeak);
             if (valleyRatio >= bestValleyRatio)
             {
                 continue;
@@ -1103,18 +910,26 @@ internal sealed class SampleImageProcessor(
         return smoothed;
     }
 
-    private static Point[] TryGetContourCandidatePoints(Point[] contour, Rect contourBounds, Mat candidateMask)
+    private static (Mat MaskedCandidates, Mat ContourMask) MaskCandidatesWithinContour(Point[] contour, Rect contourBounds, Mat candidateMask)
     {
-        using var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
+        var contourMask = new Mat(contourBounds.Height, contourBounds.Width, MatType.CV_8UC1, Scalar.All(0));
         var contourInRoi = contour
             .Select(point => new Point(point.X - contourBounds.X, point.Y - contourBounds.Y))
             .ToArray();
         Cv2.FillPoly(contourMask, [contourInRoi], Scalar.All(BinaryMaskMaxValue));
 
         using var candidateRegion = new Mat(candidateMask, contourBounds);
-        using var maskedCandidates = new Mat();
-        using var candidatePointIndex = new Mat();
+        var maskedCandidates = new Mat();
         Cv2.BitwiseAnd(candidateRegion, contourMask, maskedCandidates);
+        return (maskedCandidates, contourMask);
+    }
+
+    private static Point[] TryGetContourCandidatePoints(Point[] contour, Rect contourBounds, Mat candidateMask)
+    {
+        var (maskedCandidates, contourMask) = MaskCandidatesWithinContour(contour, contourBounds, candidateMask);
+        using var candidates = maskedCandidates;
+        using var mask = contourMask;
+        using var candidatePointIndex = new Mat();
         Cv2.FindNonZero(maskedCandidates, candidatePointIndex);
         if (candidatePointIndex.Empty())
         {
@@ -1344,7 +1159,7 @@ internal sealed class SampleImageProcessor(
 
     private static Point[] ClipPolygonToMaximumY(Point[] polygon, int maximumY)
     {
-        return ClipPolygonWithHorizontalBoundary(
+        return ClipPolygonWithBoundary(
             polygon,
             point => point.Y <= maximumY,
             (start, end) => IntersectSegmentWithHorizontalBoundary(start, end, maximumY));
@@ -1352,7 +1167,7 @@ internal sealed class SampleImageProcessor(
 
     private static Point[] ClipPolygonToMinimumY(Point[] polygon, int minimumY)
     {
-        return ClipPolygonWithHorizontalBoundary(
+        return ClipPolygonWithBoundary(
             polygon,
             point => point.Y >= minimumY,
             (start, end) => IntersectSegmentWithHorizontalBoundary(start, end, minimumY));
@@ -1360,7 +1175,7 @@ internal sealed class SampleImageProcessor(
 
     private static Point[] ClipPolygonToMaximumX(Point[] polygon, int maximumX)
     {
-        return ClipPolygonWithVerticalBoundary(
+        return ClipPolygonWithBoundary(
             polygon,
             point => point.X <= maximumX,
             (start, end) => IntersectSegmentWithVerticalBoundary(start, end, maximumX));
@@ -1368,7 +1183,7 @@ internal sealed class SampleImageProcessor(
 
     private static Point[] ClipPolygonToMinimumX(Point[] polygon, int minimumX)
     {
-        return ClipPolygonWithVerticalBoundary(
+        return ClipPolygonWithBoundary(
             polygon,
             point => point.X >= minimumX,
             (start, end) => IntersectSegmentWithVerticalBoundary(start, end, minimumX));
@@ -1559,64 +1374,7 @@ internal sealed class SampleImageProcessor(
         }
     }
 
-    private static Point[] ClipPolygonWithHorizontalBoundary(
-        Point[] polygon,
-        Func<Point, bool> isInside,
-        Func<Point, Point, Point?> intersect)
-    {
-        if (polygon.Length < 3)
-        {
-            return [];
-        }
-
-        var clipped = new List<Point>();
-
-        for (var index = 0; index < polygon.Length; index++)
-        {
-            var current = polygon[index];
-            var next = polygon[(index + 1) % polygon.Length];
-            var currentInside = isInside(current);
-            var nextInside = isInside(next);
-
-            if (currentInside && nextInside)
-            {
-                clipped.Add(next);
-                continue;
-            }
-
-            if (currentInside && !nextInside)
-            {
-                var intersection = intersect(current, next);
-                if (intersection is not null)
-                {
-                    clipped.Add(intersection.Value);
-                }
-
-                continue;
-            }
-
-            if (!currentInside && nextInside)
-            {
-                var intersection = intersect(current, next);
-                if (intersection is not null)
-                {
-                    clipped.Add(intersection.Value);
-                }
-
-                clipped.Add(next);
-            }
-        }
-
-        var distinctPoints = clipped
-            .Distinct()
-            .ToArray();
-
-        return distinctPoints.Length <= MaximumPolygonPoints
-            ? distinctPoints
-            : SimplifyPolygon(distinctPoints, MaximumPolygonPoints);
-    }
-
-    private static Point[] ClipPolygonWithVerticalBoundary(
+    private static Point[] ClipPolygonWithBoundary(
         Point[] polygon,
         Func<Point, bool> isInside,
         Func<Point, Point, Point?> intersect)
@@ -1987,17 +1745,17 @@ internal sealed class SampleImageProcessor(
     }
 
     private static bool TryFindClosestPolygonSpacingViolation(
-        IReadOnlyList<Point> firstPolygon,
-        IReadOnlyList<Point> secondPolygon,
+        Point[] firstPolygon,
+        Point[] secondPolygon,
         out PolygonSpacingViolation violation)
     {
         violation = default;
         var foundViolation = false;
         var minimumDistance = double.MaxValue;
 
-        for (var firstIndex = 0; firstIndex < firstPolygon.Count; firstIndex++)
+        for (var firstIndex = 0; firstIndex < firstPolygon.Length; firstIndex++)
         {
-            for (var secondIndex = 0; secondIndex < secondPolygon.Count; secondIndex++)
+            for (var secondIndex = 0; secondIndex < secondPolygon.Length; secondIndex++)
             {
                 var dx = firstPolygon[firstIndex].X - secondPolygon[secondIndex].X;
                 var dy = firstPolygon[firstIndex].Y - secondPolygon[secondIndex].Y;
@@ -2016,12 +1774,12 @@ internal sealed class SampleImageProcessor(
             }
         }
 
-        for (var firstIndex = 0; firstIndex < firstPolygon.Count; firstIndex++)
+        for (var firstIndex = 0; firstIndex < firstPolygon.Length; firstIndex++)
         {
-            for (var secondIndex = 0; secondIndex < secondPolygon.Count; secondIndex++)
+            for (var secondIndex = 0; secondIndex < secondPolygon.Length; secondIndex++)
             {
                 var segmentStart = secondPolygon[secondIndex];
-                var segmentEnd = secondPolygon[(secondIndex + 1) % secondPolygon.Count];
+                var segmentEnd = secondPolygon[(secondIndex + 1) % secondPolygon.Length];
                 var closestPoint = FindClosestPointOnSegment(firstPolygon[firstIndex], segmentStart, segmentEnd);
                 var currentDistance = Distance(firstPolygon[firstIndex], closestPoint);
                 if (currentDistance < minimumDistance)
@@ -2038,12 +1796,12 @@ internal sealed class SampleImageProcessor(
             }
         }
 
-        for (var secondIndex = 0; secondIndex < secondPolygon.Count; secondIndex++)
+        for (var secondIndex = 0; secondIndex < secondPolygon.Length; secondIndex++)
         {
-            for (var firstIndex = 0; firstIndex < firstPolygon.Count; firstIndex++)
+            for (var firstIndex = 0; firstIndex < firstPolygon.Length; firstIndex++)
             {
                 var segmentStart = firstPolygon[firstIndex];
-                var segmentEnd = firstPolygon[(firstIndex + 1) % firstPolygon.Count];
+                var segmentEnd = firstPolygon[(firstIndex + 1) % firstPolygon.Length];
                 var closestPoint = FindClosestPointOnSegment(secondPolygon[secondIndex], segmentStart, segmentEnd);
                 var currentDistance = Distance(secondPolygon[secondIndex], closestPoint);
                 if (currentDistance < minimumDistance)
@@ -2283,7 +2041,7 @@ internal sealed class SampleImageProcessor(
             (int)Math.Round(start.Y + (dy * t)));
     }
 
-    private IReadOnlyList<Point[]> BuildDefaultFallbackPolygons(Rect targetPlayfield)
+    private Point[][] BuildDefaultFallbackPolygons(Rect targetPlayfield)
     {
         if (!m_KnownSampleMatcher.TryLoadDefaultFallbackPolygons(out var fallbackPolygons, out var sourcePlayfieldSize) ||
             sourcePlayfieldSize.Width <= 0 ||
@@ -2309,53 +2067,7 @@ internal sealed class SampleImageProcessor(
             ? fallbackPolygons
             : [];
     }
-
-    private static void DrawDebugOverlay(Mat annotated, PlayfieldDetectionResult playfieldDetection, IReadOnlyList<Point[]> polygons)
-    {
-        // Draw the recovered playfield and cluster outlines back onto the original
-        // screenshot so each output image explains what the detector decided.
-        if (playfieldDetection.IsFound)
-        {
-            Cv2.Rectangle(annotated, playfieldDetection.Bounds, new Scalar(70, 150, 255), OverlayStrokeThickness);
-
-            foreach (var marker in playfieldDetection.MarkerBounds)
-            {
-                Cv2.Rectangle(annotated, marker, new Scalar(255, 120, 80), OverlayStrokeThickness);
-            }
-        }
-
-        for (var index = 0; index < polygons.Count; index++)
-        {
-            var color = Palette[index % Palette.Length];
-            Cv2.Polylines(annotated, [polygons[index]], true, color, OverlayStrokeThickness, LineTypes.AntiAlias);
-
-            foreach (var point in polygons[index])
-            {
-                Cv2.Circle(annotated, point, OverlayPointRadius, color, -1, LineTypes.AntiAlias);
-            }
-        }
-
-        Cv2.PutText(
-            annotated,
-            playfieldDetection.IsFound
-                ? $"Playfield found, clusters: {polygons.Count}"
-                : polygons.Count > 0
-                    ? $"Playfield not found, using fallback: {polygons.Count}"
-                    : "Playfield not found",
-            new Point(
-                playfieldDetection.IsFound ? playfieldDetection.Bounds.X : OverlayLeftPadding,
-                playfieldDetection.IsFound ? Math.Max(OverlayMinimumLabelY, playfieldDetection.Bounds.Y - OverlayLabelYOffset) : OverlayTopPadding),
-            HersheyFonts.HersheySimplex,
-            OverlayTextScale,
-            playfieldDetection.IsFound ? new Scalar(80, 220, 120) : new Scalar(80, 120, 255),
-            OverlayTextThickness,
-            LineTypes.AntiAlias);
-    }
 }
-
-internal sealed record SampleProcessingSummary(
-    string SamplesDirectory,
-    IReadOnlyList<SampleProcessingResult> Results);
 
 internal sealed record SampleProcessingResult(
     string FileName,
@@ -2366,4 +2078,6 @@ internal sealed record SampleProcessingResult(
 internal sealed record SampleImageAnalysisResult(
     SampleProcessingResult Result,
     PlayfieldDetectionResult PlayfieldDetection,
-    IReadOnlyList<Point[]> Polygons);
+    IReadOnlyList<Point[]> Polygons,
+    bool UsedKnownSampleTemplate = false,
+    string? MatchedSampleFileName = null);
