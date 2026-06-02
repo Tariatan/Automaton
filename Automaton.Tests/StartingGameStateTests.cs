@@ -19,7 +19,8 @@ public sealed class StartingGameStateTests
             new StubScreenCaptureProvider(screen.Clone),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonDetector());
+        var gameActionService = new StubGameActionService();
+        var state = new StartingGameState(automationInputControllerMock, gameActionService, new PlayNowButtonDetector());
 
         // Act
         var transition = state.Execute(
@@ -32,8 +33,8 @@ public sealed class StartingGameStateTests
         Assert.Single(automationInputControllerMock.MoveTargets);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal([Delays.LauncherStartupMs], automationInputControllerMock.Delays);
-        Assert.Single(automationInputControllerMock.KeyInputs);
-        AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
+        Assert.Empty(automationInputControllerMock.KeyInputs);
+        Assert.Equal(1, gameActionService.CloseActiveWindowCallCount);
     }
 
     [Fact]
@@ -47,7 +48,8 @@ public sealed class StartingGameStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new StartingGameState(automationInputControllerMock, new PlayNowButtonDetector());
+        var gameActionService = new StubGameActionService();
+        var state = new StartingGameState(automationInputControllerMock, gameActionService, new PlayNowButtonDetector());
 
         // Act
         var transition = state.Execute(
@@ -61,17 +63,6 @@ public sealed class StartingGameStateTests
         Assert.Equal(0, automationInputControllerMock.ClickCount);
         Assert.Empty(automationInputControllerMock.Delays);
         Assert.Empty(automationInputControllerMock.KeyInputs);
-    }
-
-    // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
-    private static void AssertKeyChord(
-        KeyboardInput keyInput,
-        ushort modifierVirtualKey,
-        ushort virtualKey)
-    // ReSharper restore ParameterOnlyUsedForPreconditionCheck.Local
-    {
-        Assert.Equal(modifierVirtualKey, keyInput.ModifierVirtualKey);
-        Assert.Null(keyInput.SecondModifierVirtualKey);
-        Assert.Equal(virtualKey, keyInput.VirtualKey);
+        Assert.Equal(0, gameActionService.CloseActiveWindowCallCount);
     }
 }

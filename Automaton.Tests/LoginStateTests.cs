@@ -20,7 +20,8 @@ public sealed class LoginStateTests
             new StubScreenCaptureProvider(pilotScreen.Clone),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState(automationInputControllerMock, new StubGameActionService(), new PilotAvatarDetector());
+        var gameActionService = new StubGameActionService();
+        var state = new LoginState(gameActionService, new PilotAvatarDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -46,9 +47,8 @@ public sealed class LoginStateTests
         Assert.Equal(new Point(854, 782), automationInputControllerMock.MoveTargets[0]);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal([Delays.PilotLoginMs, Delays.MinimumClickMs], automationInputControllerMock.Delays);
-        Assert.Equal(2, automationInputControllerMock.KeyInputs.Count);
-        AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
-        AssertKeyChord(automationInputControllerMock.KeyInputs[1], VirtualKeys.Control, VirtualKeys.W);
+        Assert.Empty(automationInputControllerMock.KeyInputs);
+        Assert.Equal(2, gameActionService.CloseActiveWindowCallCount);
     }
 
     [Fact]
@@ -63,7 +63,8 @@ public sealed class LoginStateTests
             new StubScreenCaptureProvider(blankScreen.Clone),
             new SampleImageProcessor());
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new LoginState(automationInputControllerMock, new StubGameActionService(), new PilotAvatarDetector());
+        var gameActionService = new StubGameActionService();
+        var state = new LoginState(gameActionService, new PilotAvatarDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -88,8 +89,8 @@ public sealed class LoginStateTests
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
         Assert.Empty(automationInputControllerMock.Delays);
-        Assert.Single(automationInputControllerMock.KeyInputs);
-        AssertKeyChord(automationInputControllerMock.KeyInputs[0], VirtualKeys.Control, VirtualKeys.W);
+        Assert.Empty(automationInputControllerMock.KeyInputs);
+        Assert.Equal(1, gameActionService.CloseActiveWindowCallCount);
     }
 
     private static void WritePilotAvatarTemplates(string pilotDirectory, int pilotIndex)
@@ -99,28 +100,5 @@ public sealed class LoginStateTests
         using var focusedAvatar = SyntheticCommonImageFactory.LoadFocusedPilotAvatarImage(pilotIndex);
         Cv2.ImWrite(Path.Combine(pilotDirectory, $"{pilotIndex}.png"), avatar);
         Cv2.ImWrite(Path.Combine(pilotDirectory, $"{pilotIndex}_focused.png"), focusedAvatar);
-    }
-
-    // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
-    private static void AssertKeyChord(
-        KeyboardInput keyInput,
-        ushort modifierVirtualKey,
-        ushort virtualKey)
-    // ReSharper restore ParameterOnlyUsedForPreconditionCheck.Local
-    {
-        Assert.Equal(modifierVirtualKey, keyInput.ModifierVirtualKey);
-        Assert.Null(keyInput.SecondModifierVirtualKey);
-        Assert.Equal(virtualKey, keyInput.VirtualKey);
-    }
-
-    private static void AssertTripleKeyChord(
-        KeyboardInput keyInput,
-        ushort firstModifierVirtualKey,
-        ushort secondModifierVirtualKey,
-        ushort virtualKey)
-    {
-        Assert.Equal(firstModifierVirtualKey, keyInput.ModifierVirtualKey);
-        Assert.Equal(secondModifierVirtualKey, keyInput.SecondModifierVirtualKey);
-        Assert.Equal(virtualKey, keyInput.VirtualKey);
     }
 }

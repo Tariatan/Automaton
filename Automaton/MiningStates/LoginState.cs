@@ -6,14 +6,13 @@ using Serilog;
 namespace Automaton.MiningStates;
 
 internal sealed class LoginState(
-    IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     PilotAvatarDetector pilotAvatarDetector)
     : IMiningAutomationState
 {
     private const int PilotIndex = 2;
     private const string CaptureSuffix = ".mining-login";
-    private readonly CommonLoginState m_CommonLoginState = new(automationInputController, pilotAvatarDetector);
+    private readonly CommonLoginState m_CommonLoginState = new(gameActionService, pilotAvatarDetector);
 
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
 

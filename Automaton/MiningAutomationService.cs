@@ -160,8 +160,8 @@ internal sealed class MiningAutomationService(
     {
         return stateKind switch
         {
-            MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, playNowButtonDetector),
-            MiningAutomationStateKind.Login => new LoginState(automationInputController, gameActionService, pilotAvatarDetector),
+            MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, gameActionService, playNowButtonDetector),
+            MiningAutomationStateKind.Login => new LoginState(gameActionService, pilotAvatarDetector),
             MiningAutomationStateKind.Dock => new DockingState(automationInputController, asteroidBeltOverviewDetector),
             MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, gameActionService, inventoryDetector, downtimeDetector),
             MiningAutomationStateKind.Undocking => new UndockingState(automationInputController, locationChangeTimerDetector),

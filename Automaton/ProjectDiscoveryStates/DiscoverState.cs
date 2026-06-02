@@ -32,7 +32,7 @@ internal sealed class DiscoverState(
         if (context.LastAction == DiscoveryAutomationActionKind.LoginPilot)
         {
             m_Logger.Information("Activate Discovery Project window after login");
-            automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+            gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
             automationInputController.Delay(Delays.LoadWindowMs, cancellationToken);
         }
 

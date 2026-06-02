@@ -1,13 +1,12 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
-using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.CommonAutomationStates;
 
 internal sealed class CommonLoginState(
-    IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     PilotAvatarDetector pilotAvatarDetector)
 {
     private readonly ILogger m_Logger = Log.ForContext<CommonLoginState>();
@@ -19,8 +18,37 @@ internal sealed class CommonLoginState(
         CancellationToken cancellationToken,
         out string capturePath)
     {
-        m_Logger.Information("Hide any active window on login screen first");
-        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        var pilotLocation = DetectPilotLocation(screenCaptureService, pilotIndex, captureSuffix, cancellationToken, out capturePath);
+        if (pilotLocation is null)
+        {
+            return false;
+        }
+
+        gameActionService.Login(pilotIndex, GeometryHelper.Center(pilotLocation.Value), cancellationToken);
+
+        m_Logger.Warning("Workaround wrong pilot login issue by logging in twice");
+        {
+            gameActionService.Logout(cancellationToken);
+            pilotLocation = DetectPilotLocation(screenCaptureService, pilotIndex, captureSuffix, cancellationToken, out capturePath);
+            if (pilotLocation is null)
+            {
+                return false;
+            }
+
+            gameActionService.Login(pilotIndex, GeometryHelper.Center(pilotLocation.Value), cancellationToken);
+        }
+
+        return true;
+    }
+
+    private Rect? DetectPilotLocation(
+        ScreenCaptureService screenCaptureService,
+        int pilotIndex,
+        string captureSuffix,
+        CancellationToken cancellationToken,
+        out string capturePath)
+    {
+        gameActionService.CloseActiveWindow(cancellationToken);
 
         using var capture = screenCaptureService.CaptureCurrentScreen($"{captureSuffix}-{pilotIndex}");
         capturePath = capture.CapturePath;
@@ -28,22 +56,11 @@ internal sealed class CommonLoginState(
 
         if (!pilotAvatarDetector.Detect(capture.Image, pilotIndex, out var pilotLocation))
         {
-            return false;
+            return null;
         }
 
         DrawDebugOverlay(capturePath, pilotLocation.Bounds, $"Pilot {pilotIndex} found");
-
-        var delay = TimeSpan.FromMilliseconds(Delays.PilotLoginMs);
-        m_Logger.Information("Logging in pilot {PilotIndex} for {DelaySeconds:0.###} seconds...", pilotIndex, delay.TotalSeconds);
-        automationInputController.MoveTo(GeometryHelper.Center(pilotLocation.Bounds));
-        automationInputController.LeftClick(cancellationToken);
-        automationInputController.Delay(delay, cancellationToken);
-
-        m_Logger.Information("Hide any active window on post login screen");
-        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
-        automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
-
-        return true;
+        return pilotLocation.Bounds;
     }
 
     private static void DrawDebugOverlay(string imagePath, Rect bounds, string label)

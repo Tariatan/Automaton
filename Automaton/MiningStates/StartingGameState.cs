@@ -7,11 +7,12 @@ namespace Automaton.MiningStates;
 
 internal sealed class StartingGameState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     PlayNowButtonDetector playNowButtonDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-starting-game";
-    private readonly CommonStartGameState m_CommonStartGameState = new(automationInputController, playNowButtonDetector);
+    private readonly CommonStartGameState m_CommonStartGameState = new(automationInputController, gameActionService, playNowButtonDetector);
 
     private readonly ILogger m_Logger = Log.ForContext<StartingGameState>();
 

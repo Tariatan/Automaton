@@ -94,6 +94,10 @@ internal sealed class SelectBeltAndWarpState(
         var requestedAsteroidBeltIndex = nextRandomIndex(availableAsteroidBelts.Length);
         var selectedAsteroidBeltIndex = Math.Clamp(requestedAsteroidBeltIndex, 0, availableAsteroidBelts.Length - 1);
         var selectedAsteroidBelt = availableAsteroidBelts[selectedAsteroidBeltIndex];
+        var selectedDetectedAsteroidBeltIndex = analysis.AsteroidBelts
+            .Select((asteroidBelt, index) => new { AsteroidBelt = asteroidBelt, Index = index + 1 })
+            .First(asteroidBelt => asteroidBelt.AsteroidBelt == selectedAsteroidBelt)
+            .Index;
         context.SetCurrentAsteroidBelt(selectedAsteroidBelt.Bounds);
 
         // Select asteroid belt
@@ -126,9 +130,9 @@ internal sealed class SelectBeltAndWarpState(
                     {
                         context.BlacklistAsteroidBelt(selectedAsteroidBelt.Bounds);
                         m_Logger.Error(
-                            "WAR overview is active and not empty in SelectBeltAndWarpState => GTFO docking. BlacklistedBeltCount={BlacklistedBeltCount}, BlacklistedBeltBounds={BlacklistedBeltBounds}",
+                            "WAR overview is active and not empty in SelectBeltAndWarpState => GTFO docking. BlacklistedBeltCount={BlacklistedBeltCount}, BlacklistedBeltIndex={BlacklistedBeltIndex}",
                             context.BlacklistedAsteroidBeltCount,
-                            selectedAsteroidBelt.Bounds);
+                            selectedDetectedAsteroidBeltIndex);
                         var gtfoResult = new MiningAutomationStateTransition(
                             Kind,
                             MiningAutomationStateKind.Dock,
@@ -146,9 +150,9 @@ internal sealed class SelectBeltAndWarpState(
                 {
                     context.BlacklistAsteroidBelt(selectedAsteroidBelt.Bounds);
                     m_Logger.Warning(
-                        "Nothing Found detected in MINE overview. Blacklisting asteroid belt and selecting another. BlacklistedBeltCount={BlacklistedBeltCount}, BlacklistedBeltBounds={BlacklistedBeltBounds}",
+                        "Nothing Found detected in MINE overview. Blacklisting asteroid belt and selecting another. BlacklistedBeltCount={BlacklistedBeltCount}, BlacklistedBeltIndex={BlacklistedBeltIndex}",
                         context.BlacklistedAsteroidBeltCount,
-                        selectedAsteroidBelt.Bounds);
+                        selectedDetectedAsteroidBeltIndex);
                     var blacklistResult = new MiningAutomationStateTransition(
                         Kind,
                         MiningAutomationStateKind.SelectBeltAndWarp,

@@ -7,12 +7,11 @@ namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class LoginState(
     ScreenCaptureService screenCaptureService,
-    IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     PilotAvatarDetector pilotAvatarDetector) : IProjectDiscoveryAutomationState
 {
     private const string CaptureSuffix = ".discovery-login";
-    private readonly CommonLoginState m_CommonLoginState = new(automationInputController, pilotAvatarDetector);
+    private readonly CommonLoginState m_CommonLoginState = new(gameActionService, pilotAvatarDetector);
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Login;
 
@@ -47,8 +46,8 @@ internal sealed class LoginState(
             m_Logger.Error("Pilot {PilotIndex} login failed! CapturePath={CapturePath}", context.CurrentPilotIndex, capturePath);
             return new DiscoveryAutomationStateTransition(
                 Kind,
-                DiscoveryAutomationStateKind.RecoverConnectionLostPopup,
-                DiscoveryAutomationActionKind.StopAutomation,
+                DiscoveryAutomationStateKind.Recovery,
+                DiscoveryAutomationActionKind.Recover,
                 capturePath);
         }
 

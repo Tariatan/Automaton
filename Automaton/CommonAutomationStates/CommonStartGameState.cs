@@ -8,6 +8,7 @@ namespace Automaton.CommonAutomationStates;
 
 internal sealed class CommonStartGameState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     PlayNowButtonDetector playNowButtonDetector)
 {
     private readonly ILogger m_Logger = Log.ForContext<CommonStartGameState>();
@@ -36,7 +37,7 @@ internal sealed class CommonStartGameState(
         automationInputController.Delay(delay, cancellationToken);
 
         m_Logger.Information("Hide any active window on login screen first");
-        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        gameActionService.CloseActiveWindow(cancellationToken);
 
         return true;
     }

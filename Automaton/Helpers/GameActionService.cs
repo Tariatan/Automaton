@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using Automaton.Primitives;
+using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.Helpers;
@@ -30,7 +31,19 @@ internal sealed class GameActionService(IAutomationInputController inputControll
         m_Logger.Information("Logging out for {Seconds} seconds", delay.TotalSeconds);
         inputController.Delay(delay, cancellationToken);
 
-        inputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        CloseActiveWindow(cancellationToken);
+    }
+
+    public void Login(int pilotIndex, Point activationPoint, CancellationToken cancellationToken)
+    {
+        var delay = TimeSpan.FromMilliseconds(Delays.PilotLoginMs);
+        m_Logger.Information("Logging in pilot {PilotIndex} for {DelaySeconds:0.###} seconds...", pilotIndex, delay.TotalSeconds);
+        inputController.MoveTo(activationPoint);
+        inputController.LeftClick(cancellationToken);
+        inputController.Delay(delay, cancellationToken);
+
+        CloseActiveWindow(cancellationToken);
+        inputController.Delay(Delays.MinimumClickMs, cancellationToken);
     }
 
     public void RebootOperatingSystem(CancellationToken cancellationToken)
@@ -68,6 +81,18 @@ internal sealed class GameActionService(IAutomationInputController inputControll
             PressHideUiChord(cancellationToken);
             inputController.Delay(Delays.HideUiMs, cancellationToken);
         }
+    }
+
+    public void CloseActiveWindow(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Hide active window");
+        inputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Q, cancellationToken);
+    }
+
+    public void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Toggle Project Discovery window");
+        inputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
     }
 
     private void PressHideUiChord(CancellationToken cancellationToken)

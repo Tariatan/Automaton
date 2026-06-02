@@ -4,7 +4,9 @@ using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;
 
-internal sealed class RecoverOverlapState(IAutomationInputController automationInputController) : IProjectDiscoveryAutomationState
+internal sealed class RecoverOverlapState(
+    IAutomationInputController automationInputController,
+    IGameActionService gameActionService) : IProjectDiscoveryAutomationState
 {
     private readonly ILogger m_Logger = Log.ForContext<RecoverOverlapState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.RecoverOverlap;
@@ -12,9 +14,9 @@ internal sealed class RecoverOverlapState(IAutomationInputController automationI
     public DiscoveryAutomationStateTransition Execute(ProjectDiscoveryAutomationContext context, CancellationToken cancellationToken)
     {
         m_Logger.Warning("Recovering from overlap: re-opening discovery playfield.");
-        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
         automationInputController.Delay(Delays.WindowActivationMs, cancellationToken);
-        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
         automationInputController.Delay(Delays.WindowActivationMs, cancellationToken);
         return new DiscoveryAutomationStateTransition(
             Kind,

@@ -4,7 +4,9 @@ using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;
 
-internal sealed class RecoverSlowDownPopupState(IAutomationInputController automationInputController) : IProjectDiscoveryAutomationState
+internal sealed class RecoverSlowDownPopupState(
+    IAutomationInputController automationInputController,
+    IGameActionService gameActionService) : IProjectDiscoveryAutomationState
 {
     private readonly ILogger m_Logger = Log.ForContext<RecoverSlowDownPopupState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.RecoverSlowDownPopup;
@@ -14,10 +16,10 @@ internal sealed class RecoverSlowDownPopupState(IAutomationInputController autom
         m_Logger.Warning(
             "Slow Down popup detected, RecoveryDelayMilliseconds={RecoveryDelayMilliseconds}",
             Delays.SubmissionWindowMs);
-        automationInputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.W, cancellationToken);
+        gameActionService.CloseActiveWindow(cancellationToken);
         automationInputController.Delay(Delays.SubmissionWindowMs, cancellationToken);
         automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
-        automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
         return new DiscoveryAutomationStateTransition(
             Kind,
             DiscoveryAutomationStateKind.Discover,
