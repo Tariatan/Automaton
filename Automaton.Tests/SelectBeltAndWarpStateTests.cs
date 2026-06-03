@@ -24,9 +24,10 @@ public sealed class SelectBeltAndWarpStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new SelectBeltAndWarpState(
             automationInputController,
-            new StubGameActionService(),
+            gameActionService,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),
@@ -44,7 +45,7 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Equal(2, automationInputController.ClickCount);
         Assert.Equal([Delays.LandingPollingMs], automationInputController.Delays);
         Assert.Equal(4, automationInputController.MoveTargets.Count);
-        Assert.Equal([VirtualKeys.S], automationInputController.KeyInputs.Select(k => k.VirtualKey));
+        Assert.Equal(1, gameActionService.WarpToTargetCallCount);
         Assert.InRange(automationInputController.MoveTargets[0].X, 2200, 2320);
         Assert.InRange(automationInputController.MoveTargets[0].Y, 330, 370);
         AssertMouseParked(automationInputController.MoveTargets[1]);

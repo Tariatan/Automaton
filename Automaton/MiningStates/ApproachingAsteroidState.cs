@@ -8,11 +8,12 @@ namespace Automaton.MiningStates;
 
 internal sealed class ApproachingAsteroidState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     MineOverviewDetector mineOverviewDetector,
     FirstAsteroidWithinReachDetector firstAsteroidWithinReachDetector)
     : IMiningAutomationState
 {
-    public const string ApproachingAsteroidCaptureSuffix = ".mining-approaching-asteroid";
+    private const string ApproachingAsteroidCaptureSuffix = ".mining-approaching-asteroid";
 
     private readonly ILogger m_Logger = Log.ForContext<ApproachingAsteroidState>();
 
@@ -26,7 +27,7 @@ internal sealed class ApproachingAsteroidState(
         cancellationToken.ThrowIfCancellationRequested();
 
         // Activate propulsion module
-        automationInputController.PressKey(VirtualKeys.F4, cancellationToken);
+        gameActionService.TogglePropulsionModule(cancellationToken);
 
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(ApproachingAsteroidCaptureSuffix);
         var mineOverviewAnalysis = mineOverviewDetector.Detect(capture.Image);
@@ -62,7 +63,7 @@ internal sealed class ApproachingAsteroidState(
         // Select nearest asteroid
         automationInputController.ClickUiElement(GeometryHelper.Center(asteroids[0].Bounds), cancellationToken);
         // Approach
-        automationInputController.PressKey(VirtualKeys.A, cancellationToken);
+        gameActionService.TriggerTargetApproach(cancellationToken);
         capture.Dispose();
 
         m_Logger.Information("Approaching nearest asteroid...");
@@ -88,7 +89,7 @@ internal sealed class ApproachingAsteroidState(
             {
                 m_Logger.Warning("Reached halfway attempt while approaching asteroid => retrying approach command");
                 automationInputController.ClickUiElement(GeometryHelper.Center(firstAsteroidRowBounds), cancellationToken);
-                automationInputController.PressKey(VirtualKeys.A, cancellationToken);
+                gameActionService.TriggerTargetApproach(cancellationToken);
             }
 
             // Nearest asteroid is within reach
@@ -97,13 +98,15 @@ internal sealed class ApproachingAsteroidState(
                 m_Logger.Information("Distance to asteroid decreased below 10 km => locking target and activating lasers");
 
                 // Target the asteroid
-                automationInputController.PressKey(VirtualKeys.Control, cancellationToken);
+                gameActionService.TriggerTargetLock(cancellationToken);
                 // Wait for target lock
                 automationInputController.Delay(Delays.LockAsteroidMs, cancellationToken);
+                // Deactivate propulsion module
+                gameActionService.TogglePropulsionModule(cancellationToken);
                 // Activate first laser
-                automationInputController.PressKey(VirtualKeys.F1, cancellationToken);
+                gameActionService.ToggleFirstLaser(cancellationToken);
                 // Activate second laser
-                automationInputController.PressKey(VirtualKeys.F2, cancellationToken);
+                gameActionService.ToggleSecondLaser(cancellationToken);
 
                 var result = new MiningAutomationStateTransition(
                     Kind,

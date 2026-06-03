@@ -43,12 +43,10 @@ public sealed class LoginStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.LoginPilot, transition.Action);
-        Assert.Single(automationInputControllerMock.MoveTargets);
-        Assert.Equal(new Point(854, 782), automationInputControllerMock.MoveTargets[0]);
-        Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal([Delays.PilotLoginMs, Delays.MinimumClickMs], automationInputControllerMock.Delays);
-        Assert.Empty(automationInputControllerMock.KeyInputs);
+        Assert.Equal(2, gameActionService.LoginCallCount);
+        Assert.True(gameActionService.LogoutCalled);
         Assert.Equal(2, gameActionService.CloseActiveWindowCallCount);
+        Assert.All(gameActionService.LoginCalls, call => Assert.Equal(2, call.PilotIndex));
     }
 
     [Fact]

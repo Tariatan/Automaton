@@ -14,7 +14,7 @@ internal sealed class UnloadingCargoState(
     DowntimeDetector downtimeDetector)
     : IMiningAutomationState
 {
-    public const string UnloadingCargoCaptureSuffix = ".mining-unloading-cargo";
+    private const string UnloadingCargoCaptureSuffix = ".mining-unloading-cargo";
     private const int OpenWindowAttemptCount = 5;
     private readonly ILogger m_Logger = Log.ForContext<UnloadingCargoState>();
 
@@ -68,11 +68,7 @@ internal sealed class UnloadingCargoState(
         cancellationToken.ThrowIfCancellationRequested();
 
         var analysis = inventoryDetector.Detect(capture.Image);
-        AnnotateHoldTransferCapture(
-            capture.CapturePath,
-            capture.Image,
-            analysis.MiningHoldFirstRowBounds,
-            analysis.ItemHangarFirstRowBounds);
+        AnnotateHoldTransferCapture(capture.CapturePath, capture.Image, analysis.MiningHoldFirstRowBounds, analysis.ItemHangarFirstRowBounds);
         if (analysis.MiningHoldTitleBounds is null || analysis.ItemHangarTitleBounds is null)
         {
             m_Logger.Error("Failed to detect Item Hangar and/or Mining Hold. Capture={CapturePath}", capture.CapturePath);
@@ -160,9 +156,7 @@ internal sealed class UnloadingCargoState(
             var initialAnalysis = inventoryDetector.Detect(initialCapture.Image);
             if (isWindowVisible(initialAnalysis))
             {
-                m_Logger.Information(
-                    "{WindowName} inventory window already visible. No open action required.",
-                    windowName);
+                m_Logger.Information("{WindowName} inventory window already visible. No open action required.", windowName);
                 return true;
             }
         }

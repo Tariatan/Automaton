@@ -25,6 +25,7 @@ public sealed class ApproachingAsteroidStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var firstAsteroidWithinReachDetector = new StubFirstAsteroidWithinReachDetector(
             () =>
             {
@@ -34,6 +35,7 @@ public sealed class ApproachingAsteroidStateTests
             });
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
+            gameActionService,
             new MineOverviewDetector(),
             firstAsteroidWithinReachDetector);
 
@@ -51,9 +53,11 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal(Delays.ApproachAsteroidDistancePollingMs, automationInputControllerMock.Delays[0]);
         Assert.Contains(Delays.LockAsteroidMs, automationInputControllerMock.Delays);
-        Assert.Equal(
-            [VirtualKeys.F4, VirtualKeys.A, VirtualKeys.Control, VirtualKeys.F1, VirtualKeys.F2],
-            automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
+        Assert.Equal(2, gameActionService.TogglePropulsionModuleCallCount);
+        Assert.Equal(1, gameActionService.TriggerTargetApproachCallCount);
+        Assert.Equal(1, gameActionService.TriggerTargetLockCallCount);
+        Assert.Equal(1, gameActionService.ToggleFirstLaserCallCount);
+        Assert.Equal(1, gameActionService.ToggleSecondLaserCallCount);
     }
 
     [Fact]
@@ -65,7 +69,8 @@ public sealed class ApproachingAsteroidStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
-        var state = new ApproachingAsteroidState(automationInputControllerMock, new MineOverviewDetector(), new FirstAsteroidWithinReachDetector());
+        var gameActionService = new StubGameActionService();
+        var state = new ApproachingAsteroidState(automationInputControllerMock, gameActionService, new MineOverviewDetector(), new FirstAsteroidWithinReachDetector());
 
         // Act
         var transition = state.Execute(
@@ -75,7 +80,7 @@ public sealed class ApproachingAsteroidStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
-        Assert.Equal([VirtualKeys.F4], automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
+        Assert.Equal(1, gameActionService.TogglePropulsionModuleCallCount);
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
     }
@@ -89,8 +94,10 @@ public sealed class ApproachingAsteroidStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
+            gameActionService,
             new MineOverviewDetector(),
             new StubFirstAsteroidWithinReachDetector(
                 () => new FirstAsteroidWithinReachAnalysis(false, null, null, 0.99, 1.0)));
@@ -104,9 +111,8 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(2, automationInputControllerMock.ClickCount);
-        Assert.Equal(
-            [VirtualKeys.F4, VirtualKeys.A, VirtualKeys.A],
-            automationInputControllerMock.KeyInputs.Select(k => k.VirtualKey));
+        Assert.Equal(1, gameActionService.TogglePropulsionModuleCallCount);
+        Assert.Equal(2, gameActionService.TriggerTargetApproachCallCount);
     }
 
     private sealed class StubFirstAsteroidWithinReachDetector(

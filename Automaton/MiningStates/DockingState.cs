@@ -7,6 +7,7 @@ namespace Automaton.MiningStates;
 
 internal sealed class DockingState(
     IAutomationInputController automationInputController,
+    IGameActionService gameActionService,
     AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
     : IMiningAutomationState
 {
@@ -32,17 +33,17 @@ internal sealed class DockingState(
             return result;
         }
 
-        // Select home station in the belt overview
-        m_Logger.Information("Selecting home station");
-        automationInputController.ClickUiElement(GeometryHelper.Center(analysis.HomeStationBounds!.Value), cancellationToken);
         capture.Dispose();
+
+        // Select home station in the belt overview
+        m_Logger.Information("Returning home");
+        automationInputController.ClickUiElement(GeometryHelper.Center(analysis.HomeStationBounds!.Value), cancellationToken);
 
         // Wait 1 second
         automationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
 
         // Warping home
-        m_Logger.Information("Warping home");
-        automationInputController.PressKey(VirtualKeys.D, cancellationToken);
+        gameActionService.WarpToTargetAndDock(cancellationToken);
 
         while (true)
         {

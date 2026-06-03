@@ -78,7 +78,7 @@ internal sealed class GameActionService(IAutomationInputController inputControll
             m_Logger.Information("Hiding UI because capture size exceeded {Threshold} Mb ({CaptureSizeMb} MB).",
                 Settings.HideUiFileSizeThreshold / 1024 / 1024,
                 captureFileInfo.Length / 1024 / 1024);
-            PressHideUiChord(cancellationToken);
+            ToggleUiVisibility(cancellationToken);
             inputController.Delay(Delays.HideUiMs, cancellationToken);
         }
     }
@@ -95,8 +95,51 @@ internal sealed class GameActionService(IAutomationInputController inputControll
         inputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
     }
 
-    private void PressHideUiChord(CancellationToken cancellationToken)
+    public void ToggleFirstLaser(CancellationToken cancellationToken)
     {
+        m_Logger.Information("Toggle first laser");
+        inputController.PressKey(VirtualKeys.F1, cancellationToken);
+    }
+
+    public void ToggleSecondLaser(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Toggle second laser");
+        inputController.PressKey(VirtualKeys.F2, cancellationToken);
+    }
+
+    public void TogglePropulsionModule(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Toggle propulsion module");
+        inputController.PressKey(VirtualKeys.F4, cancellationToken);
+    }
+
+    public void TriggerTargetLock(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Trigger target lock");
+        inputController.PressKey(VirtualKeys.Control, cancellationToken);
+    }
+
+    public void TriggerTargetApproach(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Trigger target approach");
+        inputController.PressKey(VirtualKeys.A, cancellationToken);
+    }
+
+    public void WarpToTarget(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Warping to target");
+        inputController.PressKey(VirtualKeys.S, cancellationToken);
+    }
+
+    public void WarpToTargetAndDock(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Warping to target and docking");
+        inputController.PressKey(VirtualKeys.D, cancellationToken);
+    }
+
+    private void ToggleUiVisibility(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Toggle UI visibility");
         inputController.PressKeyChord(
             VirtualKeys.LeftControl,
             VirtualKeys.LeftShift,

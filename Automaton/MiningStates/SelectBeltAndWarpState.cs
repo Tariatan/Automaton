@@ -103,7 +103,7 @@ internal sealed class SelectBeltAndWarpState(
         // Select asteroid belt
         automationInputController.ClickUiElement(GeometryHelper.Center(selectedAsteroidBelt.Bounds), cancellationToken);
         // Warp to asteroid belt
-        automationInputController.PressKey(VirtualKeys.S, cancellationToken);
+        gameActionService.WarpToTarget(cancellationToken);
         capture.Dispose();
 
         m_Logger.Information("Warp to asteroid belt {SelectedIndexBased} / {DetectedBeltCount}", selectedAsteroidBeltIndex + 1, availableAsteroidBelts.Length);
