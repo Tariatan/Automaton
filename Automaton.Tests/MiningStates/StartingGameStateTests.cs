@@ -1,11 +1,11 @@
-using System.IO;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using Automaton.Tests.Stubs;
 using OpenCvSharp;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.MiningStates;
 
 public sealed class StartingGameStateTests
 {
@@ -28,8 +28,10 @@ public sealed class StartingGameStateTests
             CancellationToken.None);
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.StartingGame, transition.State);
         Assert.Equal(MiningAutomationStateKind.Login, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.StartGame, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
         Assert.Single(automationInputControllerMock.MoveTargets);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Equal([Delays.LauncherStartupMs], automationInputControllerMock.Delays);
@@ -57,6 +59,7 @@ public sealed class StartingGameStateTests
             CancellationToken.None);
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.StartingGame, transition.State);
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Relogin, transition.Action);
         Assert.Empty(automationInputControllerMock.MoveTargets);

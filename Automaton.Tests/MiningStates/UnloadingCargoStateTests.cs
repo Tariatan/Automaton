@@ -2,9 +2,10 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using Automaton.Tests.Stubs;
 using OpenCvSharp;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.MiningStates;
 
 public sealed class UnloadingCargoStateTests
 {
@@ -36,8 +37,10 @@ public sealed class UnloadingCargoStateTests
         Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.C), automationInputController.KeyInputs);
         Assert.Contains(new KeyboardInput(VirtualKeys.Control, null, VirtualKeys.V), automationInputController.KeyInputs);
 
+        Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.State);
         Assert.Equal(MiningAutomationStateKind.Undocking, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Undock, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
     }
 
     [Fact]

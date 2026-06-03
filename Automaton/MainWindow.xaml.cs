@@ -516,11 +516,6 @@ internal partial class MainWindow
         SetMiningStartState(MiningAutomationStateKind.SelectBeltAndWarp);
     }
 
-    private void MiningWarpingToAsteroidFieldMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.WarpingToAsteroidField);
-    }
-
     private void MiningApproachingAsteroidMenuItem_Click(object sender, RoutedEventArgs e)
     {
         SetMiningStartState(MiningAutomationStateKind.ApproachingAsteroid);
@@ -549,7 +544,6 @@ internal partial class MainWindow
         MiningUnloadCargoMenuItem.IsChecked = stateKind == MiningAutomationStateKind.UnloadCargo;
         MiningUndockingMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Undocking;
         MiningEmptyOnUndockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.SelectBeltAndWarp;
-        MiningWarpingToAsteroidFieldMenuItem.IsChecked = stateKind == MiningAutomationStateKind.WarpingToAsteroidField;
         MiningApproachingAsteroidMenuItem.IsChecked = stateKind == MiningAutomationStateKind.ApproachingAsteroid;
         MiningMiningMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Mining;
         MiningDockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Dock;

@@ -23,7 +23,6 @@ internal enum MiningAutomationStateKind
     Dock,
     Undocking,
     SelectBeltAndWarp,
-    WarpingToAsteroidField,
     ApproachingAsteroid,
     Mining,
     UnloadCargo,

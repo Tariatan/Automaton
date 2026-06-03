@@ -4,19 +4,19 @@ namespace Automaton.Tests;
 
 internal static class SyntheticDiscoveryImageFactory
 {
-    public static Mat CreateSingleClusterImage()
+    public static Mat LoadSingleClusterImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_single_cluster.png");
 
-    public static Mat CreateTwoClusterImage()
+    public static Mat LoadTwoClusterImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_two_clusters.png");
 
-    public static Mat CreateFourClusterImage()
+    public static Mat LoadFourClusterImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_four_clusters.png");
 
-    public static Mat CreateMaximumSubmissionsPopupImage()
+    public static Mat LoadMaximumSubmissionsPopupImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/maximum_submissions_popup.png");
 
-    public static Mat CreateSlowDownPopupImage()
+    public static Mat LoadSlowDownPopupImage()
         => ScreenshotLoader.LoadOrSkip("Discovery/slow_down_popup.png");
 
     public static string GetSingleClusterImagePath()

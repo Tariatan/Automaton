@@ -2,9 +2,10 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using Automaton.Tests.Stubs;
 using OpenCvSharp;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.MiningStates;
 
 public sealed class SelectBeltAndWarpStateTests
 {
@@ -39,8 +40,10 @@ public sealed class SelectBeltAndWarpStateTests
             CancellationToken.None);
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.State);
         Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.WarpToAsteroidField, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
         Assert.Equal([Delays.LandingPollingMs], automationInputController.Delays);
@@ -78,8 +81,10 @@ public sealed class SelectBeltAndWarpStateTests
             CancellationToken.None);
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.State);
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
         Assert.Equal(0, automationInputController.ClickCount);
         Assert.Empty(automationInputController.MoveTargets);
         Assert.Empty(automationInputController.Delays);

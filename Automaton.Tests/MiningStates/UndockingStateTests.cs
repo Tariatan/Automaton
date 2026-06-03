@@ -2,8 +2,9 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using Automaton.Tests.Stubs;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.MiningStates;
 
 public sealed class UndockingStateTests
 {
@@ -34,8 +35,10 @@ public sealed class UndockingStateTests
             CancellationToken.None);
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.Undocking, transition.State);
         Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.CompleteUndock, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(
         [
@@ -71,8 +74,10 @@ public sealed class UndockingStateTests
             CancellationToken.None);
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.Undocking, transition.State);
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
         Assert.Equal(31, captureInvocationCount);
         Assert.Equal(32, automationInputController.Delays.Count);
         Assert.Equal(Delays.UndockingBounceMs, automationInputController.Delays[0]);

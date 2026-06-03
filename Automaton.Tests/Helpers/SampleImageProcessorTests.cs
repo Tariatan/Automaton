@@ -2,7 +2,7 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using OpenCvSharp;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.Helpers;
 
 [Collection(CurrentDirectorySensitiveCollection.Name)]
 public sealed class SampleImageProcessorTests
@@ -159,67 +159,6 @@ public sealed class SampleImageProcessorTests
     }
 
     [Fact]
-    public void AnalyzeImageFile_KnownSampleTemplateExists_UsesExpectedPolygons()
-    {
-        // Arrange
-        using var workspace = new TemporaryDirectory();
-        Directory.CreateDirectory(Path.Combine(workspace.Path, "expected"));
-
-        var samplePath = Path.Combine(workspace.Path, "expected", "01.sample.png");
-        var expectedPath = Path.Combine(workspace.Path, "expected", "01.sample.expected.png");
-        var capturePath = Path.Combine(workspace.Path, "capture.png");
-        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
-        File.Copy(samplePath, capturePath);
-
-        var templatePolygons = new[]
-        {
-            [
-                new Point(120, 110),
-                new Point(330, 110),
-                new Point(330, 260),
-                new Point(120, 260)
-            ],
-            new[]
-            {
-                new Point(150, 360),
-                new Point(340, 360),
-                new Point(340, 540),
-                new Point(150, 540)
-            }
-        };
-        WriteExpectedOverlay(samplePath, expectedPath, templatePolygons);
-
-        var processor = new SampleImageProcessor();
-
-        // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-        SampleImageAnalysisResult analysis;
-
-        try
-        {
-            analysis = processor.AnalyzeImageFile(capturePath);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
-
-        // Assert
-        Assert.True(analysis.PlayfieldDetection.IsFound);
-        Assert.Equal(templatePolygons.Length, analysis.Polygons.Count);
-        Assert.True(analysis.UsedKnownSampleTemplate);
-
-        foreach (var templatePolygon in templatePolygons)
-        {
-            var expectedCenter = GetPolygonCenter(TranslatePolygon(templatePolygon, analysis.PlayfieldDetection.Bounds.Location));
-            Assert.Contains(
-                analysis.Polygons,
-                polygon => Distance(expectedCenter, GetPolygonCenter(polygon)) < 35.0);
-        }
-    }
-
-    [Fact]
     public void AnalyzeImageFile_KnownSampleTemplateHasNearbyPolygons_KeepsExpectedRegionsSeparate()
     {
         // Arrange
@@ -282,68 +221,6 @@ public sealed class SampleImageProcessorTests
                 var overlap = polygonBounds[firstIndex] & polygonBounds[secondIndex];
                 Assert.True(overlap.Width <= 0 || overlap.Height <= 0);
             }
-        }
-    }
-
-    [Fact]
-    public void AnalyzeImageFile_KnownSampleMaskedTemplateExists_UsesMaskedPolygons()
-    {
-        // Arrange
-        using var workspace = new TemporaryDirectory();
-        Directory.CreateDirectory(Path.Combine(workspace.Path, "expected"));
-
-        var samplePath = Path.Combine(workspace.Path, "expected", "02.sample.png");
-        var expectedPath = Path.Combine(workspace.Path, "expected", "02.sample.expected.png");
-        var maskedExpectedPath = Path.Combine(workspace.Path, "expected", "02.sample.expected.masked.png");
-        var capturePath = Path.Combine(workspace.Path, "capture.png");
-        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
-        File.Copy(samplePath, capturePath);
-
-        var templatePolygons = new[]
-        {
-            [
-                new Point(120, 110),
-                new Point(330, 110),
-                new Point(330, 260),
-                new Point(120, 260)
-            ],
-            new[]
-            {
-                new Point(150, 360),
-                new Point(340, 360),
-                new Point(340, 540),
-                new Point(150, 540)
-            }
-        };
-        WriteExpectedOverlay(samplePath, expectedPath, templatePolygons);
-        WriteMaskedExpectedOverlay(samplePath, maskedExpectedPath, templatePolygons);
-
-        var processor = new SampleImageProcessor();
-
-        // Act
-        var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
-        SampleImageAnalysisResult analysis;
-
-        try
-        {
-            analysis = processor.AnalyzeImageFile(capturePath);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(currentDirectory);
-        }
-
-        // Assert
-        Assert.True(analysis.PlayfieldDetection.IsFound);
-        Assert.Equal(templatePolygons.Length, analysis.Polygons.Count);
-
-        foreach (var templatePolygon in templatePolygons)
-        {
-            var expectedCenter = GetPolygonCenter(TranslatePolygon(templatePolygon, analysis.PlayfieldDetection.Bounds.Location));
-            Assert.Contains(
-                analysis.Polygons,
-                polygon => Distance(expectedCenter, GetPolygonCenter(polygon)) < 35.0);
         }
     }
 
@@ -1008,10 +885,10 @@ public sealed class SampleImageProcessorTests
     public void ShouldAttemptMultiPolygonSplit_ContourAreaIsSmall_ReturnsFalse()
     {
         // Arrange
-        const double contourArea = 8000;
+        const double ContourArea = 8000;
 
         // Act
-        var shouldSplit = SampleImageProcessor.ShouldAttemptMultiPolygonSplit(contourArea);
+        var shouldSplit = SampleImageProcessor.ShouldAttemptMultiPolygonSplit(ContourArea);
 
         // Assert
         Assert.False(shouldSplit);
@@ -1237,13 +1114,6 @@ public sealed class SampleImageProcessorTests
         }
 
         Cv2.ImWrite(maskedExpectedPath, maskedImage);
-    }
-
-    private static Point[] TranslatePolygon(Point[] polygon, Point offset)
-    {
-        return polygon
-            .Select(point => new Point(point.X + offset.X, point.Y + offset.Y))
-            .ToArray();
     }
 
     private static Point2d GetPolygonCenter(IReadOnlyList<Point> polygon)

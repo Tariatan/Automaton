@@ -72,7 +72,6 @@
                 <MenuItem x:Name="MiningUnloadCargoMenuItem" Header="UnloadCargo" IsCheckable="True" Click="MiningUnloadCargoMenuItem_Click" />
                 <MenuItem x:Name="MiningUndockingMenuItem" Header="Undocking" IsCheckable="True" Click="MiningUndockingMenuItem_Click" />
                 <MenuItem x:Name="MiningEmptyOnUndockMenuItem" Header="SelectBeltAndWarp" IsCheckable="True" Click="MiningEmptyOnUndockMenuItem_Click" />
-                <MenuItem x:Name="MiningWarpingToAsteroidFieldMenuItem" Header="WarpingToAsteroidField" IsCheckable="True" Click="MiningWarpingToAsteroidFieldMenuItem_Click" />
                 <MenuItem x:Name="MiningApproachingAsteroidMenuItem" Header="ApproachingAsteroid" IsCheckable="True" Click="MiningApproachingAsteroidMenuItem_Click" />
                 <MenuItem x:Name="MiningMiningMenuItem" Header="Mining" IsCheckable="True" Click="MiningMiningMenuItem_Click" />
                 <MenuItem x:Name="MiningDockMenuItem" Header="Dock" IsCheckable="True" Click="MiningDockMenuItem_Click" />

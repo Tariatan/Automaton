@@ -1,6 +1,6 @@
 using Automaton.Detectors;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.Detectors;
 
 public sealed class AsteroidBeltOverviewDetectorTests
 {

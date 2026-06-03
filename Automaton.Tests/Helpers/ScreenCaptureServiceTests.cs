@@ -1,8 +1,9 @@
 using Automaton.Helpers;
+using Automaton.Tests.Stubs;
 using OpenCvSharp;
 using DrawingRectangle = System.Drawing.Rectangle;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.Helpers;
 
 public sealed class ScreenCaptureServiceTests
 {

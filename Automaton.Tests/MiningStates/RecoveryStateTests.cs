@@ -3,9 +3,10 @@ using Automaton.Helpers;
 using Automaton.Infrastructure;
 using Automaton.MiningStates;
 using Automaton.Primitives;
+using Automaton.Tests.Stubs;
 using OpenCvSharp;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.MiningStates;
 
 public sealed class RecoveryStateTests
 {

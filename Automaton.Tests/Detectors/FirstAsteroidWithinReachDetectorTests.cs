@@ -1,6 +1,6 @@
 using Automaton.Detectors;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.Detectors;
 
 public sealed class FirstAsteroidWithinReachDetectorTests
 {
@@ -14,11 +14,10 @@ public sealed class FirstAsteroidWithinReachDetectorTests
 
         // Act
         var mineOverviewAnalysis = mineOverviewDetector.Detect(image);
-        var asteroids = mineOverviewAnalysis.MineOverviewLocated && mineOverviewAnalysis.MineOverviewBounds is not null
+        var asteroids = mineOverviewAnalysis is { MineOverviewLocated: true, MineOverviewBounds: not null }
             ? AsteroidRowsDetector.Detect(image, mineOverviewAnalysis.MineOverviewBounds.Value)
             : [];
-        var analysis = mineOverviewAnalysis.MineOverviewLocated &&
-                       mineOverviewAnalysis.MineOverviewBounds is not null &&
+        var analysis = mineOverviewAnalysis is { MineOverviewLocated: true, MineOverviewBounds: not null } &&
                        asteroids.Count > 0
             ? detector.Detect(image, mineOverviewAnalysis.MineOverviewBounds.Value, asteroids[0].Bounds)
             : FirstAsteroidWithinReachAnalysis.NotFound;

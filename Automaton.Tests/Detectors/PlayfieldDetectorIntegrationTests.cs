@@ -1,7 +1,7 @@
 using Automaton.Detectors;
 using OpenCvSharp;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.Detectors;
 
 public sealed class PlayfieldDetectorIntegrationTests
 {
@@ -12,8 +12,8 @@ public sealed class PlayfieldDetectorIntegrationTests
     {
         // Arrange
         using var image = includeSecondCluster
-            ? SyntheticDiscoveryImageFactory.CreateTwoClusterImage()
-            : SyntheticDiscoveryImageFactory.CreateSingleClusterImage();
+            ? SyntheticDiscoveryImageFactory.LoadTwoClusterImage()
+            : SyntheticDiscoveryImageFactory.LoadSingleClusterImage();
         var detector = new PlayfieldDetector();
 
         // Act

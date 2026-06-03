@@ -1,10 +1,10 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
-using Automaton.Primitives;
+using Automaton.Tests.Stubs;
 using OpenCvSharp;
 
-namespace Automaton.Tests;
+namespace Automaton.Tests.MiningStates;
 
 public sealed class LoginStateTests
 {
@@ -19,7 +19,6 @@ public sealed class LoginStateTests
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(pilotScreen.Clone),
             new SampleImageProcessor());
-        var automationInputControllerMock = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
         var state = new LoginState(gameActionService, new PilotAvatarDetector());
 
@@ -41,8 +40,10 @@ public sealed class LoginStateTests
         }
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.Login, transition.State);
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.LoginPilot, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
         Assert.Equal(2, gameActionService.LoginCallCount);
         Assert.True(gameActionService.LogoutCalled);
         Assert.Equal(2, gameActionService.CloseActiveWindowCallCount);
@@ -82,8 +83,10 @@ public sealed class LoginStateTests
         }
 
         // Assert
+        Assert.Equal(MiningAutomationStateKind.Login, transition.State);
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
         Assert.Empty(automationInputControllerMock.Delays);

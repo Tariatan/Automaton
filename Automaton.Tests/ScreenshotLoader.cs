@@ -13,12 +13,7 @@ internal static class ScreenshotLoader
         SkipIfMissing(fullPath, relativePath);
 
         var mat = Cv2.ImRead(fullPath, mode);
-        if (mat.Empty())
-        {
-            throw new InvalidOperationException($"Failed to decode screenshot: {fullPath}");
-        }
-
-        return mat;
+        return mat.Empty() ? throw new InvalidOperationException($"Failed to decode screenshot: {fullPath}") : mat;
     }
 
     public static string GetPathOrSkip(string relativePath)
@@ -28,7 +23,7 @@ internal static class ScreenshotLoader
         return fullPath;
     }
 
-private static void SkipIfMissing(string fullPath, string relativePath)
+    private static void SkipIfMissing(string fullPath, string relativePath)
     {
         if (!File.Exists(fullPath))
         {
