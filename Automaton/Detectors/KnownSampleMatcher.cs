@@ -7,7 +7,7 @@ namespace Automaton.Detectors;
 
 internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 {
-    private const string DefaultFallbackExampleName = "05.sample";
+    private const string DefaultFallbackExampleName = "25.sample";
     private const string MaskedExpectedSuffix = ".expected.masked.png";
     private const int SignatureWidth = 96;
     private const int SignatureHeight = 96;

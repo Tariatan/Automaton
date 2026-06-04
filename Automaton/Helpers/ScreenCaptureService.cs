@@ -70,7 +70,7 @@ internal sealed class ScreenCaptureService(
         {
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             Cv2.ImWrite(outputPath, image);
-            Logger.Debug("Captured current screen to file. OutputPath={OutputPath}", outputPath);
+            Logger.Information("Captured current screen to file. OutputPath={OutputPath}", outputPath);
         }
     }
 

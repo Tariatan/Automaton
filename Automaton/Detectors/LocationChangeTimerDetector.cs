@@ -8,7 +8,7 @@ internal sealed class LocationChangeTimerDetector : IDisposable
 {
     private const double MinimumMatchScore = 0.90;
     private const double EarlyExitScore = 0.95;
-    private static readonly Rect SearchBounds = new(130, 20, 80, 80);
+    private static readonly Rect SearchBounds = new(130, 20, 270, 80);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
     private readonly Mat m_Template = EmbeddedResourceLoader.LoadMat("location_change_timer.png");

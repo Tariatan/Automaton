@@ -13,6 +13,13 @@ internal sealed class GameActionService(IAutomationInputController inputControll
 
     public void QuitGame(CancellationToken cancellationToken)
     {
+        // Ensure no window/popup is blocking Quit Game request
+        CloseActiveWindow(cancellationToken);
+        CloseActiveWindow(cancellationToken);
+        inputController.PressKey(VirtualKeys.Enter, cancellationToken);
+        inputController.PressKey(VirtualKeys.Enter, cancellationToken);
+
+
         inputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
         inputController.Delay(Delays.QuitGameConfirmMs, cancellationToken);
         inputController.PressKey(VirtualKeys.Enter, cancellationToken);

@@ -14,7 +14,7 @@ internal sealed class RecoverOverlapState(
     public DiscoveryAutomationStateTransition Execute(ProjectDiscoveryAutomationContext context, CancellationToken cancellationToken)
     {
         m_Logger.Warning("Recovering from overlap: re-opening discovery playfield.");
-        gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
+        gameActionService.CloseActiveWindow(cancellationToken);
         automationInputController.Delay(Delays.WindowActivationMs, cancellationToken);
         gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
         automationInputController.Delay(Delays.WindowActivationMs, cancellationToken);
