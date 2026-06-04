@@ -9,6 +9,7 @@ namespace Automaton.Helpers;
 internal sealed class ScreenCaptureService(
     IScreenCaptureProvider screenCaptureProvider,
     SampleImageProcessor sampleImageProcessor,
+    ClickTraceRecorder? clickTraceRecorder = null,
     bool persistCaptures = true)
 {
     private const string CaptureFilePrefix = "capture-";
@@ -47,6 +48,7 @@ internal sealed class ScreenCaptureService(
     internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "")
     {
         var image = CaptureScreenWithRetry();
+        var captureBounds = GetCurrentCaptureBounds(image);
 
         var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
         var capturePath = Path.Combine(
@@ -58,20 +60,28 @@ internal sealed class ScreenCaptureService(
             Directory.CreateDirectory(capturesDirectory);
             Cv2.ImWrite(capturePath, image);
             Logger.Information("Captured current screen trace. CapturePath={CapturePath}", capturePath);
+            clickTraceRecorder?.BeginCapture(capturePath, captureBounds);
         }
 
-        return new ScreenCaptureResult(image, capturePath);
+        return new ScreenCaptureResult(image, capturePath, captureBounds);
     }
 
     internal void CaptureCurrentScreenToFile(string outputPath)
     {
         using var image = CaptureScreenWithRetry();
+        var captureBounds = GetCurrentCaptureBounds(image);
         if (persistCaptures)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             Cv2.ImWrite(outputPath, image);
             Logger.Information("Captured current screen to file. OutputPath={OutputPath}", outputPath);
+            clickTraceRecorder?.BeginCapture(outputPath, captureBounds);
         }
+    }
+
+    internal void FlushClickTrace()
+    {
+        clickTraceRecorder?.Flush();
     }
 
     private Mat CaptureScreenWithRetry()
@@ -142,9 +152,41 @@ internal sealed class ScreenCaptureService(
         return captureBounds;
     }
 
+    internal static Rectangle GetCurrentCaptureBounds()
+    {
+        return OperatingSystem.IsWindows()
+            ? BuildGameCaptureBounds(GetPhysicalVirtualScreenBounds())
+            : new Rectangle(0, 0, MinimumCaptureDimension, MinimumCaptureDimension);
+    }
+
+    private static Rectangle GetCurrentCaptureBounds(Mat capturedImage)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return new Rectangle(0, 0, capturedImage.Width, capturedImage.Height);
+        }
+
+        var screenCaptureBounds = GetCurrentCaptureBounds();
+        return screenCaptureBounds.Width == capturedImage.Width &&
+               screenCaptureBounds.Height == capturedImage.Height
+            ? screenCaptureBounds
+            : new Rectangle(0, 0, capturedImage.Width, capturedImage.Height);
+    }
+
+    private static Rectangle GetPhysicalVirtualScreenBounds()
+    {
+        return new Rectangle(
+            GetSystemMetrics(VirtualScreenLeftMetric),
+            GetSystemMetrics(VirtualScreenTopMetric),
+            Math.Max(MinimumCaptureDimension, GetSystemMetrics(VirtualScreenWidthMetric)),
+            Math.Max(MinimumCaptureDimension, GetSystemMetrics(VirtualScreenHeightMetric)));
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetSystemMetrics")]
+    private static extern int GetSystemMetrics(int nIndex);
 }
 
-internal sealed record ScreenCaptureResult(Mat Image, string CapturePath) : IDisposable
+internal sealed record ScreenCaptureResult(Mat Image, string CapturePath, Rectangle CaptureBounds) : IDisposable
 {
     public void Dispose() => Image.Dispose();
 }

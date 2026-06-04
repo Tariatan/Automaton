@@ -11,6 +11,7 @@ internal static class ServiceCollectionExtensions
     public static IServiceCollection AddAutomatonServices(this IServiceCollection services)
     {
         services.AddSingleton<IScreenCaptureProvider, ScreenCaptureProvider>();
+        services.AddSingleton<ClickTraceRecorder>();
         services.AddSingleton<IAutomationInputController, AutomationInputController>();
         services.AddSingleton<IGameActionService, GameActionService>();
         services.AddSingleton<IAutomationClock, SystemAutomationClock>();

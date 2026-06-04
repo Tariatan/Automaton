@@ -121,6 +121,10 @@ internal sealed class ProjectDiscoveryAutomationService(
                     lastSummary.CapturePath);
             return lastSummary;
         }
+        finally
+        {
+            ScreenCaptureService.FlushClickTrace();
+        }
 
         return lastSummary ?? throw new OperationCanceledException(cancellationToken);
     }

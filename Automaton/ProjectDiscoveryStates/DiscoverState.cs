@@ -12,6 +12,7 @@ namespace Automaton.ProjectDiscoveryStates;
 internal sealed class DiscoverState(
     ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
+    ClickTraceRecorder clickTraceRecorder,
     IGameActionService gameActionService,
     IAutomationClock automationClock,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
@@ -62,7 +63,11 @@ internal sealed class DiscoverState(
         }
 
         // Polygons
-        ClickPolygonPoints(captureSummary.Analysis.Polygons, cancellationToken);
+        using (clickTraceRecorder.SuppressRecording())
+        {
+            ClickPolygonPoints(captureSummary.Analysis.Polygons, cancellationToken);
+        }
+
         automationInputController.Delay(Delays.SubmitActivationMs, cancellationToken);
 
         var playfieldBounds = captureSummary.Analysis.PlayfieldDetection.Bounds;

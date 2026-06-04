@@ -82,6 +82,10 @@ internal sealed class MiningAutomationService(
                 lastSummary.CapturePath);
             return lastSummary;
         }
+        finally
+        {
+            screenCaptureService.FlushClickTrace();
+        }
 
         return lastSummary ?? throw new OperationCanceledException(cancellationToken);
     }

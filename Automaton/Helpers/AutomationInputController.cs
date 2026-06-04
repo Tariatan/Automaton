@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Automaton.Helpers;
 
-internal sealed class AutomationInputController : IAutomationInputController
+internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRecorder) : IAutomationInputController
 {
     private readonly ILogger m_Logger = Log.ForContext<AutomationInputController>();
 
@@ -35,6 +35,7 @@ internal sealed class AutomationInputController : IAutomationInputController
         cancellationToken.ThrowIfCancellationRequested();
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
+        RecordClick();
         var leftButtonPressed = false;
 
         try
@@ -58,6 +59,7 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        LogKeyboardAction("Key press", DateTime.UtcNow, virtualKey);
         var scanCode = MapScanCode(virtualKey);
         SendKeyboardInput(BuildKeyDownInput(virtualKey, scanCode));
         WaitForKeyboardTransition(cancellationToken);
@@ -69,6 +71,7 @@ internal sealed class AutomationInputController : IAutomationInputController
     public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = DefaultTransitionDelayMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        LogKeyboardAction("Key chord", DateTime.UtcNow, modifierVirtualKey, virtualKey);
         var modScan = MapScanCode(modifierVirtualKey);
         var keyScan = MapScanCode(virtualKey);
         SendKeyboardInput(BuildKeyDownInput(modifierVirtualKey, modScan));
@@ -90,6 +93,7 @@ internal sealed class AutomationInputController : IAutomationInputController
         int transitionDelayMs = DefaultTransitionDelayMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        LogKeyboardAction("Key chord", DateTime.UtcNow, firstModifier, secondModifier, virtualKey);
         var firstScan = MapScanCode(firstModifier);
         var secondScan = MapScanCode(secondModifier);
         var keyScan = MapScanCode(virtualKey);
@@ -222,6 +226,66 @@ internal sealed class AutomationInputController : IAutomationInputController
         keybd_event(virtualKey, 0, isKeyUp ? KeyUpEvent : 0, UIntPtr.Zero);
     }
 
+    private void RecordClick()
+    {
+        if (GetCursorPos(out var cursorPosition))
+        {
+            var timestampUtc = DateTime.UtcNow;
+            var point = new Point(cursorPosition.X, cursorPosition.Y);
+            m_Logger.Information(
+                "Left click. X={X}, Y={Y}, TimestampUtc={TimestampUtc:O}",
+                point.X,
+                point.Y,
+                timestampUtc);
+            clickTraceRecorder.RecordClick(point, timestampUtc);
+            return;
+        }
+
+        m_Logger.Warning("GetCursorPos failed before left click.");
+    }
+
+    private void LogKeyboardAction(string action, DateTime timestampUtc, params ushort[] virtualKeys)
+    {
+        m_Logger.Information(
+            "{Action}. Keys={Keys}, TimestampUtc={TimestampUtc:O}",
+            action,
+            string.Join("+", virtualKeys.Select(FormatVirtualKey)),
+            timestampUtc);
+    }
+
+    private static string FormatVirtualKey(ushort virtualKey)
+    {
+        var name = virtualKey switch
+        {
+            VirtualKeys.A => nameof(VirtualKeys.A),
+            VirtualKeys.C => nameof(VirtualKeys.C),
+            VirtualKeys.D => nameof(VirtualKeys.D),
+            VirtualKeys.G => nameof(VirtualKeys.G),
+            VirtualKeys.L => nameof(VirtualKeys.L),
+            VirtualKeys.M => nameof(VirtualKeys.M),
+            VirtualKeys.Q => nameof(VirtualKeys.Q),
+            VirtualKeys.S => nameof(VirtualKeys.S),
+            VirtualKeys.V => nameof(VirtualKeys.V),
+            VirtualKeys.W => nameof(VirtualKeys.W),
+            VirtualKeys.X => nameof(VirtualKeys.X),
+            VirtualKeys.Enter => nameof(VirtualKeys.Enter),
+            VirtualKeys.Shift => nameof(VirtualKeys.Shift),
+            VirtualKeys.Control => nameof(VirtualKeys.Control),
+            VirtualKeys.Alt => nameof(VirtualKeys.Alt),
+            VirtualKeys.LeftShift => nameof(VirtualKeys.LeftShift),
+            VirtualKeys.LeftControl => nameof(VirtualKeys.LeftControl),
+            VirtualKeys.F1 => nameof(VirtualKeys.F1),
+            VirtualKeys.F2 => nameof(VirtualKeys.F2),
+            VirtualKeys.F4 => nameof(VirtualKeys.F4),
+            VirtualKeys.F9 => nameof(VirtualKeys.F9),
+            _ => null
+        };
+
+        return name is null
+            ? $"0x{virtualKey:X4}"
+            : $"{name}(0x{virtualKey:X4})";
+    }
+
     [DllImport("user32.dll")]
     private static extern bool SetCursorPos(int x, int y);
 
@@ -236,6 +300,9 @@ internal sealed class AutomationInputController : IAutomationInputController
 
     [DllImport("user32.dll")]
     private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out CursorPoint point);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
@@ -259,5 +326,12 @@ internal sealed class AutomationInputController : IAutomationInputController
         public uint dwFlags;
         public uint time;
         public UIntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CursorPoint
+    {
+        public int X;
+        public int Y;
     }
 }
