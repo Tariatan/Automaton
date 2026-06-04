@@ -7,8 +7,6 @@ namespace Automaton.Helpers;
 
 internal sealed class ClickTraceRecorder
 {
-    private const string ClickTraceSuffix = ".clicks.png";
-
     private readonly Lock m_Lock = new();
     private int m_SuppressionDepth;
     private ActiveClickTraceCapture? m_ActiveCapture;
@@ -53,13 +51,6 @@ internal sealed class ClickTraceRecorder
         WriteClickTrace(CompleteActiveCapture());
     }
 
-    internal static string BuildClickTracePath(string imagePath)
-    {
-        return Path.Combine(
-            Path.GetDirectoryName(imagePath)!,
-            Path.GetFileNameWithoutExtension(imagePath) + ClickTraceSuffix);
-    }
-
     private ClickTraceCapture? CompleteActiveCapture()
     {
         lock (m_Lock)
@@ -92,7 +83,7 @@ internal sealed class ClickTraceRecorder
         }
 
         DebugOverlay.DrawClickTrace(image, capture.Clicks, capture.CaptureBounds);
-        Cv2.ImWrite(BuildClickTracePath(capture.ImagePath), image);
+        Cv2.ImWrite(capture.ImagePath, image);
     }
 
     private void EndSuppression()

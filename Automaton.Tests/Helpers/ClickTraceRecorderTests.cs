@@ -8,7 +8,7 @@ namespace Automaton.Tests.Helpers;
 public sealed class ClickTraceRecorderTests
 {
     [Fact]
-    public void Flush_ClickRecorded_WritesClickTraceImage()
+    public void Flush_ClickRecorded_AnnotatesCaptureImage()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -23,15 +23,13 @@ public sealed class ClickTraceRecorderTests
         clickTraceRecorder.Flush();
 
         // Assert
-        var clickTracePath = ClickTraceRecorder.BuildClickTracePath(capturePath);
-        Assert.True(File.Exists(clickTracePath));
-        using var clickTraceImage = Cv2.ImRead(clickTracePath);
-        Assert.False(clickTraceImage.Empty());
-        Assert.NotEqual(Scalar.Black, Cv2.Sum(clickTraceImage));
+        using var annotatedCapture = Cv2.ImRead(capturePath);
+        Assert.False(annotatedCapture.Empty());
+        Assert.NotEqual(Scalar.Black, Cv2.Sum(annotatedCapture));
     }
 
     [Fact]
-    public void Flush_ClickRecordingSuppressed_DoesNotWriteClickTraceImage()
+    public void Flush_ClickRecordingSuppressed_LeavesCaptureImageUnchanged()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -50,6 +48,7 @@ public sealed class ClickTraceRecorderTests
         clickTraceRecorder.Flush();
 
         // Assert
-        Assert.False(File.Exists(ClickTraceRecorder.BuildClickTracePath(capturePath)));
+        using var unchangedCapture = Cv2.ImRead(capturePath);
+        Assert.Equal(Scalar.Black, Cv2.Sum(unchangedCapture));
     }
 }
