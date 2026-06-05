@@ -91,9 +91,34 @@ public sealed class MiningStateTests
     public void Execute_AsteroidNotDetected_TransitionsToDockWithAsteroidDepleted()
     {
         // Arrange
-        using var blankScreen = new Mat(new Size(2560, 2160), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(blankScreen.Clone),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadMiningAsteroidDepletedImage),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var state = new MiningState(
+            automationInputController,
+            new MiningAsteroidDetector(),
+            new MiningLaserDetector(),
+            new WarOverviewDetector());
+        var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
+
+        // Act
+        var transition = state.Execute(context, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.Mining, transition.State);
+        Assert.Equal(MiningAutomationStateKind.Dock, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.None, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
+    }
+
+    [Fact]
+    public void Execute_LasersDeactivated_TransitionsToDockWithCargoFull()
+    {
+        // Arrange
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadMiningLasersDeactivatedImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
@@ -118,9 +143,8 @@ public sealed class MiningStateTests
     public void Execute_CancellationRequestedDuringPolling_ThrowsOperationCanceledException()
     {
         // Arrange
-        using var blankScreen = new Mat(new Size(2560, 2160), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(blankScreen.Clone),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadMiningAsteroidDepletedImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         using var cts = new CancellationTokenSource();

@@ -10,7 +10,7 @@ namespace Automaton.Tests.MiningStates;
 public sealed class SelectBeltAndWarpStateTests
 {
     [Fact]
-    public void Execute_OverviewHasAsteroidBelts_ClicksBeltTabRandomBeltAndPressesS()
+    public void Execute_OverviewHasAsteroidBelts_ClicksBeltTabAndWarpToRandomBelt()
     {
         // Arrange
         var captureInvocationCount = 0;
@@ -58,12 +58,11 @@ public sealed class SelectBeltAndWarpStateTests
     }
 
     [Fact]
-    public void Execute_OverviewMissing_TransitionsToRecoveryWithoutClicking()
+    public void Execute_BeltOverviewMissing_TransitionsToRecoveryWithoutClicking()
     {
         // Arrange
-        using var blankScreen = new Mat(new Size(2560, 1440), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(blankScreen.Clone),
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadUndockedWithoutBeltOverviewImage),
             new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
@@ -97,6 +96,80 @@ public sealed class SelectBeltAndWarpStateTests
     }
 
     [Fact]
+    public void Execute_HomeStationMissing_QuitsGameAndTransitionsToRecovery()
+    {
+        // Arrange
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadInSpaceBeltOverviewWithoutHomeStationImage),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
+        var state = new SelectBeltAndWarpState(
+            automationInputController,
+            gameActionService,
+            new AsteroidBeltOverviewDetector(),
+            new MineOverviewDetector(),
+            new WarOverviewDetector(),
+            _ => 0);
+
+        // Act
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
+            CancellationToken.None);
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.State);
+        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
+        Assert.True(gameActionService.QuitGameCalled);
+        Assert.Equal(0, automationInputController.ClickCount);
+    }
+
+    [Fact]
+    public void Execute_DefaultOverviewActive_ClicksBeltTabAndWarpsToRandomBelt()
+    {
+        // Arrange
+        var captureInvocationCount = 0;
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(() =>
+            {
+                captureInvocationCount++;
+                return captureInvocationCount == 1
+                    ? SyntheticMiningImageFactory.LoadInSpaceWithDefaultOverviewActiveImage()
+                    : captureInvocationCount < 4
+                        ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
+                        : SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
+            }),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
+        var state = new SelectBeltAndWarpState(
+            automationInputController,
+            gameActionService,
+            new AsteroidBeltOverviewDetector(),
+            new MineOverviewDetector(),
+            new WarOverviewDetector(),
+            _ => 1);
+
+        // Act
+        var transition = state.Execute(
+            new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
+            CancellationToken.None);
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.SelectBeltAndWarp, transition.State);
+        Assert.Equal(MiningAutomationStateKind.ApproachingAsteroid, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.WarpToAsteroidField, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
+        Assert.Equal(4, captureInvocationCount);
+        Assert.Equal(2, automationInputController.ClickCount);
+        Assert.Equal(1, gameActionService.WarpToTargetCallCount);
+    }
+
+    [Fact]
     public void Execute_LandedAndWarOverviewNotEmpty_TransitionsToDockViaGtfo()
     {
         // Arrange
@@ -107,7 +180,7 @@ public sealed class SelectBeltAndWarpStateTests
                 captureInvocationCount++;
                 return captureInvocationCount < 4
                     ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
-                    : BuildLandedGtfoImage();
+                    : SyntheticMiningImageFactory.LoadLandedOnBusyAsteroidBeltImage();
             }),
             new SampleImageProcessor(),
             persistCaptures: false);
@@ -128,17 +201,5 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Equal(MiningAutomationStateKind.Dock, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.None, transition.Action);
         Assert.Equal(1, context.BlacklistedAsteroidBeltCount);
-    }
-
-    private static Mat BuildLandedGtfoImage()
-    {
-        var landedImage = SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
-        using var miningGtfoImage = SyntheticMiningImageFactory.LoadMiningGtfoImage();
-        var overlayLeft = Math.Clamp((int)Math.Round(landedImage.Width * 0.62), 0, landedImage.Width - 1);
-        var overlayBounds = new Rect(overlayLeft, 0, landedImage.Width - overlayLeft, landedImage.Height);
-        using var sourceRegion = new Mat(miningGtfoImage, overlayBounds);
-        using var targetRegion = new Mat(landedImage, overlayBounds);
-        sourceRegion.CopyTo(targetRegion);
-        return landedImage;
     }
 }

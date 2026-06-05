@@ -9,7 +9,7 @@ namespace Automaton.Tests.MiningStates;
 public sealed class UndockingStateTests
 {
     [Fact]
-    public void Execute_LocationChangeTimerAppears_TransitionsToEmptyOnUndock()
+    public void Execute_LocationChangeTimerAppears_TransitionsToSelectBeltAndWarp()
     {
         // Arrange
         var captureInvocationCount = 0;

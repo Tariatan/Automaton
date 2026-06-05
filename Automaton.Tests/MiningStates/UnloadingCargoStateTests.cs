@@ -3,7 +3,6 @@ using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.Primitives;
 using Automaton.Tests.Stubs;
-using OpenCvSharp;
 
 namespace Automaton.Tests.MiningStates;
 
@@ -80,7 +79,7 @@ public sealed class UnloadingCargoStateTests
             {
                 captureInvocationCount++;
                 return captureInvocationCount <= 2
-                    ? CreateImageWithoutMiningHoldTitle()
+                    ? SyntheticMiningImageFactory.LoadDockedWithoutInventoryVisibleImage()
                     : SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
             }),
             new SampleImageProcessor(),
@@ -100,18 +99,5 @@ public sealed class UnloadingCargoStateTests
         Assert.Equal(5, captureInvocationCount);
         Assert.Equal(2, automationInputController.KeyInputs.Count(input => input is { ModifierVirtualKey: VirtualKeys.Alt, VirtualKey: VirtualKeys.M }));
         Assert.Equal(1, automationInputController.KeyInputs.Count(input => input is { ModifierVirtualKey: VirtualKeys.Alt, VirtualKey: VirtualKeys.G }));
-    }
-
-    private static Mat CreateImageWithoutMiningHoldTitle()
-    {
-        var image = SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
-        using var detector = new InventoryDetector();
-        var analysis = detector.Detect(image);
-        if (analysis.MiningHoldTitleBounds is not null)
-        {
-            Cv2.Rectangle(image, analysis.MiningHoldTitleBounds.Value, Scalar.Black, -1);
-        }
-
-        return image;
     }
 }
