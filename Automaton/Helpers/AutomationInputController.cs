@@ -30,12 +30,16 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         }
     }
 
-    public void LeftClick(CancellationToken cancellationToken)
+    public void LeftClick(CancellationToken cancellationToken, bool recordClick = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
-        RecordClick();
+        if (recordClick)
+        {
+            RecordClick();
+        }
+
         var leftButtonPressed = false;
 
         try

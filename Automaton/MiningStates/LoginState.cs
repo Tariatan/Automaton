@@ -33,11 +33,6 @@ internal sealed class LoginState(
             return Recover(capturePath, MiningAutomationFailureReason.DetectionMiss);
         }
 
-        if( context.LastAction == MiningAutomationActionKind.StartGame)
-        {
-            gameActionService.TryHideUi(capturePath, cancellationToken);
-        }
-
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.UnloadCargo,

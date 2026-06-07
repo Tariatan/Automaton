@@ -6,7 +6,7 @@ internal interface IAutomationInputController
 {
     void MoveTo(Point point);
 
-    void LeftClick(CancellationToken cancellationToken);
+    void LeftClick(CancellationToken cancellationToken, bool recordClick = true);
 
     void PressKey(ushort virtualKey, CancellationToken cancellationToken);
 

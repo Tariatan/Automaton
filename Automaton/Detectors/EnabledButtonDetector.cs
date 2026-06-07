@@ -8,7 +8,7 @@ internal static class EnabledButtonDetector
 {
     private const double MinimumTemplateMatchScore = 0.88;
     private const double EarlyExitScore = 0.90;
-    private const double MinimumHsv = 80.0;
+    private const double MaximumHsvDistance = 130.0;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05, 0.90, 1.10];
     private static readonly Mat EnabledTemplate = EmbeddedResourceLoader.LoadMat("submit_enabled.png");
     private static readonly Mat EnabledTemplateHsv = ConvertToHsv(EnabledTemplate);
@@ -36,7 +36,7 @@ internal static class EnabledButtonDetector
 
         var score = requestedMatch.Value.Score;
         var hsv = MeasureHsv(screen, requestedMatch.Value.Bounds);
-        var isFound = score >= MinimumTemplateMatchScore && hsv >= MinimumHsv;
+        var isFound = score >= MinimumTemplateMatchScore && hsv <= MaximumHsvDistance;
 
         return new EnabledButtonDetection(
             isFound,

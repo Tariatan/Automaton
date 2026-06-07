@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using Automaton.Helpers;
 using OpenCvSharp;
 
@@ -26,7 +27,11 @@ internal sealed class StubGameActionService : IGameActionService
         QuitGameCalled = true;
     }
 
-    public void Logout(CancellationToken cancellationToken)
+    public void Logout(
+        ScreenCaptureService screenCaptureService,
+        PilotAvatarDetector pilotAvatarDetector,
+        int currentPilotIndex,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         LogoutCalled = true;

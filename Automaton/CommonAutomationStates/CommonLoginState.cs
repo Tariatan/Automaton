@@ -28,7 +28,7 @@ internal sealed class CommonLoginState(
 
         m_Logger.Warning("Workaround wrong pilot login issue by logging in twice");
         {
-            gameActionService.Logout(cancellationToken);
+            gameActionService.Logout(screenCaptureService, pilotAvatarDetector, pilotIndex, cancellationToken);
             pilotLocation = DetectPilotLocation(screenCaptureService, pilotIndex, captureSuffix, cancellationToken, out capturePath);
             if (pilotLocation is null)
             {

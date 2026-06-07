@@ -9,10 +9,12 @@ internal sealed class RecoveryState(
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     AsteroidBeltOverviewDetector beltOverviewDetector,
-    PlayNowButtonDetector playNowButtonDetector)
+    PlayNowButtonDetector playNowButtonDetector,
+    PilotAvatarDetector pilotAvatarDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-recovery";
+    private const int PilotIndex = 2;
     private const int MaximumStartingGameTransitionsBeforeReboot = 5;
     private static int sStartingGameTransitionsCount;
 
@@ -30,7 +32,7 @@ internal sealed class RecoveryState(
         if (context.LastAction == MiningAutomationActionKind.Relogin)
         {
             m_Logger.Error("Logging out...");
-            gameActionService.Logout(cancellationToken);
+            gameActionService.Logout(context.ScreenCaptureService, pilotAvatarDetector, PilotIndex, cancellationToken);
 
             return new MiningAutomationStateTransition(
                 Kind,

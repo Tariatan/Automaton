@@ -51,11 +51,6 @@ internal sealed class LoginState(
                 capturePath);
         }
 
-        if (context.LastAction == DiscoveryAutomationActionKind.StartGame)
-        {
-            gameActionService.TryHideUi(capturePath, cancellationToken);
-        }
-
         m_Logger.Information("Pilot {PilotIndex} login succeeded. CapturePath={CapturePath}", context.CurrentPilotIndex, capturePath);
         return new DiscoveryAutomationStateTransition(
             Kind,

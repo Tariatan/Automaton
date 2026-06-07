@@ -152,12 +152,12 @@ internal sealed class DiscoverState(
             foreach (var point in polygon)
             {
                 automationInputController.MoveTo(point);
-                automationInputController.LeftClick(cancellationToken);
+                automationInputController.LeftClick(cancellationToken, recordClick: false);
                 automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
             }
 
             automationInputController.MoveTo(polygon[0]);
-            automationInputController.LeftClick(cancellationToken);
+            automationInputController.LeftClick(cancellationToken, recordClick: false);
             automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
         }
     }

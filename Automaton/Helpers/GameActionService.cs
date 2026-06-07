@@ -1,61 +1,152 @@
 using System.Diagnostics;
 using System.IO;
+using Automaton.Detectors;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.Helpers;
 
-internal sealed class GameActionService(IAutomationInputController inputController) : IGameActionService
+internal sealed class GameActionService : IGameActionService
 {
     private const int HideUiTransitionDelayMs = 80;
+    private const string LogoutPilotCheckCaptureSuffix = ".logout-current-pilot-check";
+    private const string QuitGamePlayNowCheckCaptureSuffix = ".quit-game-play-now-check";
     private readonly ILogger m_Logger = Log.ForContext<GameActionService>();
+    private readonly IAutomationInputController m_InputController;
+    private readonly ScreenCaptureService m_ScreenCaptureService;
+    private readonly PlayNowButtonDetector m_PlayNowButtonDetector;
+    private readonly Action<CancellationToken>? m_RebootOperatingSystemOverride;
+
+    public GameActionService(
+        IAutomationInputController inputController,
+        ScreenCaptureService screenCaptureService,
+        PlayNowButtonDetector playNowButtonDetector)
+        : this(inputController, screenCaptureService, playNowButtonDetector, null)
+    {
+    }
+
+    internal GameActionService(
+        IAutomationInputController inputController,
+        ScreenCaptureService screenCaptureService,
+        PlayNowButtonDetector playNowButtonDetector,
+        Action<CancellationToken>? rebootOperatingSystemOverride)
+    {
+        m_InputController = inputController;
+        m_ScreenCaptureService = screenCaptureService;
+        m_PlayNowButtonDetector = playNowButtonDetector;
+        m_RebootOperatingSystemOverride = rebootOperatingSystemOverride;
+    }
 
     public void QuitGame(CancellationToken cancellationToken)
     {
-        // Ensure no window/popup is blocking Quit Game request
-        CloseActiveWindow(cancellationToken);
-        CloseActiveWindow(cancellationToken);
-        inputController.PressKey(VirtualKeys.Enter, cancellationToken);
-        inputController.PressKey(VirtualKeys.Enter, cancellationToken);
+        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
 
+        var elapsedMs = 0;
+        while (elapsedMs < Delays.QuitGameTimeoutMs)
+        {
+            m_InputController.Delay(Delays.QuitGamePollingMs, cancellationToken);
+            elapsedMs += Delays.QuitGamePollingMs;
 
-        inputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
-        inputController.Delay(Delays.QuitGameConfirmMs, cancellationToken);
-        inputController.PressKey(VirtualKeys.Enter, cancellationToken);
+            using var capture = m_ScreenCaptureService.CaptureCurrentScreen(QuitGamePlayNowCheckCaptureSuffix);
+            if (m_PlayNowButtonDetector.Detect(capture.CapturePath, out _))
+            {
+                m_Logger.Information(
+                    "PLAY NOW detected after quit game trigger. ElapsedSeconds={ElapsedSeconds:0.###}, CapturePath={CapturePath}",
+                    TimeSpan.FromMilliseconds(elapsedMs).TotalSeconds,
+                    capture.CapturePath);
+                return;
+            }
+
+            m_Logger.Warning(
+                "PLAY NOW not detected after quit game trigger. ElapsedSeconds={ElapsedSeconds:0.###}, CapturePath={CapturePath}",
+                TimeSpan.FromMilliseconds(elapsedMs).TotalSeconds,
+                capture.CapturePath);
+        }
+
+        m_Logger.Error(
+            "PLAY NOW was not detected before quit game timeout. Rebooting operating system. TimeoutSeconds={TimeoutSeconds:0.###}",
+            TimeSpan.FromMilliseconds(Delays.QuitGameTimeoutMs).TotalSeconds);
+        RebootOperatingSystem(cancellationToken);
     }
 
-    public void Logout(CancellationToken cancellationToken)
+    public void Logout(
+        ScreenCaptureService screenCaptureService,
+        PilotAvatarDetector pilotAvatarDetector,
+        int currentPilotIndex,
+        CancellationToken cancellationToken)
     {
-        inputController.Delay(Delays.WindowActivationMs, cancellationToken);
+        m_InputController.Delay(Delays.WindowActivationMs, cancellationToken);
 
-        inputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
-        inputController.Delay(Delays.WindowActivationMs, cancellationToken);
+        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
 
-        inputController.PressKey(VirtualKeys.Enter, cancellationToken);
-
-        var delay = TimeSpan.FromMilliseconds(Delays.PilotLogoutMs);
+        var delay = TimeSpan.FromMilliseconds(Delays.PilotLogoutDebounceMs);
         m_Logger.Information("Logging out for {Seconds} seconds", delay.TotalSeconds);
-        inputController.Delay(delay, cancellationToken);
+        m_InputController.Delay(delay, cancellationToken);
 
-        CloseActiveWindow(cancellationToken);
+        var elapsedMs = 0;
+        while (true)
+        {
+            m_InputController.Delay(Delays.PilotLogoutPollingMs, cancellationToken);
+            elapsedMs += Delays.PilotLogoutPollingMs;
+
+            // Close any window on Logon screen
+            CloseActiveWindow(cancellationToken);
+
+            using var capture = screenCaptureService.CaptureCurrentScreen(LogoutPilotCheckCaptureSuffix);
+            if (pilotAvatarDetector.Detect(capture.Image, currentPilotIndex, out _))
+            {
+                m_Logger.Information(
+                    "Current pilot detected after logout. CurrentPilotIndex={CurrentPilotIndex}, ElapsedSeconds={ElapsedSeconds:0.###}, CapturePath={CapturePath}",
+                    currentPilotIndex,
+                    TimeSpan.FromMilliseconds(elapsedMs).TotalSeconds,
+                    capture.CapturePath);
+                return;
+            }
+
+            // All logout attempts failed
+            if (elapsedMs >= Delays.PilotLogoutTimeoutMs)
+            {
+                break;
+            }
+
+            m_Logger.Warning(
+                "Current pilot not detected after logout. Retrying logout. CurrentPilotIndex={CurrentPilotIndex}, ElapsedSeconds={ElapsedSeconds:0.###}, CapturePath={CapturePath}",
+                currentPilotIndex,
+                TimeSpan.FromMilliseconds(elapsedMs).TotalSeconds,
+                capture.CapturePath);
+            // Try logging out again
+            m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
+        }
+
+        m_Logger.Error(
+            "Current pilot was not detected before logout timeout. Quitting game. CurrentPilotIndex={CurrentPilotIndex}, TimeoutSeconds={TimeoutSeconds:0.###}",
+            currentPilotIndex,
+            TimeSpan.FromMilliseconds(Delays.PilotLogoutTimeoutMs).TotalSeconds);
+        QuitGame(cancellationToken);
     }
 
     public void Login(int pilotIndex, Point activationPoint, CancellationToken cancellationToken)
     {
-        var delay = TimeSpan.FromMilliseconds(Delays.PilotLoginMs);
+        var delay = TimeSpan.FromMilliseconds(Delays.PilotLoginDebounceMs);
         m_Logger.Information("Logging in pilot {PilotIndex} for {DelaySeconds:0.###} seconds...", pilotIndex, delay.TotalSeconds);
-        inputController.MoveTo(activationPoint);
-        inputController.LeftClick(cancellationToken);
-        inputController.Delay(delay, cancellationToken);
+        m_InputController.MoveTo(activationPoint);
+        m_InputController.LeftClick(cancellationToken);
+        m_InputController.Delay(delay, cancellationToken);
 
         CloseActiveWindow(cancellationToken);
-        inputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        m_InputController.Delay(Delays.MinimumClickMs, cancellationToken);
     }
 
     public void RebootOperatingSystem(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (m_RebootOperatingSystemOverride is not null)
+        {
+            m_RebootOperatingSystemOverride(cancellationToken);
+            return;
+        }
+
         m_Logger.Error("Scheduling safe operating system reboot.");
         var startInfo = new ProcessStartInfo
         {
@@ -86,68 +177,68 @@ internal sealed class GameActionService(IAutomationInputController inputControll
                 Settings.HideUiFileSizeThreshold / 1024 / 1024,
                 captureFileInfo.Length / 1024 / 1024);
             ToggleUiVisibility(cancellationToken);
-            inputController.Delay(Delays.HideUiMs, cancellationToken);
+            m_InputController.Delay(Delays.HideUiMs, cancellationToken);
         }
     }
 
     public void CloseActiveWindow(CancellationToken cancellationToken)
     {
         m_Logger.Information("Hide active window");
-        inputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Q, cancellationToken);
+        m_InputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Q, cancellationToken);
     }
 
     public void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken)
     {
         m_Logger.Information("Toggle Project Discovery window");
-        inputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
     }
 
     public void ToggleFirstLaser(CancellationToken cancellationToken)
     {
         m_Logger.Information("Toggle first laser");
-        inputController.PressKey(VirtualKeys.F1, cancellationToken);
+        m_InputController.PressKey(VirtualKeys.F1, cancellationToken);
     }
 
     public void ToggleSecondLaser(CancellationToken cancellationToken)
     {
         m_Logger.Information("Toggle second laser");
-        inputController.PressKey(VirtualKeys.F2, cancellationToken);
+        m_InputController.PressKey(VirtualKeys.F2, cancellationToken);
     }
 
     public void TogglePropulsionModule(CancellationToken cancellationToken)
     {
         m_Logger.Information("Toggle propulsion module");
-        inputController.PressKey(VirtualKeys.F4, cancellationToken);
+        m_InputController.PressKey(VirtualKeys.F4, cancellationToken);
     }
 
     public void TriggerTargetLock(CancellationToken cancellationToken)
     {
         m_Logger.Information("Trigger target lock");
-        inputController.PressKey(VirtualKeys.Control, cancellationToken);
+        m_InputController.PressKey(VirtualKeys.Control, cancellationToken);
     }
 
     public void TriggerTargetApproach(CancellationToken cancellationToken)
     {
         m_Logger.Information("Trigger target approach");
-        inputController.PressKey(VirtualKeys.A, cancellationToken);
+        m_InputController.PressKey(VirtualKeys.A, cancellationToken);
     }
 
     public void WarpToTarget(CancellationToken cancellationToken)
     {
         m_Logger.Information("Warping to target");
-        inputController.PressKey(VirtualKeys.S, cancellationToken);
+        m_InputController.PressKey(VirtualKeys.S, cancellationToken);
     }
 
     public void WarpToTargetAndDock(CancellationToken cancellationToken)
     {
         m_Logger.Information("Warping to target and docking");
-        inputController.PressKey(VirtualKeys.D, cancellationToken);
+        m_InputController.PressKey(VirtualKeys.D, cancellationToken);
     }
 
     private void ToggleUiVisibility(CancellationToken cancellationToken)
     {
         m_Logger.Information("Toggle UI visibility");
-        inputController.PressKeyChord(
+        m_InputController.PressKeyChord(
             VirtualKeys.LeftControl,
             VirtualKeys.LeftShift,
             VirtualKeys.F9,

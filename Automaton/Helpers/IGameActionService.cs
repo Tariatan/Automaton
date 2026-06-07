@@ -1,3 +1,4 @@
+using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.Helpers;
@@ -5,7 +6,11 @@ namespace Automaton.Helpers;
 internal interface IGameActionService
 {
     void QuitGame(CancellationToken cancellationToken);
-    void Logout(CancellationToken cancellationToken);
+    void Logout(
+        ScreenCaptureService screenCaptureService,
+        PilotAvatarDetector pilotAvatarDetector,
+        int currentPilotIndex,
+        CancellationToken cancellationToken);
     void Login(int pilotIndex, Point activationPoint, CancellationToken cancellationToken);
     void RebootOperatingSystem(CancellationToken cancellationToken);
     void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken);

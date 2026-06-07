@@ -12,8 +12,12 @@ internal static class Delays
     public const int AutomationStartupDelayMs = 3_000;
     public const int StateMachineNextStepDelayMs = 500;
     public const int LauncherStartupMs = 60_000;
-    public const int PilotLoginMs = 40_000;
-    public const int PilotLogoutMs = 40_000;
+    public const int PilotLoginDebounceMs = 20_000;
+    public const int PilotLogoutDebounceMs = 5_000;
+    public const int PilotLogoutPollingMs = 5_000;
+    public const int PilotLogoutTimeoutMs = 120_000;
+    public const int QuitGamePollingMs = 5_000;
+    public const int QuitGameTimeoutMs = 120_000;
     public const int LoadWindowMs = 3_000;
     
     public const int ConnectionLostExitMs = 1_000;
@@ -21,7 +25,6 @@ internal static class Delays
     public const int RecoveryMs = 60_000;
 
     // Quit game / window control
-    public const int QuitGameConfirmMs = 2_000;
     public const int WindowActivationMs = 1_000;
 
     // Project Discovery

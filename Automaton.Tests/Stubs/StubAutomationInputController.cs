@@ -25,7 +25,7 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         MoveTargets.Add(point);
     }
 
-    public void LeftClick(CancellationToken cancellationToken)
+    public void LeftClick(CancellationToken cancellationToken, bool recordClick = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ClickCount++;
