@@ -16,6 +16,9 @@ internal static class SyntheticCommonImageFactory
     public static Mat LoadLoginPilotSelectionScreenImage()
         => ScreenshotLoader.LoadOrSkip("Common/pilot_selection_screen.png");
 
+    public static Mat LoadLoggedInPilotScreenImage()
+        => ScreenshotLoader.LoadOrSkip("Common/pilot_logged_in.png");
+
     public static Mat LoadPilotAvatarImage(int pilotIndex)
         => ScreenshotLoader.LoadOrSkip($"Common/{pilotIndex}.png");
 

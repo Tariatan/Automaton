@@ -8,10 +8,11 @@ namespace Automaton.ProjectDiscoveryStates;
 internal sealed class LoginState(
     ScreenCaptureService screenCaptureService,
     IGameActionService gameActionService,
-    PilotAvatarDetector pilotAvatarDetector) : IProjectDiscoveryAutomationState
+    PilotAvatarDetector pilotAvatarDetector,
+    LoggedInPilotDetector loggedInPilotDetector) : IProjectDiscoveryAutomationState
 {
     private const string CaptureSuffix = ".discovery-login";
-    private readonly CommonLoginState m_CommonLoginState = new(gameActionService, pilotAvatarDetector);
+    private readonly CommonLoginState m_CommonLoginState = new(gameActionService, pilotAvatarDetector, loggedInPilotDetector);
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Login;
 

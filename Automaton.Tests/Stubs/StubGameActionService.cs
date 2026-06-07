@@ -8,6 +8,7 @@ internal sealed class StubGameActionService : IGameActionService
 {
     public bool QuitGameCalled { get; private set; }
     public bool LogoutCalled { get; private set; }
+    public int LogoutCallCount { get; private set; }
     public bool RebootOperatingSystemCalled { get; private set; }
     public int CloseActiveWindowCallCount { get; private set; }
     public int ToggleProjectDiscoveryWindowCallCount { get; private set; }
@@ -35,6 +36,7 @@ internal sealed class StubGameActionService : IGameActionService
     {
         cancellationToken.ThrowIfCancellationRequested();
         LogoutCalled = true;
+        LogoutCallCount++;
     }
 
     public void Login(int pilotIndex, Point activationPoint, CancellationToken cancellationToken)

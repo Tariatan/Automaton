@@ -7,8 +7,10 @@ namespace Automaton.CommonAutomationStates;
 
 internal sealed class CommonLoginState(
     IGameActionService gameActionService,
-    PilotAvatarDetector pilotAvatarDetector)
+    PilotAvatarDetector pilotAvatarDetector,
+    LoggedInPilotDetector loggedInPilotDetector)
 {
+    private const string LoggedInPilotCheckCaptureSuffix = ".logged-in-pilot-check";
     private readonly ILogger m_Logger = Log.ForContext<CommonLoginState>();
 
     public bool TryLoginPilot(
@@ -24,21 +26,27 @@ internal sealed class CommonLoginState(
             return false;
         }
 
-        gameActionService.Login(pilotIndex, GeometryHelper.Center(pilotLocation.Value), cancellationToken);
-
-        m_Logger.Warning("Workaround wrong pilot login issue by logging in twice");
+        while (true)
         {
+            gameActionService.Login(pilotIndex, GeometryHelper.Center(pilotLocation.Value), cancellationToken);
+
+            if (IsRequestedPilotLoggedIn(screenCaptureService, pilotIndex, captureSuffix, cancellationToken, out capturePath))
+            {
+                return true;
+            }
+
+            m_Logger.Warning(
+                "Requested pilot login verification failed. Logging out and retrying. PilotIndex={PilotIndex}, CapturePath={CapturePath}",
+                pilotIndex,
+                capturePath);
+
             gameActionService.Logout(screenCaptureService, pilotAvatarDetector, pilotIndex, cancellationToken);
             pilotLocation = DetectPilotLocation(screenCaptureService, pilotIndex, captureSuffix, cancellationToken, out capturePath);
             if (pilotLocation is null)
             {
                 return false;
             }
-
-            gameActionService.Login(pilotIndex, GeometryHelper.Center(pilotLocation.Value), cancellationToken);
         }
-
-        return true;
     }
 
     private Rect? DetectPilotLocation(
@@ -61,6 +69,26 @@ internal sealed class CommonLoginState(
 
         DrawDebugOverlay(capturePath, pilotLocation.Bounds, $"Pilot {pilotIndex} found");
         return pilotLocation.Bounds;
+    }
+
+    private bool IsRequestedPilotLoggedIn(
+        ScreenCaptureService screenCaptureService,
+        int pilotIndex,
+        string captureSuffix,
+        CancellationToken cancellationToken,
+        out string capturePath)
+    {
+        using var capture = screenCaptureService.CaptureCurrentScreen($"{captureSuffix}{LoggedInPilotCheckCaptureSuffix}-{pilotIndex}");
+        capturePath = capture.CapturePath;
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!loggedInPilotDetector.Detect(capture.Image, out var detection))
+        {
+            return false;
+        }
+
+        DrawDebugOverlay(capturePath, detection.Bounds, $"Logged in pilot {detection.PilotIndex} found");
+        return detection.PilotIndex == pilotIndex;
     }
 
     private static void DrawDebugOverlay(string imagePath, Rect bounds, string label)

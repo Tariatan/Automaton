@@ -24,7 +24,8 @@ internal sealed class MiningAutomationService(
     WarOverviewDetector warOverviewDetector,
     ConnectionLostPopupDetector connectionLostPopupDetector,
     CommonAutomationStates.ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior,
-    PilotAvatarDetector pilotAvatarDetector)
+    PilotAvatarDetector pilotAvatarDetector,
+    LoggedInPilotDetector loggedInPilotDetector)
 {
     private static readonly ILogger Logger = Log.ForContext<MiningAutomationService>();
     private readonly MiningAutomationContext m_Context = new(screenCaptureService, automationClock);
@@ -165,7 +166,7 @@ internal sealed class MiningAutomationService(
         return stateKind switch
         {
             MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, gameActionService, playNowButtonDetector),
-            MiningAutomationStateKind.Login => new LoginState(gameActionService, pilotAvatarDetector),
+            MiningAutomationStateKind.Login => new LoginState(gameActionService, pilotAvatarDetector, loggedInPilotDetector),
             MiningAutomationStateKind.Dock => new DockingState(automationInputController, gameActionService, asteroidBeltOverviewDetector),
             MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, gameActionService, inventoryDetector, downtimeDetector),
             MiningAutomationStateKind.Undocking => new UndockingState(automationInputController, locationChangeTimerDetector),
