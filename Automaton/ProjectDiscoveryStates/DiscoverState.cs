@@ -22,7 +22,7 @@ internal sealed class DiscoverState(
     private const int MaximumSubmissionsPerWindow = 5;
     private static readonly OverlayColor EnabledButtonSearchOverlayColor = OverlayColor.Yellow;
     private static readonly OverlayColor EnabledButtonMatchOverlayColor = OverlayColor.Cyan;
-    private readonly Queue<DateTime> m_SubmittedAtUtc = new();
+    private readonly Queue<DateTime> m_SubmittedAtLocal = new();
     private readonly ILogger m_Logger = Log.ForContext<DiscoverState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Discover;
 
@@ -95,7 +95,7 @@ internal sealed class DiscoverState(
 
         // Left-click the 'Submit' button.
         automationInputController.LeftClick(cancellationToken);
-        RecordSubmit(automationClock.UtcNow);
+        RecordSubmit(automationClock.LocalNow);
         automationInputController.Delay(Delays.SubmitResultMs, cancellationToken);
 
         // Take focused screen to trace the result of submission.
@@ -181,7 +181,7 @@ internal sealed class DiscoverState(
 
     private void DelayBeforeRateLimitedSubmit(CancellationToken cancellationToken)
     {
-        var delay = GetDelayBeforeNextSubmit(automationClock.UtcNow);
+        var delay = GetDelayBeforeNextSubmit(automationClock.LocalNow);
         if (delay <= TimeSpan.Zero)
         {
             return;
@@ -191,31 +191,31 @@ internal sealed class DiscoverState(
         automationInputController.Delay((int)Math.Ceiling(delay.TotalMilliseconds), cancellationToken);
     }
 
-    private TimeSpan GetDelayBeforeNextSubmit(DateTime utcNow)
+    private TimeSpan GetDelayBeforeNextSubmit(DateTime localNow)
     {
-        RemoveExpiredSubmissions(utcNow);
-        if (m_SubmittedAtUtc.Count < MaximumSubmissionsPerWindow)
+        RemoveExpiredSubmissions(localNow);
+        if (m_SubmittedAtLocal.Count < MaximumSubmissionsPerWindow)
         {
             return TimeSpan.Zero;
         }
 
-        var elapsed = utcNow - m_SubmittedAtUtc.Peek();
+        var elapsed = localNow - m_SubmittedAtLocal.Peek();
         var remaining = TimeSpan.FromMilliseconds(Delays.SubmissionWindowMs) - elapsed;
         return remaining <= TimeSpan.Zero ? TimeSpan.Zero : remaining;
     }
 
-    private void RecordSubmit(DateTime utcNow)
+    private void RecordSubmit(DateTime localNow)
     {
-        RemoveExpiredSubmissions(utcNow);
-        m_SubmittedAtUtc.Enqueue(utcNow);
+        RemoveExpiredSubmissions(localNow);
+        m_SubmittedAtLocal.Enqueue(localNow);
     }
 
-    private void RemoveExpiredSubmissions(DateTime utcNow)
+    private void RemoveExpiredSubmissions(DateTime localNow)
     {
-        while (m_SubmittedAtUtc.Count > 0 &&
-               (utcNow - m_SubmittedAtUtc.Peek()).TotalMilliseconds >= Delays.SubmissionWindowMs)
+        while (m_SubmittedAtLocal.Count > 0 &&
+               (localNow - m_SubmittedAtLocal.Peek()).TotalMilliseconds >= Delays.SubmissionWindowMs)
         {
-            m_SubmittedAtUtc.Dequeue();
+            m_SubmittedAtLocal.Dequeue();
         }
     }
 

@@ -63,7 +63,7 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     public void PressKey(ushort virtualKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        LogKeyboardAction("Key press", DateTime.UtcNow, virtualKey);
+        LogKeyboardAction("Key press", DateTime.Now, virtualKey);
         var scanCode = MapScanCode(virtualKey);
         SendKeyboardInput(BuildKeyDownInput(virtualKey, scanCode));
         WaitForKeyboardTransition(cancellationToken);
@@ -75,7 +75,7 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = DefaultTransitionDelayMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        LogKeyboardAction("Key chord", DateTime.UtcNow, modifierVirtualKey, virtualKey);
+        LogKeyboardAction("Key chord", DateTime.Now, modifierVirtualKey, virtualKey);
         var modScan = MapScanCode(modifierVirtualKey);
         var keyScan = MapScanCode(virtualKey);
         SendKeyboardInput(BuildKeyDownInput(modifierVirtualKey, modScan));
@@ -97,7 +97,7 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         int transitionDelayMs = DefaultTransitionDelayMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        LogKeyboardAction("Key chord", DateTime.UtcNow, firstModifier, secondModifier, virtualKey);
+        LogKeyboardAction("Key chord", DateTime.Now, firstModifier, secondModifier, virtualKey);
         var firstScan = MapScanCode(firstModifier);
         var secondScan = MapScanCode(secondModifier);
         var keyScan = MapScanCode(virtualKey);
@@ -234,27 +234,27 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     {
         if (GetCursorPos(out var cursorPosition))
         {
-            var timestampUtc = DateTime.UtcNow;
+            var timestampLocal = DateTime.Now;
             var point = new Point(cursorPosition.X, cursorPosition.Y);
             m_Logger.Information(
-                "Left click. X={X}, Y={Y}, TimestampUtc={TimestampUtc:O}",
+                "Left click. X={X}, Y={Y}, TimestampLocal={TimestampLocal:O}",
                 point.X,
                 point.Y,
-                timestampUtc);
-            clickTraceRecorder.RecordClick(point, timestampUtc);
+                timestampLocal);
+            clickTraceRecorder.RecordClick(point, timestampLocal);
             return;
         }
 
         m_Logger.Warning("GetCursorPos failed before left click.");
     }
 
-    private void LogKeyboardAction(string action, DateTime timestampUtc, params ushort[] virtualKeys)
+    private void LogKeyboardAction(string action, DateTime timestampLocal, params ushort[] virtualKeys)
     {
         m_Logger.Information(
-            "{Action}. Keys={Keys}, TimestampUtc={TimestampUtc:O}",
+            "{Action}. Keys={Keys}, TimestampLocal={TimestampLocal:O}",
             action,
             string.Join("+", virtualKeys.Select(FormatVirtualKey)),
-            timestampUtc);
+            timestampLocal);
     }
 
     private static string FormatVirtualKey(ushort virtualKey)

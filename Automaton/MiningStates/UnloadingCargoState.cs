@@ -98,9 +98,10 @@ internal sealed class UnloadingCargoState(
         automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.M, cancellationToken);
         automationInputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.G, cancellationToken);
 
-        if (downtimeDetector.IsDowntimeImminent(context.AutomationClock.UtcNow))
+        var utcNow = context.AutomationClock.UtcNow;
+        if (downtimeDetector.IsDowntimeImminent(utcNow))
         {
-            m_Logger.Warning("Downtime imminent => quit game and exit application. Now={Now}", context.AutomationClock.UtcNow);
+            m_Logger.Warning("Downtime imminent => quit game and exit application. LocalNow={LocalNow}", context.AutomationClock.LocalNow);
             gameActionService.QuitGame(cancellationToken);
             return new MiningAutomationStateTransition(
                 Kind,

@@ -19,7 +19,7 @@ public sealed class ClickTraceRecorderTests
         clickTraceRecorder.BeginCapture(capturePath, new DrawingRectangle(100, 200, 120, 120));
 
         // Act
-        clickTraceRecorder.RecordClick(new Point(160, 260), DateTime.UtcNow);
+        clickTraceRecorder.RecordClick(new Point(160, 260), DateTime.Now);
         clickTraceRecorder.Flush();
 
         // Assert
@@ -42,7 +42,7 @@ public sealed class ClickTraceRecorderTests
         // Act
         using (clickTraceRecorder.SuppressRecording())
         {
-            clickTraceRecorder.RecordClick(new Point(60, 60), DateTime.UtcNow);
+            clickTraceRecorder.RecordClick(new Point(60, 60), DateTime.Now);
         }
 
         clickTraceRecorder.Flush();

@@ -21,7 +21,7 @@ internal sealed class ClickTraceRecorder
         return new RecordingSuppressionScope(this);
     }
 
-    public void RecordClick(Point screenPoint, DateTime timestampUtc)
+    public void RecordClick(Point screenPoint, DateTime timestampLocal)
     {
         lock (m_Lock)
         {
@@ -30,7 +30,7 @@ internal sealed class ClickTraceRecorder
                 return;
             }
 
-            m_ActiveCapture.Clicks.Add(new ClickTrace(timestampUtc, screenPoint));
+            m_ActiveCapture.Clicks.Add(new ClickTrace(timestampLocal, screenPoint));
         }
     }
 
@@ -118,7 +118,7 @@ internal sealed class ClickTraceRecorder
     }
 }
 
-internal sealed record ClickTrace(DateTime TimestampUtc, Point ScreenPoint);
+internal sealed record ClickTrace(DateTime TimestampLocal, Point ScreenPoint);
 
 internal sealed record ClickTraceCapture(
     string ImagePath,

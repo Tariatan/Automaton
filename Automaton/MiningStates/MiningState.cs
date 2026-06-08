@@ -29,13 +29,13 @@ internal sealed class MiningState(
     public MiningAutomationStateTransition Execute(MiningAutomationContext context, CancellationToken cancellationToken)
     {
         m_Logger.Information("Executing {State}", Kind);
-        var loopStart = DateTime.UtcNow;
+        var loopStart = DateTime.Now;
         string? lastCapturePath = null;
         var dockingReason = DockingReason.Timeout;
 
         // Start mining
         m_Logger.Information("Start mining...");
-        while (DateTime.UtcNow - loopStart < Delays.MiningLoopDuration)
+        while (DateTime.Now - loopStart < Delays.MiningLoopDuration)
         {
             cancellationToken.ThrowIfCancellationRequested();
             automationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
