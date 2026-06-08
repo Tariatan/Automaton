@@ -48,7 +48,7 @@ internal sealed class UnloadingCargoState(
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Relogin);
+                MiningAutomationActionKind.RestartGame);
         }
 
         if (!TryOpenInventoryWindow(
@@ -61,7 +61,7 @@ internal sealed class UnloadingCargoState(
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Relogin);
+                MiningAutomationActionKind.RestartGame);
         }
 
         using var capture = context.ScreenCaptureService.CaptureCurrentScreen(UnloadingCargoCaptureSuffix);

@@ -61,7 +61,7 @@ public sealed class StartingGameStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.StartingGame, transition.State);
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Relogin, transition.Action);
+        Assert.Equal(MiningAutomationActionKind.RestartGame, transition.Action);
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
         Assert.Empty(automationInputControllerMock.Delays);

@@ -1,6 +1,7 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
+using Automaton.Primitives;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;
 
@@ -21,7 +22,8 @@ public sealed class LoginStateTests
             pilotScreen.Clone,
             loggedInPilotScreen.Clone);
         var gameActionService = new StubGameActionService();
-        var state = new LoginState(gameActionService, new PilotAvatarDetector(), new LoggedInPilotDetector());
+        var automationInputControllerMock = new StubAutomationInputController();
+        var state = new LoginState(gameActionService, automationInputControllerMock, new PilotAvatarDetector(), new LoggedInPilotDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -45,14 +47,13 @@ public sealed class LoginStateTests
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.LoginPilot, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
-        Assert.Equal(1, gameActionService.LoginCallCount);
+        Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.False(gameActionService.LogoutCalled);
-        Assert.Equal(1, gameActionService.CloseActiveWindowCallCount);
-        Assert.All(gameActionService.LoginCalls, call => Assert.Equal(2, call.PilotIndex));
+        Assert.Equal(2, gameActionService.CloseActiveWindowCallCount);
     }
 
     [Fact]
-    public void Execute_LoggedInPilotCheckMissesRequestedPilot_LogsOutAndRetriesLogin()
+    public void Execute_LoggedInPilotCheckMissesRequestedPilot_WaitsForFullLogin()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -67,7 +68,8 @@ public sealed class LoginStateTests
             pilotScreen.Clone,
             loggedInPilotScreen.Clone);
         var gameActionService = new StubGameActionService();
-        var state = new LoginState(gameActionService, new PilotAvatarDetector(), new LoggedInPilotDetector());
+        var automationInputControllerMock = new StubAutomationInputController();
+        var state = new LoginState(gameActionService, automationInputControllerMock, new PilotAvatarDetector(), new LoggedInPilotDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -91,26 +93,73 @@ public sealed class LoginStateTests
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.LoginPilot, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
-        Assert.Equal(2, gameActionService.LoginCallCount);
-        Assert.Equal(1, gameActionService.LogoutCallCount);
-        Assert.Equal(2, gameActionService.CloseActiveWindowCallCount);
-        Assert.All(gameActionService.LoginCalls, call => Assert.Equal(2, call.PilotIndex));
+        Assert.Equal(1, automationInputControllerMock.ClickCount);
+        Assert.False(gameActionService.LogoutCalled);
+        Assert.Equal(4, gameActionService.CloseActiveWindowCallCount);
     }
 
     [Fact]
-    public void Execute_PilotTwoMissing_TransitionsToRecoveryWithoutInput()
+    public void Execute_WrongPilotDetectedThenCorrectPilotDetected_LogsOutAndRetriesSuccessfully()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var pilotDirectory = Path.Combine(workspace.Path, "pilot");
+        WritePilotAvatarTemplates(pilotDirectory, 1);
+        WritePilotAvatarTemplates(pilotDirectory, 2);
+        using var pilotScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
+        using var loggedInPilotScreen = SyntheticCommonImageFactory.LoadLoggedInPilotScreenImage();
+        using var wrongPilotScreen = BuildLoggedInScreenWithDifferentPilot(loggedInPilotScreen, 1);
+        var screenCaptureService = BuildScreenCaptureService(
+            pilotScreen.Clone,
+            wrongPilotScreen.Clone,
+            pilotScreen.Clone,
+            loggedInPilotScreen.Clone);
+        var gameActionService = new StubGameActionService();
+        var automationInputControllerMock = new StubAutomationInputController();
+        var state = new LoginState(gameActionService, automationInputControllerMock, new PilotAvatarDetector(), new LoggedInPilotDetector());
+
+        // Act
+        var currentDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(workspace.Path);
+
+        MiningAutomationStateTransition transition;
+
+        try
+        {
+            transition = state.Execute(
+                new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
+                CancellationToken.None);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.Login, transition.State);
+        Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.LoginPilot, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
+        Assert.Equal(2, automationInputControllerMock.ClickCount);
+        Assert.Equal(1, gameActionService.LogoutCallCount);
+        Assert.Equal(4, gameActionService.CloseActiveWindowCallCount);
+    }
+
+    [Fact]
+    public void Execute_PilotNeverDetectedInGame_RetriesAndTransitionsToRecovery()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
         var pilotDirectory = Path.Combine(workspace.Path, "pilot");
         WritePilotAvatarTemplates(pilotDirectory, 2);
-        using var blankScreen = SyntheticCommonImageFactory.LoadPilotAvatarImage(1);
+        using var pilotScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor());
-        var automationInputControllerMock = new StubAutomationInputController();
+            new StubScreenCaptureProvider(pilotScreen.Clone),
+            new SampleImageProcessor(),
+            persistCaptures: false);
         var gameActionService = new StubGameActionService();
-        var state = new LoginState(gameActionService, new PilotAvatarDetector(), new LoggedInPilotDetector());
+        var automationInputControllerMock = new StubAutomationInputController();
+        var state = new LoginState(gameActionService, automationInputControllerMock, new PilotAvatarDetector(), new LoggedInPilotDetector());
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -132,7 +181,53 @@ public sealed class LoginStateTests
         // Assert
         Assert.Equal(MiningAutomationStateKind.Login, transition.State);
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
-        Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
+        Assert.Equal(MiningAutomationActionKind.RestartGame, transition.Action);
+        Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
+
+        var pollingIterationsPerAttempt = Delays.PilotLoginTimeoutMs / Delays.PilotLoginPollingMs;
+        Assert.Equal(Settings.MaxLoginAttempts, automationInputControllerMock.ClickCount);
+        Assert.Equal(Settings.MaxLoginAttempts, gameActionService.LogoutCallCount);
+        Assert.Equal(
+            Settings.MaxLoginAttempts * pollingIterationsPerAttempt,
+            automationInputControllerMock.Delays.Count(d => d == Delays.PilotLoginPollingMs));
+    }
+
+    [Fact]
+    public void Execute_PilotTwoMissing_TransitionsToRecoveryWithoutInput()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var pilotDirectory = Path.Combine(workspace.Path, "pilot");
+        WritePilotAvatarTemplates(pilotDirectory, 2);
+        using var blankScreen = SyntheticCommonImageFactory.LoadPilotAvatarImage(1);
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(blankScreen.Clone),
+            new SampleImageProcessor());
+        var automationInputControllerMock = new StubAutomationInputController();
+        var gameActionService = new StubGameActionService();
+        var state = new LoginState(gameActionService, automationInputControllerMock, new PilotAvatarDetector(), new LoggedInPilotDetector());
+
+        // Act
+        var currentDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(workspace.Path);
+
+        MiningAutomationStateTransition transition;
+
+        try
+        {
+            transition = state.Execute(
+                new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
+                CancellationToken.None);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        Assert.Equal(MiningAutomationStateKind.Login, transition.State);
+        Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
+        Assert.Equal(MiningAutomationActionKind.RestartGame, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
@@ -164,6 +259,16 @@ public sealed class LoginStateTests
     {
         var image = source.Clone();
         image[new Rect(0, 48, 48, 48)].SetTo(Scalar.Black);
+        return image;
+    }
+
+    private static Mat BuildLoggedInScreenWithDifferentPilot(Mat source, int pilotIndex)
+    {
+        var image = source.Clone();
+        using var avatar = SyntheticCommonImageFactory.LoadFocusedPilotAvatarImage(pilotIndex);
+        using var resized = new Mat();
+        Cv2.Resize(avatar, resized, new Size(48, 48), 0, 0, InterpolationFlags.Area);
+        resized.CopyTo(image[new Rect(0, 48, 48, 48)]);
         return image;
     }
 }

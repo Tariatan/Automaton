@@ -32,7 +32,7 @@ internal sealed class StartingGameState(
             return new MiningAutomationStateTransition(
                 Kind,
                 MiningAutomationStateKind.Recovery,
-                MiningAutomationActionKind.Relogin,
+                MiningAutomationActionKind.RestartGame,
                 capturePath);
         }
 

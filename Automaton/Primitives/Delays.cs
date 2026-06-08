@@ -14,6 +14,8 @@ internal static class Delays
     public const int LauncherStartupMs = 60_000;
     public const int PilotLoginDebounceMs = 20_000;
     public const int PilotLogoutDebounceMs = 5_000;
+    public const int PilotLoginPollingMs = 5_000;
+    public const int PilotLoginTimeoutMs = 180_000;
     public const int PilotLogoutPollingMs = 5_000;
     public const int PilotLogoutTimeoutMs = 120_000;
     public const int QuitGamePollingMs = 5_000;

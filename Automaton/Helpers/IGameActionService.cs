@@ -11,7 +11,6 @@ internal interface IGameActionService
         PilotAvatarDetector pilotAvatarDetector,
         int currentPilotIndex,
         CancellationToken cancellationToken);
-    void Login(int pilotIndex, Point activationPoint, CancellationToken cancellationToken);
     void RebootOperatingSystem(CancellationToken cancellationToken);
     void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken);
     void CloseActiveWindow(CancellationToken cancellationToken);

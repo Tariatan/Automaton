@@ -45,7 +45,7 @@ internal enum MiningAutomationActionKind
     UnloadCargo,
     QuitGameAndExitApplication,
     Reboot,
-    Relogin,
+    RestartGame,
     Recover,
     RecoverConnectionLostPopup
 }

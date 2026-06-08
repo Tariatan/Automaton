@@ -9,13 +9,10 @@ internal sealed class RecoveryState(
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     AsteroidBeltOverviewDetector beltOverviewDetector,
-    PlayNowButtonDetector playNowButtonDetector,
-    PilotAvatarDetector pilotAvatarDetector)
+    PlayNowButtonDetector playNowButtonDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-recovery";
-    private const int PilotIndex = 2;
-    private const int MaximumStartingGameTransitionsBeforeReboot = 5;
     private static int sStartingGameTransitionsCount;
 
     private readonly ILogger m_Logger = Log.ForContext<RecoveryState>();
@@ -29,15 +26,10 @@ internal sealed class RecoveryState(
         m_Logger.Information("Executing {State}", Kind);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (context.LastAction == MiningAutomationActionKind.Relogin)
+        if (context.LastAction == MiningAutomationActionKind.RestartGame)
         {
-            m_Logger.Error("Logging out...");
-            gameActionService.Logout(context.ScreenCaptureService, pilotAvatarDetector, PilotIndex, cancellationToken);
-
-            return new MiningAutomationStateTransition(
-                Kind,
-                MiningAutomationStateKind.Login,
-                MiningAutomationActionKind.None);
+            m_Logger.Error("Game restart requested.");
+            return RestartGame(null, cancellationToken);
         }
 
         // Debounce
@@ -89,6 +81,13 @@ internal sealed class RecoveryState(
 
         // Last resort
         m_Logger.Error("Home Station not found in Belt overview while undocked. Quit Game instead of endless wandering in space.");
+        return RestartGame(capture.CapturePath, cancellationToken);
+    }
+
+    private MiningAutomationStateTransition RestartGame(
+        string? capturePath,
+        CancellationToken cancellationToken)
+    {
         gameActionService.QuitGame(cancellationToken);
         // Debounce
         automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
@@ -96,7 +95,7 @@ internal sealed class RecoveryState(
             Kind,
             MiningAutomationStateKind.StartingGame,
             MiningAutomationActionKind.None,
-            capture.CapturePath,
+            capturePath,
             cancellationToken);
     }
 
@@ -108,14 +107,14 @@ internal sealed class RecoveryState(
         CancellationToken cancellationToken)
     {
         sStartingGameTransitionsCount++;
-        if (sStartingGameTransitionsCount <= MaximumStartingGameTransitionsBeforeReboot)
+        if (sStartingGameTransitionsCount <= Settings.MaximumStartingGameTransitionsBeforeReboot)
         {
             return new MiningAutomationStateTransition(state, nextState, action, capturePath);
         }
 
         m_Logger.Error(
             "StartingGame transition count exceeded threshold ({Threshold}). Triggering operating system reboot.",
-            MaximumStartingGameTransitionsBeforeReboot);
+            Settings.MaximumStartingGameTransitionsBeforeReboot);
         gameActionService.RebootOperatingSystem(cancellationToken);
         return new MiningAutomationStateTransition(state, nextState, MiningAutomationActionKind.Reboot, capturePath);
     }

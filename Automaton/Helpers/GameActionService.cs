@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.IO;
 using Automaton.Detectors;
 using Automaton.Primitives;
-using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.Helpers;
@@ -92,6 +91,7 @@ internal sealed class GameActionService : IGameActionService
 
             // Close any window on Logon screen
             CloseActiveWindow(cancellationToken);
+            m_InputController.Delay(Delays.MinimumClickMs, cancellationToken);
 
             using var capture = screenCaptureService.CaptureCurrentScreen(LogoutPilotCheckCaptureSuffix);
             if (pilotAvatarDetector.Detect(capture.Image, currentPilotIndex, out _))
@@ -120,22 +120,10 @@ internal sealed class GameActionService : IGameActionService
         }
 
         m_Logger.Error(
-            "Current pilot was not detected before logout timeout. Quitting game. CurrentPilotIndex={CurrentPilotIndex}, TimeoutSeconds={TimeoutSeconds:0.###}",
+            "Current pilot was not detected before logout timeout. Rebooting operating system. CurrentPilotIndex={CurrentPilotIndex}, TimeoutSeconds={TimeoutSeconds:0.###}",
             currentPilotIndex,
             TimeSpan.FromMilliseconds(Delays.PilotLogoutTimeoutMs).TotalSeconds);
-        QuitGame(cancellationToken);
-    }
-
-    public void Login(int pilotIndex, Point activationPoint, CancellationToken cancellationToken)
-    {
-        var delay = TimeSpan.FromMilliseconds(Delays.PilotLoginDebounceMs);
-        m_Logger.Information("Logging in pilot {PilotIndex} for {DelaySeconds:0.###} seconds...", pilotIndex, delay.TotalSeconds);
-        m_InputController.MoveTo(activationPoint);
-        m_InputController.LeftClick(cancellationToken);
-        m_InputController.Delay(delay, cancellationToken);
-
-        CloseActiveWindow(cancellationToken);
-        m_InputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        RebootOperatingSystem(cancellationToken);
     }
 
     public void RebootOperatingSystem(CancellationToken cancellationToken)

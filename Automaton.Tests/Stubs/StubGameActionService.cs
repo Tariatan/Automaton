@@ -19,8 +19,6 @@ internal sealed class StubGameActionService : IGameActionService
     public int TriggerTargetApproachCallCount { get; private set; }
     public int WarpToTargetCallCount { get; private set; }
     public int WarpToTargetAndDockCallCount { get; private set; }
-    public int LoginCallCount { get; private set; }
-    public List<(int PilotIndex, Point ActivationPoint)> LoginCalls { get; } = [];
 
     public void QuitGame(CancellationToken cancellationToken)
     {
@@ -37,13 +35,6 @@ internal sealed class StubGameActionService : IGameActionService
         cancellationToken.ThrowIfCancellationRequested();
         LogoutCalled = true;
         LogoutCallCount++;
-    }
-
-    public void Login(int pilotIndex, Point activationPoint, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        LoginCallCount++;
-        LoginCalls.Add((pilotIndex, activationPoint));
     }
 
     public void RebootOperatingSystem(CancellationToken cancellationToken)

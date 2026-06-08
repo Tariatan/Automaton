@@ -166,14 +166,14 @@ internal sealed class MiningAutomationService(
         return stateKind switch
         {
             MiningAutomationStateKind.StartingGame => new StartingGameState(automationInputController, gameActionService, playNowButtonDetector),
-            MiningAutomationStateKind.Login => new LoginState(gameActionService, pilotAvatarDetector, loggedInPilotDetector),
+            MiningAutomationStateKind.Login => new LoginState(gameActionService, automationInputController, pilotAvatarDetector, loggedInPilotDetector),
             MiningAutomationStateKind.Dock => new DockingState(automationInputController, gameActionService, asteroidBeltOverviewDetector),
             MiningAutomationStateKind.UnloadCargo => new UnloadingCargoState(automationInputController, gameActionService, inventoryDetector, downtimeDetector),
             MiningAutomationStateKind.Undocking => new UndockingState(automationInputController, locationChangeTimerDetector),
             MiningAutomationStateKind.SelectBeltAndWarp => new SelectBeltAndWarpState(automationInputController, gameActionService, asteroidBeltOverviewDetector, mineOverviewDetector, warOverviewDetector, Random.Shared.Next),
             MiningAutomationStateKind.ApproachingAsteroid => new ApproachingAsteroidState(automationInputController, gameActionService, mineOverviewDetector, firstAsteroidWithinReachDetector),
             MiningAutomationStateKind.Mining => new MiningState(automationInputController, miningAsteroidDetector, miningLaserDetector, warOverviewDetector),
-            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, gameActionService, asteroidBeltOverviewDetector, playNowButtonDetector, pilotAvatarDetector),
+            MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, gameActionService, asteroidBeltOverviewDetector, playNowButtonDetector),
             MiningAutomationStateKind.RecoverConnectionLostPopup => new RecoverConnectionLostPopupState(connectionLostPopupRecoveryBehavior),
             _ => new PendingMiningAutomationState(stateKind)
         };

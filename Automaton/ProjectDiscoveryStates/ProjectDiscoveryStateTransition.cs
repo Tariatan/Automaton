@@ -30,6 +30,8 @@ internal enum DiscoveryAutomationStateKind
 internal enum DiscoveryAutomationActionKind
 {
     StartGame,
+    RestartGame,
+    Reboot,
     LoginPilot,
     LoginNextPilot,
     DiscoverAndSubmit,
@@ -38,7 +40,6 @@ internal enum DiscoveryAutomationActionKind
     RecoverSlowDownPopup,
     RecoverConnectionLostPopup,
     RecoverMaxSubmissionsPopup,
-    StopAutomation,
     NoFurtherPilotsAvailable,
 }
 

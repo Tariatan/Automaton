@@ -21,7 +21,7 @@ internal sealed class StartingGameState(
             return new DiscoveryAutomationStateTransition(
                 Kind,
                 DiscoveryAutomationStateKind.RecoverConnectionLostPopup,
-                DiscoveryAutomationActionKind.StopAutomation,
+                DiscoveryAutomationActionKind.RecoverConnectionLostPopup,
                 capturePath);
         }
 

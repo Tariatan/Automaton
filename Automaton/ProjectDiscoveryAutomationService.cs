@@ -91,16 +91,16 @@ internal sealed class ProjectDiscoveryAutomationService(
                     continue;
                 }
 
-                if (lastSummary.Action == DiscoveryAutomationActionKind.StopAutomation)
+                if (lastSummary.Action == DiscoveryAutomationActionKind.Reboot)
                 {
                     Logger.Information(
-                        "Project Discovery automation requested application exit. State={State}, NextState={NextState}",
+                        "Project Discovery automation requested operating system reboot. State={State}, NextState={NextState}",
                         lastSummary.State,
                         lastSummary.NextState);
                     return lastSummary;
                 }
 
-                if (lastSummary.Action == DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
+                else if (lastSummary.Action == DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
                 {
                     Logger.Information(
                         "Project Discovery automation completed for all available pilots. State={State}, NextState={NextState}",

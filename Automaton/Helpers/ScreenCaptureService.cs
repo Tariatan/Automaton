@@ -14,17 +14,17 @@ internal sealed class ScreenCaptureService(
 {
     private const string CaptureFilePrefix = "capture-";
     private const string CaptureTimestampFormat = "yyyyMMdd-HHmmss";
-    internal const int MinimumCaptureDimension = 1;
+    private const int MinimumCaptureDimension = 1;
     private const int GameCaptureLeft = 0;
     private const int GameCaptureTop = 0;
     private const int GameCaptureWidth = 2_560;
     private const int GameCaptureHeight = 2_160;
     private const int CaptureAttemptCount = 2;
     private const int CaptureRetryDelayMilliseconds = 300;
-    internal const int VirtualScreenLeftMetric = 76;
-    internal const int VirtualScreenTopMetric = 77;
-    internal const int VirtualScreenWidthMetric = 78;
-    internal const int VirtualScreenHeightMetric = 79;
+    private const int VirtualScreenLeftMetric = 76;
+    private const int VirtualScreenTopMetric = 77;
+    private const int VirtualScreenWidthMetric = 78;
+    private const int VirtualScreenHeightMetric = 79;
     private static readonly ILogger Logger = Log.ForContext<ScreenCaptureService>();
 
     public ScreenCaptureSummary CaptureAndProcessCurrentScreen()

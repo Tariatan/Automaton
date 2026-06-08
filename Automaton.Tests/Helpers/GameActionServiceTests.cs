@@ -37,13 +37,16 @@ public sealed class GameActionServiceTests
         }
 
         // Assert
-        Assert.Equal([Delays.WindowActivationMs, Delays.PilotLogoutDebounceMs, Delays.PilotLogoutPollingMs], automationInputController.Delays);
+        Assert.Equal([Delays.WindowActivationMs,
+            Delays.PilotLogoutDebounceMs,
+            Delays.PilotLogoutPollingMs,
+            Delays.MinimumClickMs], automationInputController.Delays);
         Assert.Equal(1, CountKeyChord(automationInputController, VirtualKeys.Alt, VirtualKeys.Q));
         Assert.Equal(0, CountKeyChord(automationInputController, VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q));
     }
 
     [Fact]
-    public void Logout_CurrentPilotMissingUntilTimeout_QuitsGame()
+    public void Logout_CurrentPilotMissingUntilTimeout_Reboots()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
@@ -77,8 +80,7 @@ public sealed class GameActionServiceTests
         // Assert
         var retryCount = Delays.PilotLogoutTimeoutMs / Delays.PilotLogoutPollingMs;
         Assert.Equal(retryCount, CountKeyChord(automationInputController, VirtualKeys.Alt, VirtualKeys.Q));
-        Assert.Equal(1, CountKeyChord(automationInputController, VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q));
-        Assert.Equal(retryCount, automationInputController.Delays.Skip(2).Take(retryCount).Count(delay => delay == Delays.PilotLogoutPollingMs));
+        Assert.Equal(retryCount, automationInputController.Delays.Skip(2).Count(delay => delay == Delays.PilotLogoutPollingMs));
         Assert.True(rebootOperatingSystemCalled);
     }
 

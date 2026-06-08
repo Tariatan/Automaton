@@ -15,6 +15,10 @@ public static class Settings
     // Approaching asteroid
     public const int ApproachingAsteroidDistancePollingAttemptCount = 60;
 
+    public const int MaxLoginAttempts = 3;
+
+    public const int MaximumStartingGameTransitionsBeforeReboot = 5;
+
     public const int DetectionRetryAttempts = 2;
     public const int DetectionRetryDelayMs = 500;
 }

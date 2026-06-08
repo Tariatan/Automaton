@@ -132,14 +132,21 @@ internal partial class MainWindow
                     initialPilotIndex,
                     keepDebugImages),
                 cancellationSource.Token);
-            var (discoveryAutomationStateKind, nextState, discoveryAutomationActionKind, _) = await automationTask;
+            var (automationStateKind, nextState, automationActionKind, capturePath) = await automationTask;
             Logger.Information(
-                "Discovery automation completed. State={State}, NextState={NextState}, Action={Action}",
-                discoveryAutomationStateKind,
+                "Discovery automation completed. State={State}, NextState={NextState}, Action={Action}, CapturePath={CapturePath}",
+                automationStateKind,
                 nextState,
-                discoveryAutomationActionKind);
+                automationActionKind,
+                capturePath);
 
-            if (discoveryAutomationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
+            if (automationActionKind == DiscoveryAutomationActionKind.Reboot)
+            {
+                Logger.Error("Discovery automation requested operating system reboot. Closing application.");
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
+            else if (automationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
             {
                 const MiningAutomationStateKind DesiredMiningAutomationInitialState = MiningAutomationStateKind.Login;
                 Logger.Information("No further pilots are available. Switching to mining automation from {State} state.", DesiredMiningAutomationInitialState);
@@ -174,20 +181,21 @@ internal partial class MainWindow
             var automationTask = Task.Run(
                 () => m_MiningAutomationService.Automate(m_SelectedMiningStartState, cancellationSource.Token),
                 cancellationSource.Token);
-            var summary = await automationTask;
+            var (automationStateKind, nextState, automationActionKind, capturePath) = await automationTask;
             Logger.Information(
                 "Mining automation completed. State={State}, NextState={NextState}, Action={Action}, CapturePath={CapturePath}",
-                summary.State,
-                summary.NextState,
-                summary.Action,
-                summary.CapturePath);
-            if (summary.Action == MiningAutomationActionKind.QuitGameAndExitApplication)
+                automationStateKind,
+                nextState,
+                automationActionKind,
+                capturePath);
+
+            if (automationActionKind == MiningAutomationActionKind.QuitGameAndExitApplication)
             {
                 Logger.Error("Mining automation requested safe application exit.");
                 Application.Current.Shutdown();
                 Environment.Exit(0);
             }
-            else if (summary.Action == MiningAutomationActionKind.Reboot)
+            else if (automationActionKind == MiningAutomationActionKind.Reboot)
             {
                 Logger.Error("Mining automation requested operating system reboot. Closing application.");
                 Application.Current.Shutdown();

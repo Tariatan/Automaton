@@ -210,10 +210,7 @@ internal sealed class SelectBeltAndWarpState(
             items.Add((analysis.HomeStationBounds.Value, OverlayColor.Green));
         }
 
-        foreach (var asteroidBelt in analysis.AsteroidBelts)
-        {
-            items.Add((asteroidBelt.Bounds, OverlayColor.Amber));
-        }
+        items.AddRange(analysis.AsteroidBelts.Select(asteroidBelt => (asteroidBelt.Bounds, OverlayColor.Amber)));
 
         DebugOverlay.Annotate(image, items.ToArray());
         DebugOverlay.Label(

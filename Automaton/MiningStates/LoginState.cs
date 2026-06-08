@@ -7,13 +7,14 @@ namespace Automaton.MiningStates;
 
 internal sealed class LoginState(
     IGameActionService gameActionService,
+    IAutomationInputController automationInputController,
     PilotAvatarDetector pilotAvatarDetector,
     LoggedInPilotDetector loggedInPilotDetector)
     : IMiningAutomationState
 {
     private const int PilotIndex = 2;
     private const string CaptureSuffix = ".mining-login";
-    private readonly CommonLoginState m_CommonLoginState = new(gameActionService, pilotAvatarDetector, loggedInPilotDetector);
+    private readonly CommonLoginState m_CommonLoginState = new(gameActionService, automationInputController, pilotAvatarDetector, loggedInPilotDetector);
 
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
 
@@ -46,7 +47,7 @@ internal sealed class LoginState(
         return new MiningAutomationStateTransition(
             Kind,
             MiningAutomationStateKind.Recovery,
-            MiningAutomationActionKind.Recover,
+            MiningAutomationActionKind.RestartGame,
             capturePath)
         {
             FailureReason = failureReason

@@ -11,20 +11,23 @@ internal sealed class LoggedInPilotDetector : IDisposable
     private const int PortraitY = 48;
     private const int PortraitSize = 48;
     private const double MinimumMatchScore = 0.84;
-    private const double EarlyExitScore = 0.98;
+    private const double EarlyExitScore = 0.92;
     private static readonly Rect PortraitBounds = new(PortraitX, PortraitY, PortraitSize, PortraitSize);
     private static readonly ILogger Logger = Log.ForContext<LoggedInPilotDetector>();
 
-    private readonly Dictionary<string, CachedTemplate> m_TemplateCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Mat> m_TemplateCache = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<LoggedInPilotCandidate>? m_CachedCandidates;
+    private DateTime m_CandidatesCacheTime;
 
     public void Dispose()
     {
-        foreach (var cached in m_TemplateCache.Values)
+        foreach (var template in m_TemplateCache.Values)
         {
-            cached.Dispose();
+            template.Dispose();
         }
 
         m_TemplateCache.Clear();
+        m_CachedCandidates = null;
     }
 
     public bool Detect(Mat screen, out LoggedInPilotDetection detection)
@@ -38,9 +41,10 @@ internal sealed class LoggedInPilotDetector : IDisposable
 
         using var portrait = new Mat(screen, PortraitBounds);
         using var searchablePortrait = PrepareBgr(portrait);
+        using var result = new Mat();
         LoggedInPilotDetection? bestDetection = null;
 
-        foreach (var candidate in BuildCandidates(PilotFolderName))
+        foreach (var candidate in GetCandidates(PilotFolderName))
         {
             var template = GetOrLoadTemplate(candidate);
             if (template is null)
@@ -48,7 +52,6 @@ internal sealed class LoggedInPilotDetector : IDisposable
                 continue;
             }
 
-            using var result = new Mat();
             Cv2.MatchTemplate(searchablePortrait, template, result, TemplateMatchModes.CCoeffNormed);
             Cv2.MinMaxLoc(result, out _, out var score, out _, out _);
 
@@ -65,7 +68,7 @@ internal sealed class LoggedInPilotDetector : IDisposable
 
         if (bestDetection is null || bestDetection.Value.Score < MinimumMatchScore)
         {
-            Logger.Error("Logged in pilot not found!");
+            Logger.Debug("Logged in pilot not found");
             return false;
         }
 
@@ -73,11 +76,24 @@ internal sealed class LoggedInPilotDetector : IDisposable
         return true;
     }
 
+    private IReadOnlyList<LoggedInPilotCandidate> GetCandidates(string pilotDirectory)
+    {
+        var lastWrite = Directory.GetLastWriteTimeUtc(pilotDirectory);
+        if (m_CachedCandidates is not null && lastWrite == m_CandidatesCacheTime)
+        {
+            return m_CachedCandidates;
+        }
+
+        m_CachedCandidates = BuildCandidates(pilotDirectory);
+        m_CandidatesCacheTime = lastWrite;
+        return m_CachedCandidates;
+    }
+
     private Mat? GetOrLoadTemplate(LoggedInPilotCandidate candidate)
     {
         if (m_TemplateCache.TryGetValue(candidate.Path, out var cached))
         {
-            return cached.Template;
+            return cached;
         }
 
         if (!File.Exists(candidate.Path))
@@ -94,7 +110,7 @@ internal sealed class LoggedInPilotDetector : IDisposable
         using var originalBgr = PrepareBgr(original);
         var scaled = new Mat();
         Cv2.Resize(originalBgr, scaled, new Size(PortraitSize, PortraitSize), 0, 0, InterpolationFlags.Area);
-        m_TemplateCache[candidate.Path] = new CachedTemplate(scaled);
+        m_TemplateCache[candidate.Path] = scaled;
         return scaled;
     }
 
@@ -105,7 +121,6 @@ internal sealed class LoggedInPilotDetector : IDisposable
             .Select(path => new LoggedInPilotCandidate(ParsePilotIndex(Path.GetFileNameWithoutExtension(path)), path))
             .Where(candidate => candidate.PilotIndex > 0)
             .OrderBy(candidate => candidate.PilotIndex)
-            .ThenBy(candidate => candidate.Path, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
 
@@ -145,16 +160,6 @@ internal sealed class LoggedInPilotDetector : IDisposable
     }
 
     private readonly record struct LoggedInPilotCandidate(int PilotIndex, string Path);
-
-    private sealed class CachedTemplate(Mat template) : IDisposable
-    {
-        public Mat Template => template;
-
-        public void Dispose()
-        {
-            template.Dispose();
-        }
-    }
 }
 
 internal readonly record struct LoggedInPilotDetection(
