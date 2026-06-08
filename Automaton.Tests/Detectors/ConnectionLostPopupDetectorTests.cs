@@ -9,8 +9,7 @@ public sealed class ConnectionLostPopupDetectorTests
     public void Detect_ImageContainsConnectionLostPopup_ReturnsConnectionLost()
     {
         // Arrange
-        var imagePath = ScreenshotLoader.GetPathOrSkip("Common/connection_lost_popup.png");
-        using var image = Cv2.ImRead(imagePath);
+        using var image = SyntheticCommonImageFactory.LoadConnectionLostPopupImage();
 
         // Act
         var detection = ConnectionLostPopupDetectionEngine.DetectPopup(image);
@@ -23,8 +22,7 @@ public sealed class ConnectionLostPopupDetectorTests
     public void Detect_ImageDoesNotContainConnectionLostPopup_ReturnsNone()
     {
         // Arrange
-        var imagePath = ScreenshotLoader.GetPathOrSkip("Common/play_button_screen.png");
-        using var image = Cv2.ImRead(imagePath);
+        using var image = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
 
         // Act
         var detection = ConnectionLostPopupDetectionEngine.DetectPopup(image);

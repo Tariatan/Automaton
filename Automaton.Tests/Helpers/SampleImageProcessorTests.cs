@@ -1002,7 +1002,7 @@ public sealed class SampleImageProcessorTests
     public void AnalyzeImageFile_MoreThanEightPolygonsDetected_KeepsOnlyEightLargestPolygons()
     {
         // Arrange
-        var imagePath = ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_many_clusters.png");
+        var imagePath = SyntheticDiscoveryImageFactory.GetManyClusterImagePath();
         var processor = new SampleImageProcessor();
 
         // Act
@@ -1018,7 +1018,7 @@ public sealed class SampleImageProcessorTests
     public void AnalyzeImageFile_FourSeparatedClustersShareBroadRegion_ReturnsMultiplePolygons()
     {
         // Arrange
-        var imagePath = ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_four_clusters.png");
+        var imagePath = SyntheticDiscoveryImageFactory.GetFourClusterImagePath();
         var processor = new SampleImageProcessor();
 
         // Act
@@ -1033,7 +1033,7 @@ public sealed class SampleImageProcessorTests
     public void AnalyzeImageFile_SparseLowerClusterExists_ReturnsRecoveredLowerPolygon()
     {
         // Arrange
-        var imagePath = ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_sparse_lower_cluster.png");
+        var imagePath = SyntheticDiscoveryImageFactory.GetSparseLowerClusterImagePath();
         var processor = new SampleImageProcessor();
 
         // Act
@@ -1051,7 +1051,7 @@ public sealed class SampleImageProcessorTests
     public void AnalyzeImageFile_OnlyUpperClusterExists_DoesNotAddExtraPolygon()
     {
         // Arrange
-        var imagePath = ScreenshotLoader.GetPathOrSkip("Discovery/active_playfield_single_cluster.png");
+        var imagePath = SyntheticDiscoveryImageFactory.GetSingleClusterImagePath();
         var processor = new SampleImageProcessor();
 
         // Act
