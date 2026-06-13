@@ -94,6 +94,25 @@ public sealed class SampleImageProcessorTests
     }
 
     [Fact]
+    public void EnumerateSampleImageFiles_DirectoryContainsExpectedAndAnnotatedFiles_ReturnsOnlyRawSamples()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        CreateSolidImage(Path.Combine(workspace.Path, "01.sample.png"), 20, 20);
+        CreateSolidImage(Path.Combine(workspace.Path, "01.sample.expected.png"), 20, 20);
+        CreateSolidImage(Path.Combine(workspace.Path, "01.sample.annotated.png"), 20, 20);
+        CreateSolidImage(Path.Combine(workspace.Path, "02.sample.png"), 20, 20);
+
+        // Act
+        var sampleFiles = SampleImageProcessor.EnumerateSampleImageFiles(workspace.Path)
+            .Select(file => Path.GetFileName(file)!)
+            .ToArray();
+
+        // Assert
+        Assert.Equal(["01.sample.png", "02.sample.png"], sampleFiles);
+    }
+
+    [Fact]
     public void AnalyzeImageFile_PlayfieldNotFound_UsesDefaultExpectedExamplePolygons()
     {
         // Arrange
@@ -156,6 +175,57 @@ public sealed class SampleImageProcessorTests
         Assert.InRange(fallbackBounds.Top, 373, 383);
         Assert.InRange(fallbackBounds.Right, 801, 811);
         Assert.InRange(fallbackBounds.Bottom, 906, 916);
+    }
+
+    [Fact]
+    public void AnalyzeImageFile_KnownSampleTemplateStoredBesideIdenticalSamples_UsesAdjacentExpectedPolygons()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var competingSamplePath = Path.Combine(workspace.Path, "20.sample.png");
+        var competingExpectedPath = Path.Combine(workspace.Path, "20.sample.expected.png");
+        var samplePath = Path.Combine(workspace.Path, "21.sample.png");
+        var expectedPath = Path.Combine(workspace.Path, "21.sample.expected.png");
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), competingSamplePath);
+        File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
+
+        Point[][] competingTemplatePolygons =
+        [
+            [
+                new Point(80, 90),
+                new Point(230, 90),
+                new Point(230, 240),
+                new Point(80, 240)
+            ]
+        ];
+        var templatePolygons = new[]
+        {
+            [
+                new Point(115, 100),
+                new Point(300, 100),
+                new Point(300, 260),
+                new Point(115, 260)
+            ],
+            new[]
+            {
+                new Point(320, 140),
+                new Point(430, 140),
+                new Point(430, 330),
+                new Point(320, 330)
+            }
+        };
+        WriteExpectedOverlay(competingSamplePath, competingExpectedPath, competingTemplatePolygons);
+        WriteExpectedOverlay(samplePath, expectedPath, templatePolygons);
+
+        var processor = new SampleImageProcessor();
+
+        // Act
+        var analysis = processor.AnalyzeImageFile(samplePath);
+
+        // Assert
+        Assert.True(analysis.UsedKnownSampleTemplate);
+        Assert.Equal("21.sample.png", analysis.MatchedSampleFileName);
+        Assert.Equal(templatePolygons.Length, analysis.Polygons.Count);
     }
 
     [Fact]

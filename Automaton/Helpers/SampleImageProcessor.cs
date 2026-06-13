@@ -33,7 +33,7 @@ internal sealed class SampleImageProcessor(
     private const int MinimumSplitSegmentWidth = 70;
     private const int MinimumContourHeightForSideBySideSplit = 140;
     private const int MinimumSplitPointCount = 180;
-    private const double MinimumSplitAspectRatio = 1.10;
+    private const double MinimumSplitAspectRatio = 0.55;
     private const int HistogramSmoothingRadius = 6;
     private const double MaximumSplitValleyRatio = 0.72;
     private const int MinimumSplitPeakDensity = 10;
@@ -97,6 +97,14 @@ internal sealed class SampleImageProcessor(
         return AnalyzeImage(image, imagePath);
     }
 
+    internal static IReadOnlyList<string> EnumerateSampleImageFiles(string samplesDirectory)
+    {
+        return Directory
+            .EnumerateFiles(samplesDirectory, "*.sample.png", SearchOption.TopDirectoryOnly)
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     internal SampleImageAnalysisResult AnalyzeImage(Mat image, string imagePath)
     {
         var playfieldDetection = playfieldDetector.Detect(image);
@@ -111,7 +119,7 @@ internal sealed class SampleImageProcessor(
         else
         {
             using var playfieldImage = new Mat(image, playfieldDetection.Bounds);
-            if (m_KnownSampleMatcher.TryMatch(playfieldImage, out var matchedPolygons, out matchedSampleFileName))
+            if (m_KnownSampleMatcher.TryMatch(playfieldImage, imagePath, out var matchedPolygons, out matchedSampleFileName))
             {
                 usedKnownSampleTemplate = true;
                 polygons = matchedPolygons
