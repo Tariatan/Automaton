@@ -28,6 +28,7 @@ internal enum MiningAutomationStateKind
     UnloadCargo,
     Recovery,
     RecoverConnectionLostPopup,
+    RecoverClientIsRunningButtonVisible,
 }
 
 internal enum MiningAutomationActionKind

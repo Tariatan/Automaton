@@ -14,6 +14,7 @@ internal sealed class ProjectDiscoveryAutomationService(
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     ConnectionLostPopupDetector connectionLostPopupDetector,
+    ClientIsRunningButtonDetector clientIsRunningButtonDetector,
     IDiscoveryAutomationStateFactory discoveryAutomationStateFactory)
 {
     private const string SamplesFolderName = "samples";
@@ -32,17 +33,14 @@ internal sealed class ProjectDiscoveryAutomationService(
             throw new DirectoryNotFoundException($"Samples folder was not found: {SamplesFolderName}");
         }
 
-        var sampleFiles = Directory
-            .EnumerateFiles(SamplesFolderName, "*.*", SearchOption.TopDirectoryOnly)
-            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var sampleFiles = SampleImageProcessor.EnumerateSampleImageFiles(SamplesFolderName);
 
-        if (sampleFiles.Length == 0)
+        if (sampleFiles.Count == 0)
         {
             throw new InvalidOperationException($"No files were found in {SamplesFolderName}.");
         }
 
-        var results = new List<SampleProcessingResult>(sampleFiles.Length);
+        var results = new List<SampleProcessingResult>(sampleFiles.Count);
         foreach (var sampleFile in sampleFiles)
         {
             using var image = Cv2.ImRead(sampleFile);
@@ -87,6 +85,12 @@ internal sealed class ProjectDiscoveryAutomationService(
                 }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
+                {
+                    continue;
+                }
+
+                if (lastSummary.State != DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible &&
+                    TryTransitionToRecoverClientIsRunningButtonVisible(cancellationToken))
                 {
                     continue;
                 }
@@ -186,6 +190,24 @@ internal sealed class ProjectDiscoveryAutomationService(
         return true;
     }
 
+    private bool TryTransitionToRecoverClientIsRunningButtonVisible(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var capture = ScreenCaptureService.CaptureCurrentScreen(".discovery-client-is-running-button-check");
+        if (!clientIsRunningButtonDetector.Detect(capture.Image, out var location))
+        {
+            return false;
+        }
+
+        DrawButtonDebugOverlay(capture.CapturePath, location.Bounds, "Client Is Running button detected");
+        Logger.Warning(
+            "Client Is Running button detected during {CurrentState}. CapturePath={CapturePath}",
+            m_CurrentState.Kind,
+            capture.CapturePath);
+        m_CurrentState = CreateState(DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible);
+        return true;
+    }
+
     private static void DrawPopupDebugOverlay(string imagePath, PopupDetection detection, string label)
     {
         using var image = Cv2.ImRead(imagePath);
@@ -195,6 +217,19 @@ internal sealed class ProjectDiscoveryAutomationService(
         }
 
         DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
+        DebugOverlay.Label(image, label, OverlayColor.RedOrange);
+        Cv2.ImWrite(imagePath, image);
+    }
+
+    private static void DrawButtonDebugOverlay(string imagePath, Rect bounds, string label)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (image.Empty())
+        {
+            return;
+        }
+
+        DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
         Cv2.ImWrite(imagePath, image);
     }

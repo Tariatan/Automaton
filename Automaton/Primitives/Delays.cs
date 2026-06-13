@@ -21,7 +21,9 @@ internal static class Delays
     public const int QuitGamePollingMs = 5_000;
     public const int QuitGameTimeoutMs = 120_000;
     public const int LoadWindowMs = 3_000;
-    
+    public const int ClientIsRunningButtonVisibleBeforeClickMs = 5_000;
+    public const int ClientIsRunningButtonVisibleAfterClickMs = 30_000;
+
     public const int ConnectionLostExitMs = 1_000;
 
     public const int RecoveryMs = 60_000;

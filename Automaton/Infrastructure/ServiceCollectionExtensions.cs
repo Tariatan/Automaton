@@ -18,6 +18,7 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<PlayfieldDetector>();
         services.AddSingleton<PlayNowButtonDetector>();
+        services.AddSingleton<ClientIsRunningButtonDetector>();
         services.AddSingleton<KnownSampleMatcher>();
         services.AddSingleton<MaxSubmissionsPopupDetector>();
         services.AddSingleton<SlowDownPopupDetector>();
@@ -39,6 +40,7 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<CommonStartGameState>();
         services.AddSingleton<ConnectionLostPopupRecoveryBehavior>();
+        services.AddSingleton<CommonRecoverClientIsRunningButtonVisibleState>();
         services.AddTransient<StartingGameState>();
         services.AddTransient<LoginState>();
         services.AddTransient<DiscoverState>();
@@ -47,6 +49,7 @@ internal static class ServiceCollectionExtensions
         services.AddTransient<RecoverSlowDownPopupState>();
         services.AddTransient<RecoverConnectionLostPopupState>();
         services.AddTransient<RecoverMaxSubmissionsPopupState>();
+        services.AddTransient<RecoverClientIsRunningButtonVisibleState>();
         services.AddSingleton<IDiscoveryAutomationStateFactory, DiscoveryAutomationStateFactory>();
 
         services.AddSingleton<ProjectDiscoveryAutomationService>();

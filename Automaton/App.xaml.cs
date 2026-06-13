@@ -79,17 +79,14 @@ public partial class App
             throw new DirectoryNotFoundException($"Samples folder was not found: {Settings.ProjectDiscoverySamplesFolderName}");
         }
 
-        var sampleFiles = Directory
-            .EnumerateFiles(Settings.ProjectDiscoverySamplesFolderName, "*.*", SearchOption.TopDirectoryOnly)
-            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var sampleFiles = SampleImageProcessor.EnumerateSampleImageFiles(Settings.ProjectDiscoverySamplesFolderName);
 
-        if (sampleFiles.Length == 0)
+        if (sampleFiles.Count == 0)
         {
             throw new InvalidOperationException($"No files were found in {Settings.ProjectDiscoverySamplesFolderName}.");
         }
 
-        var results = new List<SampleProcessingResult>(sampleFiles.Length);
+        var results = new List<SampleProcessingResult>(sampleFiles.Count);
         foreach (var sampleFile in sampleFiles)
         {
             using var image = Cv2.ImRead(sampleFile);

@@ -24,7 +24,8 @@ internal enum DiscoveryAutomationStateKind
     RecoverOverlap,
     RecoverSlowDownPopup,
     RecoverConnectionLostPopup,
-    RecoverMaxSubmissionsPopup
+    RecoverMaxSubmissionsPopup,
+    RecoverClientIsRunningButtonVisible
 }
 
 internal enum DiscoveryAutomationActionKind

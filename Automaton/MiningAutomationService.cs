@@ -13,6 +13,7 @@ internal sealed class MiningAutomationService(
     IGameActionService gameActionService,
     IAutomationClock automationClock,
     PlayNowButtonDetector playNowButtonDetector,
+    ClientIsRunningButtonDetector clientIsRunningButtonDetector,
     LocationChangeTimerDetector locationChangeTimerDetector,
     InventoryDetector inventoryDetector,
     DowntimeDetector downtimeDetector,
@@ -24,6 +25,7 @@ internal sealed class MiningAutomationService(
     WarOverviewDetector warOverviewDetector,
     ConnectionLostPopupDetector connectionLostPopupDetector,
     CommonAutomationStates.ConnectionLostPopupRecoveryBehavior connectionLostPopupRecoveryBehavior,
+    CommonAutomationStates.CommonRecoverClientIsRunningButtonVisibleState commonRecoverClientIsRunningButtonVisibleState,
     PilotAvatarDetector pilotAvatarDetector,
     LoggedInPilotDetector loggedInPilotDetector)
 {
@@ -55,6 +57,12 @@ internal sealed class MiningAutomationService(
                 }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
+                {
+                    continue;
+                }
+
+                if (lastSummary.State != MiningAutomationStateKind.RecoverClientIsRunningButtonVisible &&
+                    TryTransitionToRecoverClientIsRunningButtonVisible(cancellationToken))
                 {
                     continue;
                 }
@@ -148,6 +156,24 @@ internal sealed class MiningAutomationService(
         return true;
     }
 
+    private bool TryTransitionToRecoverClientIsRunningButtonVisible(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var capture = m_Context.ScreenCaptureService.CaptureCurrentScreen(".mining-client-is-running-button-check");
+        if (!clientIsRunningButtonDetector.Detect(capture.Image, out var location))
+        {
+            return false;
+        }
+
+        DrawButtonDebugOverlay(capture.CapturePath, location.Bounds, "Client Is Running button detected");
+        Logger.Warning(
+            "Client Is Running button detected during {CurrentState}. CapturePath={CapturePath}",
+            m_CurrentState.Kind,
+            capture.CapturePath);
+        m_CurrentState = CreateState(MiningAutomationStateKind.RecoverClientIsRunningButtonVisible);
+        return true;
+    }
+
     private static void DrawPopupDebugOverlay(string imagePath, PopupDetection detection, string label)
     {
         using var image = Cv2.ImRead(imagePath);
@@ -157,6 +183,19 @@ internal sealed class MiningAutomationService(
         }
 
         DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
+        DebugOverlay.Label(image, label, OverlayColor.RedOrange);
+        Cv2.ImWrite(imagePath, image);
+    }
+
+    private static void DrawButtonDebugOverlay(string imagePath, Rect bounds, string label)
+    {
+        using var image = Cv2.ImRead(imagePath);
+        if (image.Empty())
+        {
+            return;
+        }
+
+        DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
         Cv2.ImWrite(imagePath, image);
     }
@@ -175,6 +214,7 @@ internal sealed class MiningAutomationService(
             MiningAutomationStateKind.Mining => new MiningState(automationInputController, miningAsteroidDetector, miningLaserDetector, warOverviewDetector),
             MiningAutomationStateKind.Recovery => new RecoveryState(automationInputController, gameActionService, asteroidBeltOverviewDetector, playNowButtonDetector),
             MiningAutomationStateKind.RecoverConnectionLostPopup => new RecoverConnectionLostPopupState(connectionLostPopupRecoveryBehavior),
+            MiningAutomationStateKind.RecoverClientIsRunningButtonVisible => new RecoverClientIsRunningButtonVisibleState(commonRecoverClientIsRunningButtonVisibleState),
             _ => new PendingMiningAutomationState(stateKind)
         };
     }

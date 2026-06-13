@@ -16,6 +16,7 @@ internal sealed class DiscoveryAutomationStateFactory(IServiceProvider servicePr
             DiscoveryAutomationStateKind.RecoverSlowDownPopup => serviceProvider.GetRequiredService<RecoverSlowDownPopupState>(),
             DiscoveryAutomationStateKind.RecoverConnectionLostPopup => serviceProvider.GetRequiredService<RecoverConnectionLostPopupState>(),
             DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup => serviceProvider.GetRequiredService<RecoverMaxSubmissionsPopupState>(),
+            DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible => serviceProvider.GetRequiredService<RecoverClientIsRunningButtonVisibleState>(),
             _ => serviceProvider.GetRequiredService<DiscoverState>()
         };
     }
