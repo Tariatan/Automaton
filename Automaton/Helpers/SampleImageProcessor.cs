@@ -105,7 +105,8 @@ internal sealed class SampleImageProcessor(
 
     internal SampleImageAnalysisResult AnalyzeImage(Mat image, string imagePath)
     {
-        var playfieldDetection = playfieldDetector.Detect(image);
+        using var analysisRegion = CropAnalysisRegion(image);
+        var playfieldDetection = playfieldDetector.Detect(analysisRegion);
         IReadOnlyList<Point[]> polygons;
         var usedKnownSampleTemplate = false;
         string? matchedSampleFileName = null;
@@ -116,7 +117,7 @@ internal sealed class SampleImageProcessor(
         }
         else
         {
-            using var playfieldImage = new Mat(image, playfieldDetection.Bounds);
+            using var playfieldImage = new Mat(analysisRegion, playfieldDetection.Bounds);
             // Try looking for existing example first
             if (m_KnownSampleMatcher.TryMatch(playfieldImage, imagePath, out var matchedPolygons, out matchedSampleFileName))
             {
@@ -166,6 +167,22 @@ internal sealed class SampleImageProcessor(
             matchedSampleFileName);
 
         return new SampleImageAnalysisResult(result, playfieldDetection, polygons, usedKnownSampleTemplate, matchedSampleFileName);
+    }
+
+    private static Mat CropAnalysisRegion(Mat image)
+    {
+        const int analysisWidth = 1000;
+        const int analysisHeight = 1000;
+
+        var width = Math.Min(analysisWidth, image.Width);
+        var height = Math.Min(analysisHeight, image.Height);
+
+        if (width == image.Width && height == image.Height)
+        {
+            return image.Clone();
+        }
+
+        return new Mat(image, new Rect(0, 0, width, height)).Clone();
     }
 
     private Point[][] TryAiSegmentation(Mat playfieldImage, Rect playfieldBounds)
