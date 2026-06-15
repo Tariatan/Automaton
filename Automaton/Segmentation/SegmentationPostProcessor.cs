@@ -1,3 +1,4 @@
+using Automaton.Helpers;
 using OpenCvSharp;
 
 namespace Automaton.Segmentation;
@@ -7,10 +8,6 @@ internal static class SegmentationPostProcessor
     private const int MinimumContourArea = 800;
     private const int MaximumPolygonPoints = 10;
     private const int MaximumPolygons = 8;
-    private const double MinimumSimplificationEpsilon = 3.0;
-    private const double SimplificationEpsilonScale = 0.01;
-    private const double SimplificationGrowthFactor = 1.35;
-    private const int MaxSimplificationAttempts = 12;
     private const double BinaryThreshold = 127.0;
     private const int MorphCloseKernelSize = 5;
     private const int MorphOpenKernelSize = 3;
@@ -36,7 +33,7 @@ internal static class SegmentationPostProcessor
             .Where(contour => Cv2.ContourArea(contour) >= MinimumContourArea)
             .OrderByDescending(contour => Cv2.ContourArea(contour))
             .Take(MaximumPolygons)
-            .Select(SimplifyContour)
+            .Select(contour => GeometryHelper.SimplifyContour(contour, MaximumPolygonPoints))
             .Where(polygon => polygon.Length >= 3)
             .ToArray();
     }
@@ -69,24 +66,5 @@ internal static class SegmentationPostProcessor
         Cv2.MorphologyEx(binaryMask, cleaned, MorphTypes.Close, closeKernel);
         Cv2.MorphologyEx(cleaned, cleaned, MorphTypes.Open, openKernel);
         return cleaned;
-    }
-
-    private static Point[] SimplifyContour(Point[] contour)
-    {
-        var perimeter = Cv2.ArcLength(contour, true);
-        var epsilon = Math.Max(MinimumSimplificationEpsilon, perimeter * SimplificationEpsilonScale);
-
-        for (var attempt = 0; attempt < MaxSimplificationAttempts; attempt++)
-        {
-            var simplified = Cv2.ApproxPolyDP(contour, epsilon, true);
-            if (simplified.Length is <= MaximumPolygonPoints and >= 3)
-            {
-                return simplified;
-            }
-
-            epsilon *= SimplificationGrowthFactor;
-        }
-
-        return contour.Take(MaximumPolygonPoints).ToArray();
     }
 }

@@ -99,7 +99,7 @@ public sealed class SampleImageProcessorTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         CreateSolidImage(Path.Combine(workspace.Path, "01.sample.png"), 20, 20);
-        CreateSolidImage(Path.Combine(workspace.Path, "01.sample.expected.png"), 20, 20);
+        CreateSolidImage(Path.Combine(workspace.Path, "01.sample.expected.masked.png"), 20, 20);
         CreateSolidImage(Path.Combine(workspace.Path, "01.sample.annotated.png"), 20, 20);
         CreateSolidImage(Path.Combine(workspace.Path, "02.sample.png"), 20, 20);
 
@@ -183,9 +183,9 @@ public sealed class SampleImageProcessorTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         var competingSamplePath = Path.Combine(workspace.Path, "20.sample.png");
-        var competingExpectedPath = Path.Combine(workspace.Path, "20.sample.expected.png");
+        var competingMaskedPath = Path.Combine(workspace.Path, "20.sample.expected.masked.png");
         var samplePath = Path.Combine(workspace.Path, "21.sample.png");
-        var expectedPath = Path.Combine(workspace.Path, "21.sample.expected.png");
+        var maskedPath = Path.Combine(workspace.Path, "21.sample.expected.masked.png");
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), competingSamplePath);
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
 
@@ -214,8 +214,8 @@ public sealed class SampleImageProcessorTests
                 new Point(320, 330)
             }
         };
-        WriteExpectedOverlay(competingSamplePath, competingExpectedPath, competingTemplatePolygons);
-        WriteExpectedOverlay(samplePath, expectedPath, templatePolygons);
+        WriteMaskedExpectedOverlay(competingSamplePath, competingMaskedPath, competingTemplatePolygons);
+        WriteMaskedExpectedOverlay(samplePath, maskedPath, templatePolygons);
 
         var processor = new SampleImageProcessor();
 
@@ -236,7 +236,7 @@ public sealed class SampleImageProcessorTests
         Directory.CreateDirectory(Path.Combine(workspace.Path, "expected"));
 
         var samplePath = Path.Combine(workspace.Path, "expected", "02.sample.png");
-        var expectedPath = Path.Combine(workspace.Path, "expected", "02.sample.expected.png");
+        var maskedPath = Path.Combine(workspace.Path, "expected", "02.sample.expected.masked.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         File.Copy(samplePath, capturePath);
@@ -257,7 +257,7 @@ public sealed class SampleImageProcessorTests
                 new Point(320, 330)
             }
         };
-        WriteExpectedOverlay(samplePath, expectedPath, templatePolygons);
+        WriteMaskedExpectedOverlay(samplePath, maskedPath, templatePolygons);
 
         var processor = new SampleImageProcessor();
 
@@ -302,7 +302,6 @@ public sealed class SampleImageProcessorTests
         Directory.CreateDirectory(Path.Combine(workspace.Path, "expected"));
 
         var samplePath = Path.Combine(workspace.Path, "expected", "15.sample.png");
-        var expectedPath = Path.Combine(workspace.Path, "expected", "15.sample.expected.png");
         var maskedExpectedPath = Path.Combine(workspace.Path, "expected", "15.sample.expected.masked.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
@@ -324,7 +323,6 @@ public sealed class SampleImageProcessorTests
                 new Point(150, 540)
             }
         };
-        WriteExpectedOverlay(samplePath, expectedPath, templatePolygons);
         WriteMaskedExpectedOverlay(samplePath, maskedExpectedPath, templatePolygons);
 
         var processor = new SampleImageProcessor();
@@ -1136,27 +1134,6 @@ public sealed class SampleImageProcessorTests
     {
         using var image = new Mat(new Size(width, height), MatType.CV_8UC3, Scalar.All(0));
         Cv2.ImWrite(path, image);
-    }
-
-    private static void WriteExpectedOverlay(string samplePath, string expectedPath, IReadOnlyList<Point[]> localPolygons)
-    {
-        using var sampleImage = Cv2.ImRead(samplePath);
-        var detector = new PlayfieldDetector();
-        var playfieldDetection = detector.Detect(sampleImage);
-        Assert.True(playfieldDetection.IsFound);
-
-        using var expectedImage = sampleImage.Clone();
-        using var playfield = new Mat(expectedImage, playfieldDetection.Bounds);
-        using var overlay = playfield.Clone();
-
-        foreach (var polygon in localPolygons)
-        {
-            Cv2.FillPoly(overlay, [polygon], new Scalar(60, 95, 150));
-            Cv2.Polylines(overlay, [polygon], true, Scalar.White, 2, LineTypes.AntiAlias);
-        }
-
-        Cv2.AddWeighted(overlay, 0.55, playfield, 0.45, 0, playfield);
-        Cv2.ImWrite(expectedPath, expectedImage);
     }
 
     private static void CreateDefaultFallbackExample(string workspacePath)

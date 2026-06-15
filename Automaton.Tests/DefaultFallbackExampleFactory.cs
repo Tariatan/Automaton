@@ -11,11 +11,11 @@ internal static class DefaultFallbackExampleFactory
         Directory.CreateDirectory(expectedDirectory);
 
         var samplePath = Path.Combine(expectedDirectory, "25.sample.png");
-        var expectedPath = Path.Combine(expectedDirectory, "25.sample.expected.png");
+        var maskedExpectedPath = Path.Combine(expectedDirectory, "25.sample.expected.masked.png");
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
-        WriteExpectedOverlay(
+        WriteMaskedExpectedOverlay(
             samplePath,
-            expectedPath,
+            maskedExpectedPath,
             [
                 [
                     new Point(30, 70),
@@ -38,7 +38,7 @@ internal static class DefaultFallbackExampleFactory
             ]);
     }
 
-    private static void WriteExpectedOverlay(string samplePath, string expectedPath, IReadOnlyList<Point[]> localPolygons)
+    private static void WriteMaskedExpectedOverlay(string samplePath, string maskedExpectedPath, IReadOnlyList<Point[]> localPolygons)
     {
         using var sampleImage = Cv2.ImRead(samplePath);
         var detector = new PlayfieldDetector();
@@ -48,17 +48,18 @@ internal static class DefaultFallbackExampleFactory
             throw new InvalidOperationException("Default fallback sample image must contain a detectable playfield.");
         }
 
-        using var expectedImage = sampleImage.Clone();
-        using var playfield = new Mat(expectedImage, playfieldDetection.Bounds);
-        using var overlay = playfield.Clone();
+        using var maskedImage = sampleImage.Clone();
+        using var grayscale = new Mat();
+        Cv2.CvtColor(maskedImage, grayscale, ColorConversionCodes.BGR2GRAY);
+        Cv2.CvtColor(grayscale, maskedImage, ColorConversionCodes.GRAY2BGR);
 
+        using var playfield = new Mat(maskedImage, playfieldDetection.Bounds);
         foreach (var polygon in localPolygons)
         {
-            Cv2.FillPoly(overlay, [polygon], new Scalar(60, 95, 150));
-            Cv2.Polylines(overlay, [polygon], true, Scalar.White, 2, LineTypes.AntiAlias);
+            Cv2.FillPoly(playfield, [polygon], Scalar.White);
+            Cv2.Polylines(playfield, [polygon], true, Scalar.White, 2, LineTypes.AntiAlias);
         }
 
-        Cv2.AddWeighted(overlay, 0.55, playfield, 0.45, 0, playfield);
-        Cv2.ImWrite(expectedPath, expectedImage);
+        Cv2.ImWrite(maskedExpectedPath, maskedImage);
     }
 }

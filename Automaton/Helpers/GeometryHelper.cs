@@ -54,4 +54,35 @@ internal static class GeometryHelper
         height = Math.Clamp(height, 1, maxY - y);
         return new Rect(x, y, width, height);
     }
+
+    public static Point[] SimplifyContour(
+        Point[] contour,
+        int maxPoints = 10,
+        double minimumEpsilon = 3.0,
+        double epsilonScale = 0.01,
+        double growthFactor = 1.35,
+        int maxAttempts = 12)
+    {
+        var perimeter = Cv2.ArcLength(contour, true);
+        var epsilon = Math.Max(minimumEpsilon, perimeter * epsilonScale);
+        Point[]? bestApproximation = null;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var simplified = Cv2.ApproxPolyDP(contour, epsilon, true);
+            if (simplified.Length >= 3)
+            {
+                bestApproximation = simplified;
+            }
+
+            if (simplified.Length <= maxPoints)
+            {
+                return simplified.Length >= 3 ? simplified : (bestApproximation ?? contour.Take(maxPoints).ToArray());
+            }
+
+            epsilon *= growthFactor;
+        }
+
+        return bestApproximation ?? contour.Take(maxPoints).ToArray();
+    }
 }

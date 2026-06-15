@@ -55,10 +55,6 @@ internal sealed class SampleImageProcessor(
     private const int MaximumPolygonsPerSession = 8;
     private const int MaximumPolygonPoints = 10;
     private const int MinimumPolygonBoundingArea = 35_000;
-    private const double MinimumSimplificationEpsilon = 3.0;
-    private const double SimplificationEpsilonScale = 0.01;
-    private const double SimplificationGrowthFactor = 1.35;
-    private const int MaxSimplificationAttempts = 12;
     private const double BalloonExpansionScale = 0.08;
     private const int MinimumBalloonExpansion = 3;
     private const int MaximumBalloonExpansion = 14;
@@ -1181,7 +1177,7 @@ internal sealed class SampleImageProcessor(
         }
 
         var balloonContour = BalloonizePolygon(expandedContour, bounds);
-        var simplified = SimplifyPolygon(balloonContour, MaximumPolygonPoints);
+        var simplified = GeometryHelper.SimplifyContour(balloonContour, MaximumPolygonPoints);
         var translatedPolygon = simplified
             .Select(point => new Point(
                 Math.Clamp(point.X + offset.X, 0, bounds.Width - 1),
@@ -1468,7 +1464,7 @@ internal sealed class SampleImageProcessor(
 
         return distinctPoints.Length <= MaximumPolygonPoints
             ? distinctPoints
-            : SimplifyPolygon(distinctPoints, MaximumPolygonPoints);
+            : GeometryHelper.SimplifyContour(distinctPoints, MaximumPolygonPoints);
     }
 
     private static Point? IntersectSegmentWithHorizontalBoundary(Point start, Point end, int boundaryY)
@@ -1509,25 +1505,6 @@ internal sealed class SampleImageProcessor(
             (int)Math.Round(start.Y + ((end.Y - start.Y) * t)));
     }
 
-    private static Point[] SimplifyPolygon(Point[] contour, int maxPoints)
-    {
-        var perimeter = Cv2.ArcLength(contour, true);
-        var epsilon = Math.Max(MinimumSimplificationEpsilon, perimeter * SimplificationEpsilonScale);
-
-        for (var attempt = 0; attempt < MaxSimplificationAttempts; attempt++)
-        {
-            var simplified = Cv2.ApproxPolyDP(contour, epsilon, true);
-            if (simplified.Length <= maxPoints && simplified.Length >= 3)
-            {
-                return simplified;
-            }
-
-            epsilon *= SimplificationGrowthFactor;
-        }
-
-        return contour.Take(maxPoints).ToArray();
-    }
-
     internal static Point[] BalloonizePolygon(Point[] polygon, Size bounds)
     {
         if (polygon.Length < 3)
@@ -1539,7 +1516,7 @@ internal sealed class SampleImageProcessor(
         var expandedHull = ExpandBalloonHull(hull);
         var simplifiedHull = expandedHull.Length <= MaximumPolygonPoints
             ? expandedHull
-            : SimplifyPolygon(expandedHull, MaximumPolygonPoints);
+            : GeometryHelper.SimplifyContour(expandedHull, MaximumPolygonPoints);
         return ClampPolygonToBounds(simplifiedHull, bounds);
     }
 
@@ -1706,7 +1683,7 @@ internal sealed class SampleImageProcessor(
                     }
 
                     polygons[largerIndex] = clipped.Length > MaximumPolygonPoints
-                        ? SimplifyPolygon(clipped, MaximumPolygonPoints)
+                        ? GeometryHelper.SimplifyContour(clipped, MaximumPolygonPoints)
                         : clipped;
                     changed = true;
                 }

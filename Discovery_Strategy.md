@@ -53,9 +53,7 @@ Gold-standard sample: a scored training/check sample depicting the expected clus
 - Known-sample matching is an intentional shortcut, not a temporary hack. When a live playfield closely matches a known example, using the matching expected polygons is often more reliable than re-detecting the same shape from noisy dots.
 - Match only the playfield crop, not the whole screenshot. Whole-screen matching is too sensitive to window position, DPI, popup state, and surrounding UI.
 - Keep example assets in relative runtime folders. Do not reintroduce project-root walking or absolute paths.
-- Use `*.expected.png` as the human-readable gold standard and `*.expected.masked.png` as an optional extraction aid. Do not overwrite the original expected image with a thresholded or filtered variant.
-- Extracting polygons from semi-transparent brown overlays is inherently unstable because the apparent color depends on the dots underneath. Prefer masked sidecars for difficult examples.
-- Overlay extraction should use conservative morphology. Aggressive closing can merge two nearby expected regions into one contour before polygon simplification even starts.
+- Use `*.expected.masked.png` as the ground-truth mask for polygon extraction. Each sample must have a corresponding masked file (white regions on dark background).
 - The known-sample template cache assumes the `expected` folder is stable for the process lifetime. That leaves a bounded unmanaged `Mat` retention concern, but it is acceptable for the current fixed-runtime model.
 
 ## Boundary and Shape Finalization
