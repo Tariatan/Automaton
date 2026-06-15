@@ -64,6 +64,9 @@
                 <MenuItem x:Name="SamplesMenuItem"
                           Header="Samples"
                           Click="Samples_Click" />
+                <MenuItem x:Name="ExtractTrainingMenuItem"
+                          Header="Extract Training"
+                          Click="ExtractTraining_Click" />
             </MenuItem>
             <MenuItem x:Name="MiningMenuItem"
                       Header="Mining">

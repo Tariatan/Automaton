@@ -15,6 +15,11 @@ internal static class TelemetryRootDirectory
         return BuildDirectoryPath(Primitives.Settings.LogsFolderName);
     }
 
+    public static string GetTrainingDirectory()
+    {
+        return BuildDirectoryPath(Primitives.Settings.TrainingFolderName);
+    }
+
     public static string GetExpectedDirectory()
     {
         var hallmarkRootDirectory = GetConfiguredHallmarkRootDirectory();

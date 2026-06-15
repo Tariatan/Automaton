@@ -1,6 +1,7 @@
 using System.IO;
 using Automaton.Detectors;
 using Automaton.Helpers;
+using Automaton.Infrastructure;
 using Automaton.Primitives;
 using Automaton.ProjectDiscoveryStates;
 using OpenCvSharp;
@@ -11,6 +12,7 @@ namespace Automaton;
 internal sealed class ProjectDiscoveryAutomationService(
     ScreenCaptureService screenCaptureService,
     SampleImageProcessor sampleImageProcessor,
+    PlayfieldDetector playfieldDetector,
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     ConnectionLostPopupDetector connectionLostPopupDetector,
@@ -54,6 +56,67 @@ internal sealed class ProjectDiscoveryAutomationService(
             SamplesFolderName,
             results.Count);
         return new SampleProcessingSummary(SamplesFolderName, results);
+    }
+
+    public TrainingExtractionSummary ExtractTrainingPlayfields()
+    {
+        var trainingDirectory = TelemetryRootDirectory.GetTrainingDirectory();
+        if (!Directory.Exists(trainingDirectory))
+        {
+            throw new DirectoryNotFoundException($"Training folder was not found: {trainingDirectory}");
+        }
+
+        var outputDirectory = Path.Combine(trainingDirectory, Settings.PlayfieldsFolderName);
+        Directory.CreateDirectory(outputDirectory);
+
+        var imageFiles = Directory
+            .EnumerateFiles(trainingDirectory, "*.png", SearchOption.TopDirectoryOnly)
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (imageFiles.Length == 0)
+        {
+            throw new InvalidOperationException($"No PNG files were found in {trainingDirectory}.");
+        }
+
+        var extracted = 0;
+        var skipped = 0;
+
+        foreach (var imageFile in imageFiles)
+        {
+            using var image = Cv2.ImRead(imageFile);
+            if (image.Empty())
+            {
+                skipped++;
+                continue;
+            }
+
+            var detection = playfieldDetector.Detect(image);
+            if (!detection.IsFound)
+            {
+                Logger.Warning("Playfield not found, skipping. File={File}", Path.GetFileName(imageFile));
+                skipped++;
+                continue;
+            }
+
+            using var playfield = new Mat(image, detection.Bounds);
+            var outputFileName = Path.GetFileNameWithoutExtension(imageFile) + ".png";
+            var outputPath = Path.Combine(outputDirectory, outputFileName);
+            Cv2.ImWrite(outputPath, playfield);
+            extracted++;
+
+            Logger.Information(
+                "Extracted playfield. Source={Source}, Bounds={Bounds}, Output={Output}",
+                Path.GetFileName(imageFile),
+                detection.Bounds,
+                outputFileName);
+        }
+
+        Logger.Information(
+            "Training extraction completed. Extracted={Extracted}, Skipped={Skipped}, OutputDirectory={OutputDirectory}",
+            extracted, skipped, outputDirectory);
+
+        return new TrainingExtractionSummary(extracted, skipped, outputDirectory);
     }
 
     public DiscoveryAutomationStepSummary Automate(
@@ -243,3 +306,8 @@ internal sealed class ProjectDiscoveryAutomationService(
 internal sealed record SampleProcessingSummary(
     string SamplesDirectory,
     IReadOnlyList<SampleProcessingResult> Results);
+
+internal sealed record TrainingExtractionSummary(
+    int Extracted,
+    int Skipped,
+    string OutputDirectory);
