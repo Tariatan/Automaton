@@ -1,5 +1,6 @@
 using System.IO;
 using Automaton.Detectors;
+using Automaton.Segmentation;
 using OpenCvSharp;
 using Serilog;
 
@@ -7,7 +8,8 @@ namespace Automaton.Helpers;
 
 internal sealed class SampleImageProcessor(
     PlayfieldDetector playfieldDetector,
-    KnownSampleMatcher? knownSampleMatcher)
+    KnownSampleMatcher? knownSampleMatcher,
+    ISegmentationEngine? segmentationEngine = null)
 {
     private const int SaturationThreshold = 45;
     private const int BrightnessThreshold = 55;
@@ -119,6 +121,7 @@ internal sealed class SampleImageProcessor(
         else
         {
             using var playfieldImage = new Mat(image, playfieldDetection.Bounds);
+            // Try looking for existing example first
             if (m_KnownSampleMatcher.TryMatch(playfieldImage, imagePath, out var matchedPolygons, out matchedSampleFileName))
             {
                 usedKnownSampleTemplate = true;
@@ -128,15 +131,23 @@ internal sealed class SampleImageProcessor(
             }
             else
             {
-                var (candidateMask, candidateDensityMap) = BuildCandidateMaskAndDensityMap(playfieldImage);
-                using var mask = candidateMask;
-                using var densityMap = candidateDensityMap;
-                using var clusterMask = BuildClusterMask(candidateMask);
+                // If no template found, then try Ai segmentation
+                polygons = TryAiSegmentation(playfieldImage, playfieldDetection.Bounds);
 
-                polygons = BuildClusterPolygons(candidateMask, candidateDensityMap, clusterMask, playfieldDetection.Bounds);
+                // Otherwise try manual polygons detection
                 if (polygons.Count == 0)
                 {
-                    polygons = BuildDefaultFallbackPolygons(playfieldDetection.Bounds);
+                    var (candidateMask, candidateDensityMap) = BuildCandidateMaskAndDensityMap(playfieldImage);
+                    using var mask = candidateMask;
+                    using var densityMap = candidateDensityMap;
+                    using var clusterMask = BuildClusterMask(candidateMask);
+
+                    polygons = BuildClusterPolygons(candidateMask, candidateDensityMap, clusterMask, playfieldDetection.Bounds);
+                    if (polygons.Count == 0)
+                    {
+                        // As a last resort, build fallback polygons - two big horizontal blobs one under the other
+                        polygons = BuildDefaultFallbackPolygons(playfieldDetection.Bounds);
+                    }
                 }
             }
 
@@ -159,6 +170,27 @@ internal sealed class SampleImageProcessor(
             matchedSampleFileName);
 
         return new SampleImageAnalysisResult(result, playfieldDetection, polygons, usedKnownSampleTemplate, matchedSampleFileName);
+    }
+
+    private Point[][] TryAiSegmentation(Mat playfieldImage, Rect playfieldBounds)
+    {
+        if (segmentationEngine is null || !segmentationEngine.IsAvailable)
+        {
+            return [];
+        }
+
+        using var result = segmentationEngine.Segment(playfieldImage);
+        if (result.IsEmpty)
+        {
+            return [];
+        }
+
+        // AI polygons are in playfield-local coordinates → translate to screen coordinates
+        return result.Polygons
+            .Select(polygon => polygon
+                .Select(point => new Point(point.X + playfieldBounds.X, point.Y + playfieldBounds.Y))
+                .ToArray())
+            .ToArray();
     }
 
     private static (Mat CandidateMask, Mat CandidateDensityMap) BuildCandidateMaskAndDensityMap(Mat playfieldImage)

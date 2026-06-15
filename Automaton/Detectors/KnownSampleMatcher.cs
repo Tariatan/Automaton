@@ -162,25 +162,25 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     }
 
     private static bool ShouldPreferVisibleExpectedPolygons(
-        IReadOnlyList<Point[]> visiblePolygons,
-        IReadOnlyList<Point[]> fallbackPolygons)
+        Point[][] visiblePolygons,
+        Point[][] fallbackPolygons)
     {
-        if (visiblePolygons.Count == 0)
+        if (visiblePolygons.Length == 0)
         {
             return false;
         }
 
-        if (fallbackPolygons.Count == 0)
+        if (fallbackPolygons.Length == 0)
         {
             return true;
         }
 
-        if (fallbackPolygons.Count == 1 && visiblePolygons.Count > 1)
+        if (fallbackPolygons.Length == 1 && visiblePolygons.Length > 1)
         {
             return true;
         }
 
-        if (visiblePolygons.Count == fallbackPolygons.Count)
+        if (visiblePolygons.Length == fallbackPolygons.Length)
         {
             return true;
         }
@@ -192,7 +192,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             return false;
         }
 
-        return visiblePolygons.Count <= fallbackPolygons.Count &&
+        return visiblePolygons.Length <= fallbackPolygons.Length &&
                visibleArea < fallbackArea * 0.85;
     }
 
@@ -201,7 +201,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         return polygons.Sum(polygon => Math.Abs(Cv2.ContourArea(polygon)));
     }
 
-    private static IReadOnlyList<string> GetTemplateDirectories(string? sourceImagePath)
+    private static List<string> GetTemplateDirectories(string? sourceImagePath)
     {
         var directories = new List<string>();
         if (TryGetAdjacentSamplesDirectory(sourceImagePath, out var adjacentSamplesDirectory))
@@ -389,7 +389,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
                 expectedImage,
                 maskedExpectedPath,
                 playfieldDetection.Bounds);
-            if (polygons.Count == 0)
+            if (polygons.Length == 0)
             {
                 continue;
             }
@@ -454,7 +454,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             .ToArray();
     }
 
-    private static IReadOnlyList<Point[]> LoadExpectedPolygons(
+    private static Point[][] LoadExpectedPolygons(
         Mat sampleImage,
         Mat expectedImage,
         string maskedExpectedPath,
@@ -466,7 +466,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             if (!maskedExpectedImage.Empty())
             {
                 var maskedPolygons = ExtractMaskedExpectedPolygons(maskedExpectedImage, playfieldBounds);
-                if (maskedPolygons.Count > 0)
+                if (maskedPolygons.Length > 0)
                 {
                     return maskedPolygons;
                 }
@@ -487,7 +487,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         return blurred.Clone();
     }
 
-    private static IReadOnlyList<Point[]> ExtractExpectedPolygons(Mat originalImage, Mat expectedImage, Rect playfieldBounds)
+    private static Point[][] ExtractExpectedPolygons(Mat originalImage, Mat expectedImage, Rect playfieldBounds)
     {
         using var originalPlayfield = new Mat(originalImage, playfieldBounds);
         using var expectedPlayfield = new Mat(expectedImage, playfieldBounds);
@@ -507,7 +507,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             .ToArray();
     }
 
-    private static IReadOnlyList<Point[]> ExtractVisibleExpectedPolygons(
+    private static Point[][] ExtractVisibleExpectedPolygons(
         Mat sampleImage,
         Mat expectedImage,
         Rect samplePlayfieldBounds,
@@ -532,9 +532,9 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         return RemoveNestedPolygons(polygons);
     }
 
-    private static IReadOnlyList<Point[]> RemoveNestedPolygons(IReadOnlyList<Point[]> polygons)
+    private static Point[][] RemoveNestedPolygons(Point[][] polygons)
     {
-        var retainedPolygons = new List<Point[]>(polygons.Count);
+        var retainedPolygons = new List<Point[]>(polygons.Length);
         foreach (var polygon in polygons.OrderByDescending(points => Math.Abs(Cv2.ContourArea(points))))
         {
             var center = GetPolygonCenter(polygon);
@@ -546,7 +546,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             retainedPolygons.Add(polygon);
         }
 
-        return retainedPolygons;
+        return retainedPolygons.ToArray();
     }
 
     private static Point2f GetPolygonCenter(Point[] polygon)
@@ -599,7 +599,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         return FillSignificantContours(closedStrokeMask);
     }
 
-    private static IReadOnlyList<Point[]> ExtractMaskedExpectedPolygons(Mat maskedExpectedImage, Rect playfieldBounds)
+    private static Point[][] ExtractMaskedExpectedPolygons(Mat maskedExpectedImage, Rect playfieldBounds)
     {
         using var maskedPlayfield = new Mat(maskedExpectedImage, playfieldBounds);
         using var overlayMask = BuildMaskedOverlayMask(maskedPlayfield);

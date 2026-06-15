@@ -2,6 +2,7 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.CommonAutomationStates;
 using Automaton.ProjectDiscoveryStates;
+using Automaton.Segmentation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Automaton.Infrastructure;
@@ -37,6 +38,9 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<SampleImageProcessor>();
         services.AddSingleton<ScreenCaptureService>();
+
+        services.AddSingleton(_ => new OnnxSegmentationEngine(SegmentationModelPaths.GetModelPath()));
+        services.AddSingleton<ISegmentationEngine>(sp => sp.GetRequiredService<OnnxSegmentationEngine>());
 
         services.AddSingleton<CommonStartGameState>();
         services.AddSingleton<ConnectionLostPopupRecoveryBehavior>();
