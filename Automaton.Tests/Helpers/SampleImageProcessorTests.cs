@@ -105,7 +105,7 @@ public sealed class SampleImageProcessorTests
 
         // Act
         var sampleFiles = SampleImageProcessor.EnumerateSampleImageFiles(workspace.Path)
-            .Select(file => Path.GetFileName(file)!)
+            .Select(file => Path.GetFileName(file))
             .ToArray();
 
         // Assert

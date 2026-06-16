@@ -135,8 +135,7 @@ internal static class DebugOverlay
 
     private static bool IsInsideImage(Mat image, Point point)
     {
-        return point.X >= 0 &&
-               point.Y >= 0 &&
+        return point is { X: >= 0, Y: >= 0 } &&
                point.X < image.Width &&
                point.Y < image.Height;
     }
