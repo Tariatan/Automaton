@@ -171,11 +171,11 @@ internal sealed class SampleImageProcessor(
 
     private static Mat CropAnalysisRegion(Mat image)
     {
-        const int analysisWidth = 1000;
-        const int analysisHeight = 1000;
+        const int AnalysisWidth = 1000;
+        const int AnalysisHeight = 1000;
 
-        var width = Math.Min(analysisWidth, image.Width);
-        var height = Math.Min(analysisHeight, image.Height);
+        var width = Math.Min(AnalysisWidth, image.Width);
+        var height = Math.Min(AnalysisHeight, image.Height);
 
         if (width == image.Width && height == image.Height)
         {
@@ -335,7 +335,7 @@ internal sealed class SampleImageProcessor(
             .ToList();
     }
 
-    private static void TryRecoverSparseLowerCluster(Mat candidateMask, Size bounds, IList<Point[]> polygons)
+    private static void TryRecoverSparseLowerCluster(Mat candidateMask, Size bounds, List<Point[]> polygons)
     {
         if (polygons.Count != 1)
         {
@@ -685,7 +685,7 @@ internal sealed class SampleImageProcessor(
         }
 
         seedCenters = ReduceSeedCenters(seedCenters);
-        if (seedCenters.Count < 2 || seedCenters.Count > MaximumDensitySeedCount)
+        if (seedCenters.Count is < 2 or > MaximumDensitySeedCount)
         {
             return [];
         }

@@ -1,5 +1,4 @@
 using Automaton.Detectors;
-using OpenCvSharp;
 
 namespace Automaton.Helpers;
 
