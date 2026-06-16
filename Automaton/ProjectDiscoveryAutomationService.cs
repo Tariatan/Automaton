@@ -20,6 +20,8 @@ internal sealed class ProjectDiscoveryAutomationService(
     IDiscoveryAutomationStateFactory discoveryAutomationStateFactory)
 {
     private const string SamplesFolderName = "samples";
+    private const string TrainingFolderName = "training";
+    private const string PlayfieldsFolderName = "playfields";
     private const int InitialPilotIndex = 1;
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
@@ -60,23 +62,21 @@ internal sealed class ProjectDiscoveryAutomationService(
 
     public TrainingExtractionSummary ExtractTrainingPlayfields()
     {
-        var trainingDirectory = TelemetryRootDirectory.GetTrainingDirectory();
-        if (!Directory.Exists(trainingDirectory))
+        if (!Directory.Exists(TrainingFolderName))
         {
-            throw new DirectoryNotFoundException($"Training folder was not found: {trainingDirectory}");
+            throw new DirectoryNotFoundException($"Training folder was not found: {TrainingFolderName}");
         }
 
-        var outputDirectory = Path.Combine(trainingDirectory, Settings.PlayfieldsFolderName);
-        Directory.CreateDirectory(outputDirectory);
+        Directory.CreateDirectory(PlayfieldsFolderName);
 
         var imageFiles = Directory
-            .EnumerateFiles(trainingDirectory, "*.png", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(TrainingFolderName, "*.png", SearchOption.TopDirectoryOnly)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (imageFiles.Length == 0)
         {
-            throw new InvalidOperationException($"No PNG files were found in {trainingDirectory}.");
+            throw new InvalidOperationException($"No PNG files were found in {TrainingFolderName}.");
         }
 
         var extracted = 0;
@@ -101,7 +101,7 @@ internal sealed class ProjectDiscoveryAutomationService(
 
             using var playfield = new Mat(image, detection.Bounds);
             var outputFileName = Path.GetFileNameWithoutExtension(imageFile) + ".png";
-            var outputPath = Path.Combine(outputDirectory, outputFileName);
+            var outputPath = Path.Combine(PlayfieldsFolderName, outputFileName);
             Cv2.ImWrite(outputPath, playfield);
             extracted++;
 
@@ -114,9 +114,9 @@ internal sealed class ProjectDiscoveryAutomationService(
 
         Logger.Information(
             "Training extraction completed. Extracted={Extracted}, Skipped={Skipped}, OutputDirectory={OutputDirectory}",
-            extracted, skipped, outputDirectory);
+            extracted, skipped, PlayfieldsFolderName);
 
-        return new TrainingExtractionSummary(extracted, skipped, outputDirectory);
+        return new TrainingExtractionSummary(extracted, skipped, PlayfieldsFolderName);
     }
 
     public DiscoveryAutomationStepSummary Automate(

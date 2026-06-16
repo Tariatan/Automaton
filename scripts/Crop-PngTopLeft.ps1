@@ -3,9 +3,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$DirectoryPath,
 
-    [int]$Width = 1700,
+    [int]$Width = 1000,
 
-    [int]$Height = 1300
+    [int]$Height = 1000
 )
 
 Set-StrictMode -Version Latest
