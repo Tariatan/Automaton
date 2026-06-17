@@ -98,7 +98,7 @@ internal sealed class SampleImageProcessor(
     internal static IReadOnlyList<string> EnumerateSampleImageFiles(string samplesDirectory)
     {
         return Directory
-            .EnumerateFiles(samplesDirectory, "*.sample.png", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(samplesDirectory, "*.png", SearchOption.TopDirectoryOnly)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

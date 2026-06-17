@@ -5,7 +5,7 @@ namespace Automaton.Segmentation;
 internal static class SegmentationModelPaths
 {
     private const string ModelFileName = "discovery-segmentation.onnx";
-    private const string ModelsFolderName = "Models";
+    private const string ModelsFolderName = "models";
 
     public static string GetModelPath()
     {
