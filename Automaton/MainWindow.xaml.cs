@@ -464,12 +464,12 @@ internal partial class MainWindow
         m_ProjectDiscoveryAutomationService.ProcessSamples();
     }
 
-    private void ExtractTraining_Click(object sender, RoutedEventArgs e)
+    private void ExtractPlayfields_Click(object sender, RoutedEventArgs e)
     {
-        Logger.Information("Training playfield extraction requested from main window.");
+        Logger.Information("Playfield extraction requested from main window.");
         var summary = m_ProjectDiscoveryAutomationService.ExtractTrainingPlayfields();
         Logger.Information(
-            "Training playfield extraction completed. Extracted={Extracted}, Skipped={Skipped}",
+            "Playfield extraction completed. Extracted={Extracted}, Skipped={Skipped}",
             summary.Extracted, summary.Skipped);
     }
 
