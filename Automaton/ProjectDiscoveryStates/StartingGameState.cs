@@ -25,6 +25,8 @@ internal sealed class StartingGameState(
                 capturePath);
         }
 
+        context.ConsecutivePlayfieldMisses = 0;
+
         return new DiscoveryAutomationStateTransition(
             Kind,
             DiscoveryAutomationStateKind.Login,

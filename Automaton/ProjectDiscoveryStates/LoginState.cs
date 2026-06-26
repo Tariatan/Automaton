@@ -24,6 +24,7 @@ internal sealed class LoginState(
             if (!PilotRegistry.TryGetNextPilotIndex(context.CurrentPilotIndex, out var nextPilotIndex))
             {
                 m_Logger.Warning("Failed to resolve next pilot index. CurrentPilotIndex={CurrentPilotIndex}", context.CurrentPilotIndex);
+                gameActionService.QuitGame(cancellationToken);
                 return new DiscoveryAutomationStateTransition(
                     Kind,
                     Kind,
