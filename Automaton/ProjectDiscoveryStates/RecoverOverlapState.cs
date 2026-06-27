@@ -17,7 +17,6 @@ internal sealed class RecoverOverlapState(
         gameActionService.CloseActiveWindow(cancellationToken);
         automationInputController.Delay(Delays.WindowActivationMs, cancellationToken);
         gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
-        automationInputController.Delay(Delays.WindowActivationMs, cancellationToken);
         return new DiscoveryAutomationStateTransition(
             Kind,
             DiscoveryAutomationStateKind.Discover,

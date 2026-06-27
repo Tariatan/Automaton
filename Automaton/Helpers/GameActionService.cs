@@ -179,6 +179,7 @@ internal sealed class GameActionService : IGameActionService
     {
         m_Logger.Information("Toggle Project Discovery window");
         m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        m_InputController.Delay(Delays.WindowActivationMs, cancellationToken);
     }
 
     public void ToggleFirstLaser(CancellationToken cancellationToken)

@@ -29,7 +29,7 @@ internal static class Delays
     public const int RecoveryMs = 60_000;
 
     // Quit game / window control
-    public const int WindowActivationMs = 1_000;
+    public const int WindowActivationMs = 2_000;
 
     // Project Discovery
     public const int SubmissionWindowMs = 70_000;
