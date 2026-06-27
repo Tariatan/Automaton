@@ -177,9 +177,27 @@ internal sealed class ProjectDiscoveryAutomationService(
             {
                 lastSummary = ExecuteSingleStep(cancellationToken);
 
-                if(lastSummary.Action is not (DiscoveryAutomationActionKind.StartGame or
-                                              DiscoveryAutomationActionKind.LoginPilot or
-                                              DiscoveryAutomationActionKind.LoginNextPilot))
+                if (lastSummary.Action == DiscoveryAutomationActionKind.Reboot)
+                {
+                    Logger.Information(
+                        "Project Discovery automation requested operating system reboot. State={State}, NextState={NextState}",
+                        lastSummary.State,
+                        lastSummary.NextState);
+                    return lastSummary;
+                }
+
+                if (lastSummary.Action == DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
+                {
+                    Logger.Information(
+                        "Project Discovery automation completed for all available pilots. State={State}, NextState={NextState}",
+                        lastSummary.State,
+                        lastSummary.NextState);
+                    return lastSummary;
+                }
+
+                if (lastSummary.Action is not (DiscoveryAutomationActionKind.StartGame or
+                                               DiscoveryAutomationActionKind.LoginPilot or
+                                               DiscoveryAutomationActionKind.LoginNextPilot))
                 {
                     gameActionService.TryHideUi(lastSummary.CapturePath, cancellationToken);
                 }
@@ -193,24 +211,6 @@ internal sealed class ProjectDiscoveryAutomationService(
                     TryTransitionToRecoverClientIsRunningButtonVisible(cancellationToken))
                 {
                     continue;
-                }
-
-                if (lastSummary.Action == DiscoveryAutomationActionKind.Reboot)
-                {
-                    Logger.Information(
-                        "Project Discovery automation requested operating system reboot. State={State}, NextState={NextState}",
-                        lastSummary.State,
-                        lastSummary.NextState);
-                    return lastSummary;
-                }
-
-                else if (lastSummary.Action == DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
-                {
-                    Logger.Information(
-                        "Project Discovery automation completed for all available pilots. State={State}, NextState={NextState}",
-                        lastSummary.State,
-                        lastSummary.NextState);
-                    return lastSummary;
                 }
 
                 automationInputController.Delay(Delays.StateMachineNextStepDelayMs, cancellationToken);

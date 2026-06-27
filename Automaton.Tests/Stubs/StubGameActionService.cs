@@ -6,6 +6,7 @@ namespace Automaton.Tests.Stubs;
 
 internal sealed class StubGameActionService : IGameActionService
 {
+    public bool CloseGameClientCalled { get; private set; }
     public bool QuitGameCalled { get; private set; }
     public bool LogoutCalled { get; private set; }
     public int LogoutCallCount { get; private set; }
@@ -24,6 +25,12 @@ internal sealed class StubGameActionService : IGameActionService
     {
         cancellationToken.ThrowIfCancellationRequested();
         QuitGameCalled = true;
+    }
+
+    public void CloseGameClient(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        CloseGameClientCalled = true;
     }
 
     public void Logout(

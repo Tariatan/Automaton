@@ -4,6 +4,7 @@ namespace Automaton.Helpers;
 
 internal interface IGameActionService
 {
+    void CloseGameClient(CancellationToken cancellationToken);
     void QuitGame(CancellationToken cancellationToken);
     void Logout(
         ScreenCaptureService screenCaptureService,

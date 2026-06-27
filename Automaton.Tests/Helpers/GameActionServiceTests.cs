@@ -120,6 +120,31 @@ public sealed class GameActionServiceTests
     }
 
     [Fact]
+    public void CloseGameClient_WhenCalled_TriggersQuitShortcutWithoutRecoveryWait()
+    {
+        // Arrange
+        using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(blankScreen.Clone),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var rebootOperatingSystemCalled = false;
+        var gameActionService = CreateGameActionService(
+            automationInputController,
+            screenCaptureService,
+            _ => rebootOperatingSystemCalled = true);
+
+        // Act
+        gameActionService.CloseGameClient(CancellationToken.None);
+
+        // Assert
+        Assert.Empty(automationInputController.Delays);
+        Assert.Equal(1, CountKeyChord(automationInputController, VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q));
+        Assert.False(rebootOperatingSystemCalled);
+    }
+
+    [Fact]
     public void QuitGame_PlayNowMissingUntilTimeout_RebootsOperatingSystem()
     {
         // Arrange

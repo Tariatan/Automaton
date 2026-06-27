@@ -39,7 +39,7 @@ internal sealed class GameActionService : IGameActionService
 
     public void QuitGame(CancellationToken cancellationToken)
     {
-        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
+        CloseGameClient(cancellationToken);
 
         var elapsedMs = 0;
         while (elapsedMs < Delays.QuitGameTimeoutMs)
@@ -67,6 +67,12 @@ internal sealed class GameActionService : IGameActionService
             "PLAY NOW was not detected before quit game timeout. Rebooting operating system. TimeoutSeconds={TimeoutSeconds:0.###}",
             TimeSpan.FromMilliseconds(Delays.QuitGameTimeoutMs).TotalSeconds);
         RebootOperatingSystem(cancellationToken);
+    }
+
+    public void CloseGameClient(CancellationToken cancellationToken)
+    {
+        m_Logger.Information("Close game client");
+        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
     }
 
     public void Logout(
