@@ -178,7 +178,11 @@ internal sealed class GameActionService : IGameActionService
     public void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken)
     {
         m_Logger.Information("Toggle Project Discovery window");
-        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.L, cancellationToken);
+        m_InputController.PressKeyChordWithHold(
+            VirtualKeys.Alt,
+            VirtualKeys.L,
+            Delays.ProjectDiscoveryWindowToggleChordHoldMs,
+            cancellationToken);
         m_InputController.Delay(Delays.WindowActivationMs, cancellationToken);
     }
 

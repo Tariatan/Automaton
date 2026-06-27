@@ -5,6 +5,7 @@ internal static class Delays
     // Input
     public const int MouseDownMs = 300;
     public const int MinimumClickMs = 250;
+    public const int KeyChordTransitionMs = 120;
     public const int HoverMs = 200;
     public const int HideUiMs = 1000;
 
@@ -32,6 +33,7 @@ internal static class Delays
     public const int WindowActivationMs = 2_000;
 
     // Project Discovery
+    public const int ProjectDiscoveryWindowToggleChordHoldMs = 3_000;
     public const int SubmissionWindowMs = 70_000;
     public const int SubmitActivationMs = 1_500;
     public const int SubmitResultMs = 5_000;

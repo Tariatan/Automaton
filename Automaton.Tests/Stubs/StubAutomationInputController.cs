@@ -37,17 +37,38 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         KeyInputs.Add(new KeyboardInput(null, null, virtualKey));
     }
 
-    public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30)
+    public void PressKeyChord(
+        ushort modifierVirtualKey,
+        ushort virtualKey,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Automaton.Primitives.Delays.KeyChordTransitionMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        KeyInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey));
+        KeyInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey, transitionDelayMs));
         OnPressKeyChord?.Invoke(modifierVirtualKey, virtualKey);
     }
 
-    public void PressKeyChord(ushort firstModifier, ushort secondModifier, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30)
+    public void PressKeyChord(
+        ushort firstModifier,
+        ushort secondModifier,
+        ushort virtualKey,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Automaton.Primitives.Delays.KeyChordTransitionMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        KeyInputs.Add(new KeyboardInput(firstModifier, secondModifier, virtualKey));
+        KeyInputs.Add(new KeyboardInput(firstModifier, secondModifier, virtualKey, transitionDelayMs));
+    }
+
+    public void PressKeyChordWithHold(
+        ushort modifierVirtualKey,
+        ushort virtualKey,
+        int holdDelayMs,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Automaton.Primitives.Delays.KeyChordTransitionMs)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        KeyInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey, transitionDelayMs, holdDelayMs));
+        OnPressKeyChord?.Invoke(modifierVirtualKey, virtualKey);
     }
 
     public void Delay(TimeSpan milliseconds, CancellationToken cancellationToken)
@@ -67,4 +88,6 @@ internal sealed class StubAutomationInputController : IAutomationInputController
 internal readonly record struct KeyboardInput(
     ushort? ModifierVirtualKey,
     ushort? SecondModifierVirtualKey,
-    ushort VirtualKey);
+    ushort VirtualKey,
+    int TransitionDelayMs = Automaton.Primitives.Delays.KeyChordTransitionMs,
+    int HoldDelayMs = 0);

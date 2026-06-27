@@ -145,6 +145,31 @@ public sealed class GameActionServiceTests
         Assert.True(rebootOperatingSystemCalled);
     }
 
+    [Fact]
+    public void ToggleProjectDiscoveryWindow_WhenCalled_HoldsAltLChordBeforeActivationDelay()
+    {
+        // Arrange
+        using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(blankScreen.Clone),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var gameActionService = CreateGameActionService(automationInputController, screenCaptureService);
+
+        // Act
+        gameActionService.ToggleProjectDiscoveryWindow(CancellationToken.None);
+
+        // Assert
+        var keyInput = Assert.Single(automationInputController.KeyInputs);
+        Assert.Equal(VirtualKeys.Alt, keyInput.ModifierVirtualKey);
+        Assert.Null(keyInput.SecondModifierVirtualKey);
+        Assert.Equal(VirtualKeys.L, keyInput.VirtualKey);
+        Assert.Equal(Delays.KeyChordTransitionMs, keyInput.TransitionDelayMs);
+        Assert.Equal(Delays.ProjectDiscoveryWindowToggleChordHoldMs, keyInput.HoldDelayMs);
+        Assert.Equal([Delays.WindowActivationMs], automationInputController.Delays);
+    }
+
     private static int CountKeyChord(StubAutomationInputController automationInputController, ushort modifier, ushort virtualKey)
     {
         return automationInputController.KeyInputs.Count(input =>

@@ -14,7 +14,6 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     private const uint InputKeyboard = 1;
     private const uint KeyUpEvent = 0x0002;
     private const uint ScanCodeEvent = 0x0008;
-    private const int DefaultTransitionDelayMs = 50;
 
     public void ClickUiElement(Point point, CancellationToken cancellationToken)
     {
@@ -64,29 +63,36 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     {
         cancellationToken.ThrowIfCancellationRequested();
         LogKeyboardAction("Key press", DateTime.Now, virtualKey);
-        var scanCode = MapScanCode(virtualKey);
-        SendKeyboardInput(BuildKeyDownInput(virtualKey, scanCode));
-        WaitForKeyboardTransition(cancellationToken);
-        SendKeyboardInput(BuildKeyUpInput(virtualKey, scanCode));
+        var key = CreateKeyboardKey(virtualKey);
+        var keyPressed = false;
+
+        try
+        {
+            SendKeyboardInput(BuildKeyDownInput(key));
+            keyPressed = true;
+            WaitForKeyboardTransition(cancellationToken);
+        }
+        finally
+        {
+            if (keyPressed)
+            {
+                SendKeyboardInput(BuildKeyUpInput(key));
+            }
+        }
+
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    public void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = DefaultTransitionDelayMs)
+    public void PressKeyChord(
+        ushort modifierVirtualKey,
+        ushort virtualKey,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Delays.KeyChordTransitionMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
         LogKeyboardAction("Key chord", DateTime.Now, modifierVirtualKey, virtualKey);
-        var modScan = MapScanCode(modifierVirtualKey);
-        var keyScan = MapScanCode(virtualKey);
-        SendKeyboardInput(BuildKeyDownInput(modifierVirtualKey, modScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyDownInput(virtualKey, keyScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(virtualKey, keyScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(modifierVirtualKey, modScan));
-        Thread.Sleep(Delays.MouseDownMs);
-        cancellationToken.ThrowIfCancellationRequested();
+        PressKeyChordCore(cancellationToken, transitionDelayMs, transitionDelayMs, modifierVirtualKey, virtualKey);
     }
 
     public void PressKeyChord(
@@ -94,24 +100,56 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         ushort secondModifier,
         ushort virtualKey,
         CancellationToken cancellationToken,
-        int transitionDelayMs = DefaultTransitionDelayMs)
+        int transitionDelayMs = Delays.KeyChordTransitionMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
         LogKeyboardAction("Key chord", DateTime.Now, firstModifier, secondModifier, virtualKey);
-        var firstScan = MapScanCode(firstModifier);
-        var secondScan = MapScanCode(secondModifier);
-        var keyScan = MapScanCode(virtualKey);
-        SendKeyboardInput(BuildKeyDownInput(firstModifier, firstScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyDownInput(secondModifier, secondScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyDownInput(virtualKey, keyScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(virtualKey, keyScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(secondModifier, secondScan));
-        WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
-        SendKeyboardInput(BuildKeyUpInput(firstModifier, firstScan));
+        PressKeyChordCore(cancellationToken, transitionDelayMs, transitionDelayMs, firstModifier, secondModifier, virtualKey);
+    }
+
+    public void PressKeyChordWithHold(
+        ushort modifierVirtualKey,
+        ushort virtualKey,
+        int holdDelayMs,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Delays.KeyChordTransitionMs)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        LogKeyboardAction("Held key chord", DateTime.Now, modifierVirtualKey, virtualKey);
+        PressKeyChordCore(cancellationToken, transitionDelayMs, holdDelayMs, modifierVirtualKey, virtualKey);
+    }
+
+    private void PressKeyChordCore(CancellationToken cancellationToken, int transitionDelayMs, int holdDelayMs, params ushort[] virtualKeys)
+    {
+        var keys = virtualKeys.Select(CreateKeyboardKey).ToArray();
+        var pressedKeys = new Stack<KeyboardKey>();
+
+        try
+        {
+            for (var index = 0; index < keys.Length - 1; index++)
+            {
+                SendKeyboardInput(BuildKeyDownInput(keys[index]));
+                pressedKeys.Push(keys[index]);
+                WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+            }
+
+            var primaryKey = keys[^1];
+            SendKeyboardInput(BuildKeyDownInput(primaryKey));
+            pressedKeys.Push(primaryKey);
+            WaitForKeyboardTransition(cancellationToken, holdDelayMs);
+
+            SendKeyboardInput(BuildKeyUpInput(primaryKey));
+            pressedKeys.Pop();
+            WaitForKeyboardTransition(cancellationToken, transitionDelayMs);
+        }
+        finally
+        {
+            while (pressedKeys.Count > 0)
+            {
+                SendKeyboardInput(BuildKeyUpInput(pressedKeys.Pop()));
+            }
+        }
+
         Thread.Sleep(Delays.MouseDownMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
@@ -127,13 +165,21 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         cancellationToken.ThrowIfCancellationRequested();
     }
 
+    private static KeyboardKey CreateKeyboardKey(ushort virtualKey)
+    {
+        return new KeyboardKey(virtualKey, MapScanCode(virtualKey));
+    }
+
     private static ushort MapScanCode(ushort virtualKey)
     {
         return (ushort)MapVirtualKey(virtualKey, 0);
     }
 
-    private static INPUT BuildKeyDownInput(ushort virtualKey, ushort scanCode)
+    private static INPUT BuildKeyDownInput(KeyboardKey key)
     {
+        var virtualKey = key.VirtualKey;
+        var scanCode = key.ScanCode;
+
         if (scanCode == 0)
         {
             return new INPUT
@@ -164,8 +210,11 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         };
     }
 
-    private static INPUT BuildKeyUpInput(ushort virtualKey, ushort scanCode)
+    private static INPUT BuildKeyUpInput(KeyboardKey key)
     {
+        var virtualKey = key.VirtualKey;
+        var scanCode = key.ScanCode;
+
         if (scanCode == 0)
         {
             return new INPUT
@@ -197,20 +246,27 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         };
     }
 
-    private static void WaitForKeyboardTransition(CancellationToken cancellationToken, int delayMs = DefaultTransitionDelayMs)
+    private static void WaitForKeyboardTransition(CancellationToken cancellationToken, int delayMs = Delays.KeyChordTransitionMs)
     {
         cancellationToken.WaitHandle.WaitOne(delayMs);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private static void SendKeyboardInput(INPUT input)
+    private void SendKeyboardInput(INPUT input)
     {
         var inputs = new[] { input };
-        var sent = SendInput(1, inputs, Marshal.SizeOf<INPUT>());
-        if (sent == 1)
+        var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        if (sent == (uint)inputs.Length)
         {
             return;
         }
+
+        var lastWin32Error = Marshal.GetLastWin32Error();
+        m_Logger.Warning(
+            "SendInput sent {SentInputCount}/{RequestedInputCount} keyboard events. LastWin32Error={LastWin32Error}. Falling back for remaining keyboard events.",
+            sent,
+            inputs.Length,
+            lastWin32Error);
 
         SendLegacyKeyboardEvent(input);
     }
@@ -219,6 +275,13 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     {
         var keyboard = input.U.ki;
         var isKeyUp = (keyboard.dwFlags & KeyUpEvent) == KeyUpEvent;
+
+        if ((keyboard.dwFlags & ScanCodeEvent) == ScanCodeEvent)
+        {
+            var flags = ScanCodeEvent | (isKeyUp ? KeyUpEvent : 0);
+            keybd_event(0, (byte)keyboard.wScan, flags, UIntPtr.Zero);
+            return;
+        }
 
         if (keyboard.wVk != 0)
         {
@@ -296,7 +359,7 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     [DllImport("user32.dll")]
     private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
 
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
     [DllImport("user32.dll")]
@@ -319,7 +382,24 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
     private struct InputUnion
     {
         [FieldOffset(0)]
+        public MOUSEINPUT mi;
+
+        [FieldOffset(0)]
         public KEYBDINPUT ki;
+
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -331,6 +411,16 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         public uint time;
         public UIntPtr dwExtraInfo;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
+    }
+
+    private readonly record struct KeyboardKey(ushort VirtualKey, ushort ScanCode);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct CursorPoint

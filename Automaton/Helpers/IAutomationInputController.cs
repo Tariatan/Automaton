@@ -1,3 +1,4 @@
+using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Helpers;
@@ -10,9 +11,25 @@ internal interface IAutomationInputController
 
     void PressKey(ushort virtualKey, CancellationToken cancellationToken);
 
-    void PressKeyChord(ushort modifierVirtualKey, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30);
+    void PressKeyChord(
+        ushort modifierVirtualKey,
+        ushort virtualKey,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Delays.KeyChordTransitionMs);
 
-    void PressKeyChord(ushort firstModifier, ushort secondModifier, ushort virtualKey, CancellationToken cancellationToken, int transitionDelayMs = 30);
+    void PressKeyChord(
+        ushort firstModifier,
+        ushort secondModifier,
+        ushort virtualKey,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Delays.KeyChordTransitionMs);
+
+    void PressKeyChordWithHold(
+        ushort modifierVirtualKey,
+        ushort virtualKey,
+        int holdDelayMs,
+        CancellationToken cancellationToken,
+        int transitionDelayMs = Delays.KeyChordTransitionMs);
 
     void ClickUiElement(Point point, CancellationToken cancellationToken);
 
