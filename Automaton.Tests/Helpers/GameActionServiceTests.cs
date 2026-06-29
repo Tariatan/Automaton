@@ -120,7 +120,7 @@ public sealed class GameActionServiceTests
     }
 
     [Fact]
-    public void CloseGameClient_WhenCalled_TriggersQuitShortcutWithoutRecoveryWait()
+    public void CloseGameClient_WhenCalled_TriggersQuitShortcutWithLongHoldWithoutRecoveryWait()
     {
         // Arrange
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
@@ -140,7 +140,11 @@ public sealed class GameActionServiceTests
 
         // Assert
         Assert.Empty(automationInputController.Delays);
-        Assert.Equal(1, CountKeyChord(automationInputController, VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q));
+        var keyInput = Assert.Single(automationInputController.KeyInputs);
+        Assert.Equal(VirtualKeys.Alt, keyInput.ModifierVirtualKey);
+        Assert.Equal(VirtualKeys.Shift, keyInput.SecondModifierVirtualKey);
+        Assert.Equal(VirtualKeys.Q, keyInput.VirtualKey);
+        Assert.Equal(Delays.ProjectDiscoveryWindowToggleChordHoldMs, keyInput.HoldDelayMs);
         Assert.False(rebootOperatingSystemCalled);
     }
 

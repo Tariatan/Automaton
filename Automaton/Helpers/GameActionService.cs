@@ -72,7 +72,12 @@ internal sealed class GameActionService : IGameActionService
     public void CloseGameClient(CancellationToken cancellationToken)
     {
         m_Logger.Information("Close game client");
-        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Shift, VirtualKeys.Q, cancellationToken);
+        m_InputController.PressKeyChordWithHold(
+            VirtualKeys.Alt,
+            VirtualKeys.Shift,
+            VirtualKeys.Q,
+            cancellationToken,
+            holdDelayMs: Delays.ProjectDiscoveryWindowToggleChordHoldMs);
     }
 
     public void Logout(
@@ -83,7 +88,7 @@ internal sealed class GameActionService : IGameActionService
     {
         m_InputController.Delay(Delays.WindowActivationMs, cancellationToken);
 
-        m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
+        m_InputController.PressKeyChordWithHold(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
 
         var delay = TimeSpan.FromMilliseconds(Delays.PilotLogoutDebounceMs);
         m_Logger.Information("Logging out for {Seconds} seconds", delay.TotalSeconds);
@@ -122,7 +127,7 @@ internal sealed class GameActionService : IGameActionService
                 TimeSpan.FromMilliseconds(elapsedMs).TotalSeconds,
                 capture.CapturePath);
             // Try logging out again
-            m_InputController.PressKeyChord(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
+            m_InputController.PressKeyChordWithHold(VirtualKeys.Alt, VirtualKeys.Q, cancellationToken);
         }
 
         m_Logger.Error(
@@ -178,7 +183,7 @@ internal sealed class GameActionService : IGameActionService
     public void CloseActiveWindow(CancellationToken cancellationToken)
     {
         m_Logger.Information("Hide active window");
-        m_InputController.PressKeyChord(VirtualKeys.Control, VirtualKeys.Q, cancellationToken);
+        m_InputController.PressKeyChordWithHold(VirtualKeys.Control, VirtualKeys.Q, cancellationToken);
     }
 
     public void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken)
@@ -187,8 +192,8 @@ internal sealed class GameActionService : IGameActionService
         m_InputController.PressKeyChordWithHold(
             VirtualKeys.Alt,
             VirtualKeys.L,
-            Delays.ProjectDiscoveryWindowToggleChordHoldMs,
-            cancellationToken);
+            cancellationToken,
+            holdDelayMs: Delays.ProjectDiscoveryWindowToggleChordHoldMs);
         m_InputController.Delay(Delays.WindowActivationMs, cancellationToken);
     }
 
@@ -237,11 +242,11 @@ internal sealed class GameActionService : IGameActionService
     private void ToggleUiVisibility(CancellationToken cancellationToken)
     {
         m_Logger.Information("Toggle UI visibility");
-        m_InputController.PressKeyChord(
+        m_InputController.PressKeyChordWithHold(
             VirtualKeys.LeftControl,
             VirtualKeys.LeftShift,
             VirtualKeys.F9,
             cancellationToken,
-            HideUiTransitionDelayMs);
+            transitionDelayMs: HideUiTransitionDelayMs);
     }
 }

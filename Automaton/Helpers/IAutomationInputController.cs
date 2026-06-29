@@ -11,24 +11,19 @@ internal interface IAutomationInputController
 
     void PressKey(ushort virtualKey, CancellationToken cancellationToken);
 
-    void PressKeyChord(
+    void PressKeyChordWithHold(
         ushort modifierVirtualKey,
         ushort virtualKey,
         CancellationToken cancellationToken,
+        int holdDelayMs = Delays.KeyChordHoldMs,
         int transitionDelayMs = Delays.KeyChordTransitionMs);
 
-    void PressKeyChord(
+    void PressKeyChordWithHold(
         ushort firstModifier,
         ushort secondModifier,
         ushort virtualKey,
         CancellationToken cancellationToken,
-        int transitionDelayMs = Delays.KeyChordTransitionMs);
-
-    void PressKeyChordWithHold(
-        ushort modifierVirtualKey,
-        ushort virtualKey,
-        int holdDelayMs,
-        CancellationToken cancellationToken,
+        int holdDelayMs = Delays.KeyChordHoldMs,
         int transitionDelayMs = Delays.KeyChordTransitionMs);
 
     void ClickUiElement(Point point, CancellationToken cancellationToken);

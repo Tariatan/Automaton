@@ -84,39 +84,29 @@ internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRec
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    public void PressKeyChord(
-        ushort modifierVirtualKey,
-        ushort virtualKey,
-        CancellationToken cancellationToken,
-        int transitionDelayMs = Delays.KeyChordTransitionMs)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        LogKeyboardAction("Key chord", DateTime.Now, modifierVirtualKey, virtualKey);
-        PressKeyChordCore(cancellationToken, transitionDelayMs, transitionDelayMs, modifierVirtualKey, virtualKey);
-    }
-
-    public void PressKeyChord(
-        ushort firstModifier,
-        ushort secondModifier,
-        ushort virtualKey,
-        CancellationToken cancellationToken,
-        int transitionDelayMs = Delays.KeyChordTransitionMs)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        LogKeyboardAction("Key chord", DateTime.Now, firstModifier, secondModifier, virtualKey);
-        PressKeyChordCore(cancellationToken, transitionDelayMs, transitionDelayMs, firstModifier, secondModifier, virtualKey);
-    }
-
     public void PressKeyChordWithHold(
         ushort modifierVirtualKey,
         ushort virtualKey,
-        int holdDelayMs,
         CancellationToken cancellationToken,
+        int holdDelayMs = Delays.KeyChordHoldMs,
         int transitionDelayMs = Delays.KeyChordTransitionMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
         LogKeyboardAction("Held key chord", DateTime.Now, modifierVirtualKey, virtualKey);
         PressKeyChordCore(cancellationToken, transitionDelayMs, holdDelayMs, modifierVirtualKey, virtualKey);
+    }
+
+    public void PressKeyChordWithHold(
+        ushort firstModifier,
+        ushort secondModifier,
+        ushort virtualKey,
+        CancellationToken cancellationToken,
+        int holdDelayMs = Delays.KeyChordHoldMs,
+        int transitionDelayMs = Delays.KeyChordTransitionMs)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        LogKeyboardAction("Held key chord", DateTime.Now, firstModifier, secondModifier, virtualKey);
+        PressKeyChordCore(cancellationToken, transitionDelayMs, holdDelayMs, firstModifier, secondModifier, virtualKey);
     }
 
     private void PressKeyChordCore(CancellationToken cancellationToken, int transitionDelayMs, int holdDelayMs, params ushort[] virtualKeys)
