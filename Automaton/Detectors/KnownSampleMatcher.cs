@@ -3,6 +3,7 @@ using System.IO;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
+using Serilog;
 
 namespace Automaton.Detectors;
 
@@ -23,14 +24,9 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     private const int MaskedMinimumComponentHeight = 30;
     private const double MaskedMinimumFillRatio = 0.45;
     private const double MaskedMinimumHullRatio = 0.65;
-    private const int MaximumPolygonPoints = 10;
 
     private static readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<KnownSampleTemplate>>> TemplateCache = new(StringComparer.OrdinalIgnoreCase);
-
-    public bool TryMatch(Mat playfieldImage, out IReadOnlyList<Point[]> polygons, out string? matchedSampleFileName)
-    {
-        return TryMatch(playfieldImage, null, out polygons, out matchedSampleFileName);
-    }
+    private static readonly ILogger Logger = Log.ForContext<KnownSampleMatcher>();
 
     public bool TryMatch(
         Mat playfieldImage,
@@ -269,6 +265,10 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
                 Path.GetFileNameWithoutExtension(sampleFile) + MaskedExpectedSuffix);
             if (!File.Exists(maskedExpectedPath))
             {
+                Logger.Error(
+                    "Known sample is missing masked counterpart. SamplePath={SamplePath}, MaskedExpectedPath={MaskedExpectedPath}",
+                    sampleFile,
+                    maskedExpectedPath);
                 continue;
             }
 
@@ -361,7 +361,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         return contours
             .Where(contour => Cv2.ContourArea(contour) >= MinimumContourArea)
             .OrderByDescending(contour => Cv2.ContourArea(contour))
-            .Select(contour => GeometryHelper.SimplifyContour(contour, MaximumPolygonPoints))
+            .Select(contour => GeometryHelper.SimplifyContour(contour))
             .Where(points => points.Length >= 3)
             .ToArray();
     }
