@@ -16,12 +16,13 @@ internal sealed class GameActionService : IGameActionService
     private readonly ScreenCaptureService m_ScreenCaptureService;
     private readonly PlayNowButtonDetector m_PlayNowButtonDetector;
     private readonly Action<CancellationToken>? m_RebootOperatingSystemOverride;
+    private readonly Action<CancellationToken>? m_ShutdownOperatingSystemOverride;
 
     public GameActionService(
         IAutomationInputController inputController,
         ScreenCaptureService screenCaptureService,
         PlayNowButtonDetector playNowButtonDetector)
-        : this(inputController, screenCaptureService, playNowButtonDetector, null)
+        : this(inputController, screenCaptureService, playNowButtonDetector, null, null)
     {
     }
 
@@ -29,12 +30,14 @@ internal sealed class GameActionService : IGameActionService
         IAutomationInputController inputController,
         ScreenCaptureService screenCaptureService,
         PlayNowButtonDetector playNowButtonDetector,
-        Action<CancellationToken>? rebootOperatingSystemOverride)
+        Action<CancellationToken>? rebootOperatingSystemOverride,
+        Action<CancellationToken>? shutdownOperatingSystemOverride = null)
     {
         m_InputController = inputController;
         m_ScreenCaptureService = screenCaptureService;
         m_PlayNowButtonDetector = playNowButtonDetector;
         m_RebootOperatingSystemOverride = rebootOperatingSystemOverride;
+        m_ShutdownOperatingSystemOverride = shutdownOperatingSystemOverride;
     }
 
     public void QuitGame(CancellationToken cancellationToken)
@@ -159,6 +162,31 @@ internal sealed class GameActionService : IGameActionService
         if (process is null)
         {
             throw new InvalidOperationException("Failed to schedule operating system reboot.");
+        }
+    }
+
+    public void ShutdownOperatingSystem(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (m_ShutdownOperatingSystemOverride is not null)
+        {
+            m_ShutdownOperatingSystemOverride(cancellationToken);
+            return;
+        }
+
+        m_Logger.Error("Scheduling safe operating system shutdown.");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "shutdown.exe",
+            Arguments = "/s /t 30 /c \"Automaton downtime detected\"",
+            CreateNoWindow = true,
+            UseShellExecute = false
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+        {
+            throw new InvalidOperationException("Failed to schedule operating system shutdown.");
         }
     }
 

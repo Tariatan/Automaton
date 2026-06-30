@@ -11,6 +11,7 @@ internal sealed class StubGameActionService : IGameActionService
     public bool LogoutCalled { get; private set; }
     public int LogoutCallCount { get; private set; }
     public bool RebootOperatingSystemCalled { get; private set; }
+    public bool ShutdownOperatingSystemCalled { get; private set; }
     public int CloseActiveWindowCallCount { get; private set; }
     public int ToggleProjectDiscoveryWindowCallCount { get; private set; }
     public int ToggleFirstLaserCallCount { get; private set; }
@@ -48,6 +49,12 @@ internal sealed class StubGameActionService : IGameActionService
     {
         cancellationToken.ThrowIfCancellationRequested();
         RebootOperatingSystemCalled = true;
+    }
+
+    public void ShutdownOperatingSystem(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ShutdownOperatingSystemCalled = true;
     }
 
     public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)

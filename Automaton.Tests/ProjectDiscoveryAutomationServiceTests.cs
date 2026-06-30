@@ -10,6 +10,26 @@ namespace Automaton.Tests;
 public sealed class ProjectDiscoveryAutomationServiceTests
 {
     [Fact]
+    public void Automate_StateReturnsShutdown_ReturnsShutdownSummary()
+    {
+        // Arrange
+        var shutdownState = new ShutdownDiscoveryState();
+        using var serviceHarness = new ProjectDiscoveryAutomationServiceHarness(
+            new FixedDiscoveryAutomationStateFactory(shutdownState));
+
+        // Act
+        var summary = serviceHarness.Service.Automate(
+            CancellationToken.None,
+            DiscoveryAutomationStateKind.Discover);
+
+        // Assert
+        Assert.Equal(DiscoveryAutomationStateKind.Discover, summary.State);
+        Assert.Equal(DiscoveryAutomationStateKind.Recovery, summary.NextState);
+        Assert.Equal(DiscoveryAutomationActionKind.Shutdown, summary.Action);
+        Assert.Equal(1, shutdownState.ExecuteCallCount);
+    }
+
+    [Fact]
     public void ExtractTrainingPlayfields_MaskedCompanionStartsWithBaseName_ExtractsMaskedCompanion()
     {
         // Arrange
@@ -80,7 +100,8 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         private readonly PlayfieldDetector m_PlayfieldDetector = new();
         private readonly ClientIsRunningButtonDetector m_ClientIsRunningButtonDetector = new();
 
-        public ProjectDiscoveryAutomationServiceHarness()
+        public ProjectDiscoveryAutomationServiceHarness(
+            IDiscoveryAutomationStateFactory? discoveryAutomationStateFactory = null)
         {
             var sampleImageProcessor = new SampleImageProcessor(m_PlayfieldDetector, null);
             var screenCaptureService = new ScreenCaptureService(
@@ -96,7 +117,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 new StubGameActionService(),
                 new ConnectionLostPopupDetector(),
                 m_ClientIsRunningButtonDetector,
-                new StubDiscoveryAutomationStateFactory());
+                discoveryAutomationStateFactory ?? new StubDiscoveryAutomationStateFactory());
         }
 
         public ProjectDiscoveryAutomationService Service { get; }
@@ -133,6 +154,32 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         public IProjectDiscoveryAutomationState Create(DiscoveryAutomationStateKind stateKind)
         {
             throw new NotSupportedException();
+        }
+    }
+
+    private sealed class FixedDiscoveryAutomationStateFactory(IProjectDiscoveryAutomationState state)
+        : IDiscoveryAutomationStateFactory
+    {
+        public IProjectDiscoveryAutomationState Create(DiscoveryAutomationStateKind stateKind)
+        {
+            return state;
+        }
+    }
+
+    private sealed class ShutdownDiscoveryState : IProjectDiscoveryAutomationState
+    {
+        public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Discover;
+        public int ExecuteCallCount { get; private set; }
+
+        public DiscoveryAutomationStateTransition Execute(
+            ProjectDiscoveryAutomationContext context,
+            CancellationToken cancellationToken)
+        {
+            ExecuteCallCount++;
+            return new DiscoveryAutomationStateTransition(
+                Kind,
+                DiscoveryAutomationStateKind.Recovery,
+                DiscoveryAutomationActionKind.Shutdown);
         }
     }
 }

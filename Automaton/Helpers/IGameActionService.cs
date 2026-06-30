@@ -12,6 +12,7 @@ internal interface IGameActionService
         int currentPilotIndex,
         CancellationToken cancellationToken);
     void RebootOperatingSystem(CancellationToken cancellationToken);
+    void ShutdownOperatingSystem(CancellationToken cancellationToken);
     void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken);
     void CloseActiveWindow(CancellationToken cancellationToken);
     void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken);

@@ -186,6 +186,15 @@ internal sealed class ProjectDiscoveryAutomationService(
                     return lastSummary;
                 }
 
+                if (lastSummary.Action == DiscoveryAutomationActionKind.Shutdown)
+                {
+                    Logger.Information(
+                        "Project Discovery automation requested safe application shutdown. State={State}, NextState={NextState}",
+                        lastSummary.State,
+                        lastSummary.NextState);
+                    return lastSummary;
+                }
+
                 if (lastSummary.Action == DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
                 {
                     Logger.Information(

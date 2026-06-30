@@ -175,6 +175,29 @@ public sealed class GameActionServiceTests
     }
 
     [Fact]
+    public void ShutdownOperatingSystem_WhenCalled_UsesShutdownOverride()
+    {
+        // Arrange
+        using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(blankScreen.Clone),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var shutdownOperatingSystemCalled = false;
+        var gameActionService = CreateGameActionService(
+            automationInputController,
+            screenCaptureService,
+            shutdownOperatingSystemOverride: _ => shutdownOperatingSystemCalled = true);
+
+        // Act
+        gameActionService.ShutdownOperatingSystem(CancellationToken.None);
+
+        // Assert
+        Assert.True(shutdownOperatingSystemCalled);
+    }
+
+    [Fact]
     public void ToggleProjectDiscoveryWindow_WhenCalled_HoldsAltLChordBeforeActivationDelay()
     {
         // Arrange
@@ -218,13 +241,15 @@ public sealed class GameActionServiceTests
     private static GameActionService CreateGameActionService(
         StubAutomationInputController automationInputController,
         ScreenCaptureService screenCaptureService,
-        Action<CancellationToken>? rebootOperatingSystemOverride = null)
+        Action<CancellationToken>? rebootOperatingSystemOverride = null,
+        Action<CancellationToken>? shutdownOperatingSystemOverride = null)
     {
         return new GameActionService(
             automationInputController,
             screenCaptureService,
             new PlayNowButtonDetector(),
-            rebootOperatingSystemOverride);
+            rebootOperatingSystemOverride,
+            shutdownOperatingSystemOverride);
     }
 
     private static void WritePilotAvatarTemplates(string pilotDirectory, int pilotIndex)

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Automaton.Infrastructure;
+using Automaton.Helpers;
 using Automaton.MiningStates;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Properties;
@@ -25,6 +26,7 @@ internal partial class MainWindow
 
     private readonly ProjectDiscoveryAutomationService m_ProjectDiscoveryAutomationService;
     private readonly MiningAutomationService m_MiningAutomationService;
+    private readonly IGameActionService m_GameActionService;
     private ApplicationAutomationMode m_AutomationMode;
     private HwndSource? m_WindowSource;
     private CancellationTokenSource? m_AutomationCancellationSource;
@@ -38,10 +40,12 @@ internal partial class MainWindow
     public MainWindow(
         ApplicationStartupOptions startupOptions,
         ProjectDiscoveryAutomationService projectDiscoveryAutomationService,
-        MiningAutomationService miningAutomationService)
+        MiningAutomationService miningAutomationService,
+        IGameActionService gameActionService)
     {
         m_ProjectDiscoveryAutomationService = projectDiscoveryAutomationService;
         m_MiningAutomationService = miningAutomationService;
+        m_GameActionService = gameActionService;
         m_AutomationMode = startupOptions.AutomationMode;
         m_AutoStartAutomation = startupOptions.AutoStartAutomation;
         InitializeComponent();
@@ -146,18 +150,19 @@ internal partial class MainWindow
                 Application.Current.Shutdown();
                 Environment.Exit(0);
             }
+            else if (automationActionKind == DiscoveryAutomationActionKind.Shutdown)
+            {
+                Logger.Error("Discovery automation requested safe operating system shutdown.");
+                m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
             else if (automationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
             {
-                Logger.Information("No further pilots are available. End automation session.");
-             
-/*
-                const MiningAutomationStateKind DesiredMiningAutomationInitialState = MiningAutomationStateKind.Login;
-                Logger.Information("No further pilots are available. Switching to mining automation from {State} state.", DesiredMiningAutomationInitialState);
-                m_AutomationMode = ApplicationAutomationMode.Mining;
-                m_SelectedMiningStartState = DesiredMiningAutomationInitialState;
-                ApplyAutomationMode();
-                await StartMiningAutomationAsync(new CancellationTokenSource());
-*/
+                Logger.Error("No further pilots are available. Scheduling operating system shutdown.");
+                m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
+                Application.Current.Shutdown();
+                Environment.Exit(0);
             }
         }
         catch (OperationCanceledException)

@@ -16,7 +16,8 @@ internal sealed class DiscoverState(
     IGameActionService gameActionService,
     IAutomationClock automationClock,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
-    SlowDownPopupDetector slowDownPopupDetector) : IProjectDiscoveryAutomationState
+    SlowDownPopupDetector slowDownPopupDetector,
+    DowntimeDetector downtimeDetector) : IProjectDiscoveryAutomationState
 {
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
@@ -133,6 +134,19 @@ internal sealed class DiscoverState(
 
         // Left-click the next 'Continue' button.
         automationInputController.LeftClick(cancellationToken);
+
+        var utcNow = automationClock.UtcNow;
+        if (downtimeDetector.IsDowntimeImminent(utcNow))
+        {
+            m_Logger.Warning("Downtime imminent => quit game and request operating system shutdown. LocalNow={LocalNow}", automationClock.LocalNow);
+            gameActionService.QuitGame(cancellationToken);
+            return new DiscoveryAutomationStateTransition(
+                Kind,
+                DiscoveryAutomationStateKind.Recovery,
+                DiscoveryAutomationActionKind.Shutdown,
+                captureSummary.CapturePath);
+        }
+
         return new DiscoveryAutomationStateTransition(
             Kind,
             Kind,

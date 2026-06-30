@@ -42,6 +42,7 @@ internal enum DiscoveryAutomationActionKind
     RecoverConnectionLostPopup,
     RecoverMaxSubmissionsPopup,
     NoFurtherPilotsAvailable,
+    Shutdown,
 }
 
 internal enum DiscoveryAutomationFailureReason
