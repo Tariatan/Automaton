@@ -38,9 +38,7 @@ internal sealed class DiscoverState(
             automationInputController.Delay(Delays.LoadWindowMs, cancellationToken);
         }
 
-        using var traceImages = new TraceImageScope(context.KeepDebugImages);
         var captureSummary = screenCaptureService.CaptureAndAnalyzeCurrentScreen();
-        traceImages.Track(captureSummary);
 
         if (captureSummary.Analysis.Result.PlayfieldFound)
         {
@@ -73,7 +71,6 @@ internal sealed class DiscoverState(
 
         var playfieldBounds = captureSummary.Analysis.PlayfieldDetection.Bounds;
         using var postPolygonCapture = screenCaptureService.CaptureCurrentScreen(".discovery-post-polygons");
-        traceImages.Track(postPolygonCapture.CapturePath);
 
         var enabledButtonDetection = EnabledButtonDetector.Detect(postPolygonCapture.Image, playfieldBounds);
         DrawEnabledButtonDetectionOverlay(postPolygonCapture.CapturePath, enabledButtonDetection);
@@ -101,7 +98,6 @@ internal sealed class DiscoverState(
 
         // Take focused screen to trace the result of submission.
         var focusedCapturePath = CaptureFocusedScreenTrace(captureSummary, cancellationToken);
-        traceImages.Track(focusedCapturePath);
 
         // Try to detect MaxSubmissions popup first.
         using var focusedImage = Cv2.ImRead(focusedCapturePath);

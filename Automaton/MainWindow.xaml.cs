@@ -125,7 +125,6 @@ internal partial class MainWindow
     private async Task StartProjectDiscoveryAutomationAsync(int initialPilotIndex, CancellationTokenSource cancellationSource, long? sessionId = null)
     {
         var effectiveSessionId = sessionId ?? BeginAutomationSession(cancellationSource);
-        var keepDebugImages = DebugMenuItem.IsChecked;
 
         try
         {
@@ -133,8 +132,7 @@ internal partial class MainWindow
                 () => m_ProjectDiscoveryAutomationService.Automate(
                     cancellationSource.Token,
                     m_SelectedDiscoveryStartState,
-                    initialPilotIndex,
-                    keepDebugImages),
+                    initialPilotIndex),
                 cancellationSource.Token);
             var (automationStateKind, nextState, automationActionKind, capturePath) = await automationTask;
             Logger.Information(

@@ -159,14 +159,13 @@ internal sealed class ProjectDiscoveryAutomationService(
     public DiscoveryAutomationStepSummary Automate(
         CancellationToken cancellationToken,
         DiscoveryAutomationStateKind startingState = DiscoveryAutomationStateKind.Discover,
-        int initialPilotIndex = InitialPilotIndex,
-        bool keepDebugImages = false)
+        int initialPilotIndex = InitialPilotIndex)
     {
         Logger.Information("Automation loop starting. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
         automationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        m_Context = new ProjectDiscoveryAutomationContext(initialPilotIndex, keepDebugImages);
+        m_Context = new ProjectDiscoveryAutomationContext(initialPilotIndex);
 
         m_CurrentState = CreateState(startingState);
 

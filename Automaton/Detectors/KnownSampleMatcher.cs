@@ -182,7 +182,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             return;
         }
 
-        directories.Add(samplesDirectory);
+        directories.Add(fullDirectory);
     }
 
     public bool TryLoadDefaultFallbackPolygons(out IReadOnlyList<Point[]> polygons, out Size playfieldSize)

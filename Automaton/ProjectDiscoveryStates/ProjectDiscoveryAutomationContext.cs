@@ -1,8 +1,7 @@
 namespace Automaton.ProjectDiscoveryStates;
 
-internal sealed class ProjectDiscoveryAutomationContext(int initialPilotIndex, bool keepDebugImages)
+internal sealed class ProjectDiscoveryAutomationContext(int initialPilotIndex)
 {
-    public bool KeepDebugImages { get; } = keepDebugImages;
     public int CurrentPilotIndex { get; set; } = initialPilotIndex;
     public int ConsecutivePlayfieldMisses { get; set; }
     public DiscoveryAutomationActionKind LastAction { get; set; }

@@ -47,7 +47,7 @@ public sealed class RecoverClientIsRunningButtonVisibleStateTests
         var state = new RecoverClientIsRunningButtonVisibleState(
             screenCaptureService,
             new CommonRecoverClientIsRunningButtonVisibleState(automationInputController, clientIsRunningButtonDetector));
-        var context = new ProjectDiscoveryAutomationContext(1, keepDebugImages: false)
+        var context = new ProjectDiscoveryAutomationContext(1)
         {
             LastAction = DiscoveryAutomationActionKind.RestartGame
         };

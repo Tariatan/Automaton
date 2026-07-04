@@ -31,7 +31,7 @@ public sealed class DiscoverStateTests
 
             // Act
             transition = state.Execute(
-                new ProjectDiscoveryAutomationContext(1, keepDebugImages: false),
+                new ProjectDiscoveryAutomationContext(1),
                 CancellationToken.None);
         }
         finally

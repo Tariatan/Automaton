@@ -22,7 +22,7 @@ public sealed class StartingGameStateTests
         var state = new StartingGameState(
             screenCaptureService,
             new CommonStartGameState(automationInputController, gameActionService, new PlayNowButtonDetector()));
-        var context = new ProjectDiscoveryAutomationContext(1, keepDebugImages: false)
+        var context = new ProjectDiscoveryAutomationContext(1)
         {
             ConsecutivePlayfieldMisses = 4
         };

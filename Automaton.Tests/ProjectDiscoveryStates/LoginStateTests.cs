@@ -25,7 +25,7 @@ public sealed class LoginStateTests
             new StubAutomationInputController(),
             pilotAvatarDetector,
             loggedInPilotDetector);
-        var context = new ProjectDiscoveryAutomationContext(3, keepDebugImages: false)
+        var context = new ProjectDiscoveryAutomationContext(3)
         {
             LastAction = DiscoveryAutomationActionKind.LoginNextPilot
         };
