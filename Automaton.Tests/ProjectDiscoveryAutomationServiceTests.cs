@@ -1,5 +1,7 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
+using Automaton.Infrastructure;
+using Automaton.Primitives;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;
@@ -9,6 +11,144 @@ namespace Automaton.Tests;
 [Collection(CurrentDirectorySensitiveCollection.Name)]
 public sealed class ProjectDiscoveryAutomationServiceTests
 {
+    [Fact]
+    public void Automate_RecoveryProbeMisses_DoesNotStoreProbeCaptures()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        using var cancellationSource = new CancellationTokenSource();
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var automationInputController = new StubAutomationInputController
+        {
+            OnDelay = delay =>
+            {
+                if (delay == Delays.StateMachineNextStepDelayMs)
+                {
+                    cancellationSource.Cancel();
+                }
+            }
+        };
+        var probeState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationActionKind.Recover,
+            () => { });
+        using var serviceHarness = new ProjectDiscoveryAutomationServiceHarness(
+            new FixedDiscoveryAutomationStateFactory(probeState),
+            screenCaptureProvider: new StubScreenCaptureProvider(() => new Mat(1200, 900, MatType.CV_8UC3, Scalar.Black)),
+            automationInputController: automationInputController,
+            persistCaptures: true);
+        DiscoveryAutomationStepSummary summary;
+
+        // Act
+        Directory.SetCurrentDirectory(workspace.Path);
+        try
+        {
+            summary = serviceHarness.Service.Automate(
+                cancellationSource.Token,
+                DiscoveryAutomationStateKind.Login);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        Assert.Equal(DiscoveryAutomationActionKind.Recover, summary.Action);
+        Assert.False(Directory.Exists(Path.Combine(workspace.Path, "captures")));
+    }
+
+    [Fact]
+    public void Automate_ConnectionLostProbeHits_StoresConnectionLostCapture()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var probeState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationActionKind.Recover,
+            () => { });
+        var shutdownState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.RecoverConnectionLostPopup,
+            DiscoveryAutomationStateKind.Recovery,
+            DiscoveryAutomationActionKind.Shutdown,
+            () => { });
+        var stateFactory = new MappingDiscoveryAutomationStateFactory(stateKind => stateKind switch
+        {
+            DiscoveryAutomationStateKind.RecoverConnectionLostPopup => shutdownState,
+            _ => probeState
+        });
+        using var serviceHarness = new ProjectDiscoveryAutomationServiceHarness(
+            stateFactory,
+            screenCaptureProvider: new StubScreenCaptureProvider(SyntheticCommonImageFactory.LoadConnectionLostPopupImage),
+            persistCaptures: true);
+
+        // Act
+        Directory.SetCurrentDirectory(workspace.Path);
+        try
+        {
+            serviceHarness.Service.Automate(
+                CancellationToken.None,
+                DiscoveryAutomationStateKind.Login);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        var capturesDirectory = Path.Combine(workspace.Path, "captures");
+        var captureFile = Assert.Single(Directory.EnumerateFiles(capturesDirectory, "*connection-lost-popup-check.png"));
+        Assert.DoesNotContain("client-is-running-button-check", Path.GetFileName(captureFile));
+    }
+
+    [Fact]
+    public void Automate_ClientIsRunningProbeHits_StoresClientIsRunningCapture()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        using var clientIsRunningScreen = CreateClientIsRunningButtonScreen();
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var probeState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationActionKind.Recover,
+            () => { });
+        var shutdownState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible,
+            DiscoveryAutomationStateKind.Recovery,
+            DiscoveryAutomationActionKind.Shutdown,
+            () => { });
+        var stateFactory = new MappingDiscoveryAutomationStateFactory(stateKind => stateKind switch
+        {
+            DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible => shutdownState,
+            _ => probeState
+        });
+        using var serviceHarness = new ProjectDiscoveryAutomationServiceHarness(
+            stateFactory,
+            screenCaptureProvider: new StubScreenCaptureProvider(clientIsRunningScreen.Clone),
+            persistCaptures: true);
+
+        // Act
+        Directory.SetCurrentDirectory(workspace.Path);
+        try
+        {
+            serviceHarness.Service.Automate(
+                CancellationToken.None,
+                DiscoveryAutomationStateKind.Login);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        var capturesDirectory = Path.Combine(workspace.Path, "captures");
+        var captureFile = Assert.Single(Directory.EnumerateFiles(capturesDirectory, "*client-is-running-button-check.png"));
+        Assert.DoesNotContain("connection-lost-popup-check", Path.GetFileName(captureFile));
+    }
+
     [Fact]
     public void Automate_CurrentStateIsDiscover_HidesUiBeforeExecutingStep()
     {
@@ -177,6 +317,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             IDiscoveryAutomationStateFactory? discoveryAutomationStateFactory = null,
             IGameActionService? gameActionService = null,
             IScreenCaptureProvider? screenCaptureProvider = null,
+            IAutomationInputController? automationInputController = null,
             bool persistCaptures = false)
         {
             var sampleImageProcessor = new SampleImageProcessor(m_PlayfieldDetector, null);
@@ -189,7 +330,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
                 screenCaptureService,
                 sampleImageProcessor,
                 m_PlayfieldDetector,
-                new StubAutomationInputController(),
+                automationInputController ?? new StubAutomationInputController(),
                 gameActionService ?? new StubGameActionService(),
                 new ConnectionLostPopupDetector(),
                 m_ClientIsRunningButtonDetector,
@@ -233,12 +374,42 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         }
     }
 
+    private static Mat CreateClientIsRunningButtonScreen()
+    {
+        using var playButtonScreen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
+        using var playNowButtonDetector = new PlayNowButtonDetector();
+        using var workspace = new TemporaryDirectory();
+        var playButtonScreenPath = Path.Combine(workspace.Path, "play-button-screen.png");
+        Cv2.ImWrite(playButtonScreenPath, playButtonScreen);
+        Assert.True(playNowButtonDetector.Detect(playButtonScreenPath, out var playNowButtonLocation));
+
+        using var clientIsRunningButton = EmbeddedResourceLoader.LoadMat("client_is_running.png");
+        var screen = new Mat(playButtonScreen.Size(), MatType.CV_8UC3, Scalar.Black);
+        var expectedBounds = new Rect(
+            playNowButtonLocation.Bounds.X,
+            playNowButtonLocation.Bounds.Y,
+            clientIsRunningButton.Width,
+            clientIsRunningButton.Height);
+        using var region = new Mat(screen, expectedBounds);
+        clientIsRunningButton.CopyTo(region);
+        return screen;
+    }
+
     private sealed class FixedDiscoveryAutomationStateFactory(IProjectDiscoveryAutomationState state)
         : IDiscoveryAutomationStateFactory
     {
         public IProjectDiscoveryAutomationState Create(DiscoveryAutomationStateKind stateKind)
         {
             return state;
+        }
+    }
+
+    private sealed class MappingDiscoveryAutomationStateFactory(Func<DiscoveryAutomationStateKind, IProjectDiscoveryAutomationState> createState)
+        : IDiscoveryAutomationStateFactory
+    {
+        public IProjectDiscoveryAutomationState Create(DiscoveryAutomationStateKind stateKind)
+        {
+            return createState(stateKind);
         }
     }
 

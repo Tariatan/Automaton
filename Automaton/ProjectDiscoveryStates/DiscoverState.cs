@@ -22,7 +22,6 @@ internal sealed class DiscoverState(
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
     private static readonly OverlayColor EnabledButtonSearchOverlayColor = OverlayColor.Yellow;
-    private static readonly OverlayColor EnabledButtonMatchOverlayColor = OverlayColor.Cyan;
     private readonly Queue<DateTime> m_SubmittedAtLocal = new();
     private readonly ILogger m_Logger = Log.ForContext<DiscoverState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Discover;
@@ -70,14 +69,14 @@ internal sealed class DiscoverState(
         automationInputController.Delay(Delays.SubmitActivationMs, cancellationToken);
 
         var playfieldBounds = captureSummary.Analysis.PlayfieldDetection.Bounds;
-        using var postPolygonCapture = screenCaptureService.CaptureCurrentScreen(".discovery-post-polygons");
-
+        using var postPolygonCapture = screenCaptureService.CaptureCurrentScreenInMemory(".discovery-post-polygons");
         var enabledButtonDetection = EnabledButtonDetector.Detect(postPolygonCapture.Image, playfieldBounds);
-        DrawEnabledButtonDetectionOverlay(postPolygonCapture.CapturePath, enabledButtonDetection);
 
         // Disabled Submit button most probably means overlapping polygons.
         if (!enabledButtonDetection.IsFound || enabledButtonDetection.ButtonBounds is null)
         {
+            DrawEnabledButtonSearchOverlay(postPolygonCapture.Image, enabledButtonDetection);
+            screenCaptureService.SaveCapture(postPolygonCapture);
             m_Logger.Warning("Enabled submit button was not detected after polygon clicking. Transitioning to overlap recovery");
             return new DiscoveryAutomationStateTransition(
                 Kind,
@@ -242,31 +241,16 @@ internal sealed class DiscoverState(
         Cv2.ImWrite(imagePath, image);
     }
 
-    private static void DrawEnabledButtonDetectionOverlay(string annotatedImagePath, EnabledButtonDetection detection)
+    private static void DrawEnabledButtonSearchOverlay(Mat image, EnabledButtonDetection detection)
     {
-        if (string.IsNullOrWhiteSpace(annotatedImagePath))
+        if (image.Empty() || detection.SearchBounds is not { Width: > 0, Height: > 0 })
         {
             return;
         }
 
-        using var annotated = Cv2.ImRead(annotatedImagePath);
-        if (annotated.Empty())
-        {
-            return;
-        }
-
-        if (detection.SearchBounds is { Width: > 0, Height: > 0 })
-        {
-            DebugOverlay.Annotate(annotated, (detection.SearchBounds, EnabledButtonSearchOverlayColor));
-        }
-
-        if (detection.ButtonBounds is not null)
-        {
-            DebugOverlay.Annotate(annotated, (detection.ButtonBounds.Value, EnabledButtonMatchOverlayColor));
-        }
-
+        DebugOverlay.Annotate(image, (detection.SearchBounds, EnabledButtonSearchOverlayColor));
         Cv2.PutText(
-            annotated,
+            image,
             $"score={detection.Score:0.000} hsvD={detection.HsvDistance:0.00}",
             new Point(detection.SearchBounds.X, Math.Max(25, detection.SearchBounds.Y - 10)),
             HersheyFonts.HersheySimplex,
@@ -274,6 +258,5 @@ internal sealed class DiscoverState(
             EnabledButtonSearchOverlayColor.ToScalar(),
             2,
             LineTypes.AntiAlias);
-        Cv2.ImWrite(annotatedImagePath, annotated);
     }
 }

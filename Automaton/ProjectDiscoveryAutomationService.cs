@@ -285,14 +285,15 @@ internal sealed class ProjectDiscoveryAutomationService(
     private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var capture = ScreenCaptureService.CaptureCurrentScreen(".discovery-connection-lost-popup-check");
+        using var capture = ScreenCaptureService.CaptureCurrentScreenInMemory(".discovery-connection-lost-popup-check");
         var detection = connectionLostPopupDetector.Detect(capture.Image);
         if (detection.State != PopupState.ConnectionLost)
         {
             return false;
         }
 
-        DrawPopupDebugOverlay(capture.CapturePath, detection, "Connection lost popup detected");
+        DrawPopupDebugOverlay(capture.Image, detection, "Connection lost popup detected");
+        ScreenCaptureService.SaveCapture(capture);
         Logger.Warning("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
         m_CurrentState = CreateState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
         return true;
@@ -301,13 +302,14 @@ internal sealed class ProjectDiscoveryAutomationService(
     private bool TryTransitionToRecoverClientIsRunningButtonVisible(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var capture = ScreenCaptureService.CaptureCurrentScreen(".discovery-client-is-running-button-check");
+        using var capture = ScreenCaptureService.CaptureCurrentScreenInMemory(".discovery-client-is-running-button-check");
         if (!clientIsRunningButtonDetector.Detect(capture.Image, out var location))
         {
             return false;
         }
 
-        DrawButtonDebugOverlay(capture.CapturePath, location.Bounds, "Client Is Running button detected");
+        DrawButtonDebugOverlay(capture.Image, location.Bounds, "Client Is Running button detected");
+        ScreenCaptureService.SaveCapture(capture);
         Logger.Warning(
             "Client Is Running button detected during {CurrentState}. CapturePath={CapturePath}",
             m_CurrentState.Kind,
@@ -316,9 +318,8 @@ internal sealed class ProjectDiscoveryAutomationService(
         return true;
     }
 
-    private static void DrawPopupDebugOverlay(string imagePath, PopupDetection detection, string label)
+    private static void DrawPopupDebugOverlay(Mat image, PopupDetection detection, string label)
     {
-        using var image = Cv2.ImRead(imagePath);
         if (image.Empty())
         {
             return;
@@ -326,12 +327,10 @@ internal sealed class ProjectDiscoveryAutomationService(
 
         DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
     }
 
-    private static void DrawButtonDebugOverlay(string imagePath, Rect bounds, string label)
+    private static void DrawButtonDebugOverlay(Mat image, Rect bounds, string label)
     {
-        using var image = Cv2.ImRead(imagePath);
         if (image.Empty())
         {
             return;
@@ -339,7 +338,6 @@ internal sealed class ProjectDiscoveryAutomationService(
 
         DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
     }
 
     private IProjectDiscoveryAutomationState CreateState(DiscoveryAutomationStateKind stateKind)

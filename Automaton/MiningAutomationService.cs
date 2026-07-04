@@ -144,14 +144,15 @@ internal sealed class MiningAutomationService(
     private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var capture = m_Context.ScreenCaptureService.CaptureCurrentScreen(".mining-connection-lost-popup-check");
+        using var capture = m_Context.ScreenCaptureService.CaptureCurrentScreenInMemory(".mining-connection-lost-popup-check");
         var detection = connectionLostPopupDetector.Detect(capture.Image);
         if (detection.State != PopupState.ConnectionLost)
         {
             return false;
         }
 
-        DrawPopupDebugOverlay(capture.CapturePath, detection, "Connection lost popup detected");
+        DrawPopupDebugOverlay(capture.Image, detection, "Connection lost popup detected");
+        m_Context.ScreenCaptureService.SaveCapture(capture);
         Logger.Error("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
         m_CurrentState = CreateState(MiningAutomationStateKind.RecoverConnectionLostPopup);
         return true;
@@ -160,13 +161,14 @@ internal sealed class MiningAutomationService(
     private bool TryTransitionToRecoverClientIsRunningButtonVisible(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var capture = m_Context.ScreenCaptureService.CaptureCurrentScreen(".mining-client-is-running-button-check");
+        using var capture = m_Context.ScreenCaptureService.CaptureCurrentScreenInMemory(".mining-client-is-running-button-check");
         if (!clientIsRunningButtonDetector.Detect(capture.Image, out var location))
         {
             return false;
         }
 
-        DrawButtonDebugOverlay(capture.CapturePath, location.Bounds, "Client Is Running button detected");
+        DrawButtonDebugOverlay(capture.Image, location.Bounds, "Client Is Running button detected");
+        m_Context.ScreenCaptureService.SaveCapture(capture);
         Logger.Warning(
             "Client Is Running button detected during {CurrentState}. CapturePath={CapturePath}",
             m_CurrentState.Kind,
@@ -175,9 +177,8 @@ internal sealed class MiningAutomationService(
         return true;
     }
 
-    private static void DrawPopupDebugOverlay(string imagePath, PopupDetection detection, string label)
+    private static void DrawPopupDebugOverlay(Mat image, PopupDetection detection, string label)
     {
-        using var image = Cv2.ImRead(imagePath);
         if (image.Empty())
         {
             return;
@@ -185,12 +186,10 @@ internal sealed class MiningAutomationService(
 
         DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
     }
 
-    private static void DrawButtonDebugOverlay(string imagePath, Rect bounds, string label)
+    private static void DrawButtonDebugOverlay(Mat image, Rect bounds, string label)
     {
-        using var image = Cv2.ImRead(imagePath);
         if (image.Empty())
         {
             return;
@@ -198,7 +197,6 @@ internal sealed class MiningAutomationService(
 
         DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
     }
 
     private IMiningAutomationState CreateState(MiningAutomationStateKind stateKind)

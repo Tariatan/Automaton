@@ -47,6 +47,13 @@ internal sealed class ScreenCaptureService(
 
     internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "")
     {
+        var capture = CaptureCurrentScreenInMemory(suffix);
+        SaveCapture(capture);
+        return capture;
+    }
+
+    internal ScreenCaptureResult CaptureCurrentScreenInMemory(string suffix = "")
+    {
         var image = CaptureScreenWithRetry();
         var captureBounds = GetCurrentCaptureBounds(image);
 
@@ -55,15 +62,18 @@ internal sealed class ScreenCaptureService(
             capturesDirectory,
             $"{CaptureFilePrefix}{DateTime.Now.ToString(CaptureTimestampFormat)}{suffix}.png");
 
+        return new ScreenCaptureResult(image, capturePath, captureBounds);
+    }
+
+    internal void SaveCapture(ScreenCaptureResult capture)
+    {
         if (persistCaptures)
         {
-            Directory.CreateDirectory(capturesDirectory);
-            Cv2.ImWrite(capturePath, image);
-            Logger.Information("Captured current screen trace. CapturePath={CapturePath}", capturePath);
-            clickTraceRecorder?.BeginCapture(capturePath, captureBounds);
+            Directory.CreateDirectory(Path.GetDirectoryName(capture.CapturePath)!);
+            Cv2.ImWrite(capture.CapturePath, capture.Image);
+            Logger.Information("Captured current screen trace. CapturePath={CapturePath}", capture.CapturePath);
+            clickTraceRecorder?.BeginCapture(capture.CapturePath, capture.CaptureBounds);
         }
-
-        return new ScreenCaptureResult(image, capturePath, captureBounds);
     }
 
     internal Mat CaptureCurrentScreenImage()
