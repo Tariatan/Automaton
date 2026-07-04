@@ -175,6 +175,13 @@ internal sealed class ProjectDiscoveryAutomationService(
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (m_CurrentState.Kind == DiscoveryAutomationStateKind.Discover)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    using var capture = ScreenCaptureService.CaptureCurrentScreenImage();
+                    gameActionService.TryHideUi(capture, cancellationToken);
+                }
+
                 lastSummary = ExecuteSingleStep(cancellationToken);
 
                 if (lastSummary.Action == DiscoveryAutomationActionKind.Reboot)
@@ -202,13 +209,6 @@ internal sealed class ProjectDiscoveryAutomationService(
                         lastSummary.State,
                         lastSummary.NextState);
                     return lastSummary;
-                }
-
-                if (lastSummary.Action is not (DiscoveryAutomationActionKind.StartGame or
-                                               DiscoveryAutomationActionKind.LoginPilot or
-                                               DiscoveryAutomationActionKind.LoginNextPilot))
-                {
-                    gameActionService.TryHideUi(lastSummary.CapturePath, cancellationToken);
                 }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))

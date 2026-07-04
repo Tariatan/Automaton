@@ -21,6 +21,9 @@ internal sealed class StubGameActionService : IGameActionService
     public int TriggerTargetApproachCallCount { get; private set; }
     public int WarpToTargetCallCount { get; private set; }
     public int WarpToTargetAndDockCallCount { get; private set; }
+    public int TryHideUiCallCount { get; private set; }
+    public Size? LastTryHideUiImageSize { get; private set; }
+    public Action? OnTryHideUi { get; init; }
 
     public void QuitGame(CancellationToken cancellationToken)
     {
@@ -57,9 +60,12 @@ internal sealed class StubGameActionService : IGameActionService
         ShutdownOperatingSystemCalled = true;
     }
 
-    public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)
+    public void TryHideUi(Mat captureToValidate, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        TryHideUiCallCount++;
+        LastTryHideUiImageSize = captureToValidate.Size();
+        OnTryHideUi?.Invoke();
     }
 
     public void CloseActiveWindow(CancellationToken cancellationToken)

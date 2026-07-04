@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using OpenCvSharp;
 
 namespace Automaton.Helpers;
 
@@ -13,7 +14,7 @@ internal interface IGameActionService
         CancellationToken cancellationToken);
     void RebootOperatingSystem(CancellationToken cancellationToken);
     void ShutdownOperatingSystem(CancellationToken cancellationToken);
-    void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken);
+    void TryHideUi(Mat captureToValidate, CancellationToken cancellationToken);
     void CloseActiveWindow(CancellationToken cancellationToken);
     void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken);
     void ToggleFirstLaser(CancellationToken cancellationToken);

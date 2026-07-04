@@ -10,6 +10,79 @@ namespace Automaton.Tests;
 public sealed class ProjectDiscoveryAutomationServiceTests
 {
     [Fact]
+    public void Automate_CurrentStateIsDiscover_HidesUiBeforeExecutingStep()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var events = new List<string>();
+        var gameActionService = new StubGameActionService
+        {
+            OnTryHideUi = () => events.Add("hide-ui")
+        };
+        var discoveryState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.Discover,
+            DiscoveryAutomationStateKind.Recovery,
+            DiscoveryAutomationActionKind.Shutdown,
+            () => events.Add("execute"));
+        using var serviceHarness = new ProjectDiscoveryAutomationServiceHarness(
+            new FixedDiscoveryAutomationStateFactory(discoveryState),
+            gameActionService,
+            new StubScreenCaptureProvider(() => new Mat(2, 3, MatType.CV_8UC3, Scalar.Black)),
+            persistCaptures: true);
+        DiscoveryAutomationStepSummary summary;
+
+        // Act
+        Directory.SetCurrentDirectory(workspace.Path);
+        try
+        {
+            summary = serviceHarness.Service.Automate(
+                CancellationToken.None,
+                DiscoveryAutomationStateKind.Discover);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        Assert.Equal(["hide-ui", "execute"], events);
+        Assert.Equal(1, gameActionService.TryHideUiCallCount);
+        Assert.Equal(new Size(3, 2), gameActionService.LastTryHideUiImageSize);
+        Assert.False(Directory.Exists(Path.Combine(workspace.Path, "captures")));
+        Assert.Equal(DiscoveryAutomationActionKind.Shutdown, summary.Action);
+    }
+
+    [Fact]
+    public void Automate_CurrentStateIsNotDiscover_DoesNotHideUiBeforeExecutingStep()
+    {
+        // Arrange
+        var events = new List<string>();
+        var gameActionService = new StubGameActionService
+        {
+            OnTryHideUi = () => events.Add("hide-ui")
+        };
+        var loginState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationStateKind.Recovery,
+            DiscoveryAutomationActionKind.Shutdown,
+            () => events.Add("execute"));
+        using var serviceHarness = new ProjectDiscoveryAutomationServiceHarness(
+            new FixedDiscoveryAutomationStateFactory(loginState),
+            gameActionService);
+
+        // Act
+        var summary = serviceHarness.Service.Automate(
+            CancellationToken.None,
+            DiscoveryAutomationStateKind.Login);
+
+        // Assert
+        Assert.Equal(["execute"], events);
+        Assert.Equal(0, gameActionService.TryHideUiCallCount);
+        Assert.Equal(DiscoveryAutomationActionKind.Shutdown, summary.Action);
+    }
+
+    [Fact]
     public void Automate_StateReturnsShutdown_ReturnsShutdownSummary()
     {
         // Arrange
@@ -101,20 +174,23 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         private readonly ClientIsRunningButtonDetector m_ClientIsRunningButtonDetector = new();
 
         public ProjectDiscoveryAutomationServiceHarness(
-            IDiscoveryAutomationStateFactory? discoveryAutomationStateFactory = null)
+            IDiscoveryAutomationStateFactory? discoveryAutomationStateFactory = null,
+            IGameActionService? gameActionService = null,
+            IScreenCaptureProvider? screenCaptureProvider = null,
+            bool persistCaptures = false)
         {
             var sampleImageProcessor = new SampleImageProcessor(m_PlayfieldDetector, null);
             var screenCaptureService = new ScreenCaptureService(
-                new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)),
+                screenCaptureProvider ?? new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)),
                 sampleImageProcessor,
-                persistCaptures: false);
+                persistCaptures: persistCaptures);
 
             Service = new ProjectDiscoveryAutomationService(
                 screenCaptureService,
                 sampleImageProcessor,
                 m_PlayfieldDetector,
                 new StubAutomationInputController(),
-                new StubGameActionService(),
+                gameActionService ?? new StubGameActionService(),
                 new ConnectionLostPopupDetector(),
                 m_ClientIsRunningButtonDetector,
                 discoveryAutomationStateFactory ?? new StubDiscoveryAutomationStateFactory());
@@ -163,6 +239,24 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         public IProjectDiscoveryAutomationState Create(DiscoveryAutomationStateKind stateKind)
         {
             return state;
+        }
+    }
+
+    private sealed class RecordingDiscoveryState(
+        DiscoveryAutomationStateKind state,
+        DiscoveryAutomationStateKind nextState,
+        DiscoveryAutomationActionKind action,
+        Action onExecute) : IProjectDiscoveryAutomationState
+    {
+        public DiscoveryAutomationStateKind Kind => state;
+
+        public DiscoveryAutomationStateTransition Execute(
+            ProjectDiscoveryAutomationContext context,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            onExecute();
+            return new DiscoveryAutomationStateTransition(Kind, nextState, action);
         }
     }
 

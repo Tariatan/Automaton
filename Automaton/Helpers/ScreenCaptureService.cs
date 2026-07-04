@@ -66,6 +66,11 @@ internal sealed class ScreenCaptureService(
         return new ScreenCaptureResult(image, capturePath, captureBounds);
     }
 
+    internal Mat CaptureCurrentScreenImage()
+    {
+        return CaptureScreenWithRetry();
+    }
+
     internal void CaptureCurrentScreenToFile(string outputPath)
     {
         using var image = CaptureScreenWithRetry();

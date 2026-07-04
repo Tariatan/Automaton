@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using System.IO;
 using Automaton.Detectors;
 using Automaton.Primitives;
+using OpenCvSharp;
 using Serilog;
 
 namespace Automaton.Helpers;
@@ -190,22 +190,30 @@ internal sealed class GameActionService : IGameActionService
         }
     }
 
-    public void TryHideUi(string? capturePathToValidate, CancellationToken cancellationToken)
+    public void TryHideUi(Mat captureToValidate, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(capturePathToValidate))
+        cancellationToken.ThrowIfCancellationRequested();
+        if (captureToValidate.Empty())
         {
             return;
         }
 
-        var captureFileInfo = new FileInfo(capturePathToValidate);
-        if (captureFileInfo is { Exists: true, Length: > Settings.HideUiFileSizeThreshold })
+        if (!Cv2.ImEncode(".png", captureToValidate, out var captureBuffer))
         {
-            m_Logger.Information("Hiding UI because capture size exceeded {Threshold} Mb ({CaptureSizeMb} MB).",
-                Settings.HideUiFileSizeThreshold / 1024 / 1024,
-                captureFileInfo.Length / 1024 / 1024);
-            ToggleUiVisibility(cancellationToken);
-            m_InputController.Delay(Delays.HideUiMs, cancellationToken);
+            m_Logger.Warning("Could not estimate capture size before hiding UI.");
+            return;
         }
+
+        if (captureBuffer.LongLength <= Settings.HideUiFileSizeThreshold)
+        {
+            return;
+        }
+
+        m_Logger.Information("Hiding UI because capture size exceeded {Threshold} MB ({CaptureSizeMb} MB).",
+            Settings.HideUiFileSizeThreshold / 1024 / 1024,
+            captureBuffer.LongLength / 1024 / 1024);
+        ToggleUiVisibility(cancellationToken);
+        m_InputController.Delay(Delays.HideUiMs, cancellationToken);
     }
 
     public void CloseActiveWindow(CancellationToken cancellationToken)

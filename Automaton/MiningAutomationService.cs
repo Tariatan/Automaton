@@ -53,7 +53,8 @@ internal sealed class MiningAutomationService(
 
                 if (lastSummary.Action is not (MiningAutomationActionKind.StartGame or MiningAutomationActionKind.LoginPilot))
                 {
-                    gameActionService.TryHideUi(lastSummary.CapturePath, cancellationToken);
+                    using var capture = screenCaptureService.CaptureCurrentScreenImage();
+                    gameActionService.TryHideUi(capture, cancellationToken);
                 }
 
                 if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))

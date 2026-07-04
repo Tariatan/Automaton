@@ -198,6 +198,31 @@ public sealed class GameActionServiceTests
     }
 
     [Fact]
+    public void TryHideUi_InMemoryCaptureAboveThreshold_TogglesUi()
+    {
+        // Arrange
+        using var blankScreen = new Mat(new Size(1, 1), MatType.CV_8UC3, Scalar.Black);
+        var screenCaptureService = new ScreenCaptureService(
+            new StubScreenCaptureProvider(blankScreen.Clone),
+            new SampleImageProcessor(),
+            persistCaptures: false);
+        var automationInputController = new StubAutomationInputController();
+        var gameActionService = CreateGameActionService(automationInputController, screenCaptureService);
+        using var capture = new Mat(new Size(1200, 1200), MatType.CV_8UC3);
+        Cv2.Randu(capture, Scalar.All(0), Scalar.All(256));
+
+        // Act
+        gameActionService.TryHideUi(capture, CancellationToken.None);
+
+        // Assert
+        var keyInput = Assert.Single(automationInputController.KeyInputs);
+        Assert.Equal(VirtualKeys.LeftControl, keyInput.ModifierVirtualKey);
+        Assert.Equal(VirtualKeys.LeftShift, keyInput.SecondModifierVirtualKey);
+        Assert.Equal(VirtualKeys.F9, keyInput.VirtualKey);
+        Assert.Equal([Delays.HideUiMs], automationInputController.Delays);
+    }
+
+    [Fact]
     public void ToggleProjectDiscoveryWindow_WhenCalled_HoldsAltLChordBeforeActivationDelay()
     {
         // Arrange
