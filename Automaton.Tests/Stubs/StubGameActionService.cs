@@ -23,6 +23,7 @@ internal sealed class StubGameActionService : IGameActionService
     public int WarpToTargetAndDockCallCount { get; private set; }
     public int TryHideUiCallCount { get; private set; }
     public Size? LastTryHideUiImageSize { get; private set; }
+    public Action? OnCloseGameClient { get; init; }
     public Action? OnTryHideUi { get; init; }
 
     public void QuitGame(CancellationToken cancellationToken)
@@ -35,6 +36,7 @@ internal sealed class StubGameActionService : IGameActionService
     {
         cancellationToken.ThrowIfCancellationRequested();
         CloseGameClientCalled = true;
+        OnCloseGameClient?.Invoke();
     }
 
     public void Logout(

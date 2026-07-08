@@ -13,6 +13,7 @@ internal sealed class LoginState(
     LoggedInPilotDetector loggedInPilotDetector) : IProjectDiscoveryAutomationState
 {
     private const string CaptureSuffix = ".discovery-login";
+    private const string NoFurtherPilotsAvailableCaptureSuffix = ".discovery-no-further-pilots-available";
     private readonly CommonLoginState m_CommonLoginState = new(gameActionService, automationInputController, pilotAvatarDetector, loggedInPilotDetector);
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Login;
@@ -23,12 +24,17 @@ internal sealed class LoginState(
         {
             if (!PilotRegistry.TryGetNextPilotIndex(context.CurrentPilotIndex, out var nextPilotIndex))
             {
-                m_Logger.Warning("Failed to resolve next pilot index. CurrentPilotIndex={CurrentPilotIndex}", context.CurrentPilotIndex);
+                using var capture = screenCaptureService.CaptureCurrentScreen(NoFurtherPilotsAvailableCaptureSuffix);
+                m_Logger.Warning(
+                    "Failed to resolve next pilot index. CurrentPilotIndex={CurrentPilotIndex}, CapturePath={CapturePath}",
+                    context.CurrentPilotIndex,
+                    capture.CapturePath);
                 gameActionService.CloseGameClient(cancellationToken);
                 return new DiscoveryAutomationStateTransition(
                     Kind,
                     Kind,
-                    DiscoveryAutomationActionKind.NoFurtherPilotsAvailable);
+                    DiscoveryAutomationActionKind.NoFurtherPilotsAvailable,
+                    capture.CapturePath);
             }
 
             m_Logger.Information(
