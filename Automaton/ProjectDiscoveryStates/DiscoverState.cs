@@ -17,7 +17,8 @@ internal sealed class DiscoverState(
     IAutomationClock automationClock,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
     SlowDownPopupDetector slowDownPopupDetector,
-    DowntimeDetector downtimeDetector) : IProjectDiscoveryAutomationState
+    DowntimeDetector downtimeDetector,
+    AccuracyDetector accuracyDetector) : IProjectDiscoveryAutomationState
 {
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
@@ -59,6 +60,8 @@ internal sealed class DiscoverState(
                     captureSummary.CapturePath);
             }
         }
+
+        LogDetectedAccuracy(captureSummary.CapturePath, context.CurrentPilotIndex);
 
         // Polygons
         using (clickTraceRecorder.SuppressRecording())
@@ -168,6 +171,16 @@ internal sealed class DiscoverState(
             automationInputController.MoveTo(polygon[0]);
             automationInputController.LeftClick(cancellationToken, recordClick: false);
             automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
+        }
+    }
+
+    private void LogDetectedAccuracy(string capturePath, int pilotIndex)
+    {
+        using var image = Cv2.ImRead(capturePath);
+        var detection = accuracyDetector.Detect(image);
+        if (detection.IsFound)
+        {
+            m_Logger.Information("Pilot {PilotIndex} accuracy = {Accuracy}", pilotIndex, detection.Text);
         }
     }
 

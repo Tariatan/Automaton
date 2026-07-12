@@ -23,6 +23,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<MaxSubmissionsPopupDetector>();
         services.AddSingleton<SlowDownPopupDetector>();
         services.AddSingleton<ConnectionLostPopupDetector>();
+        services.AddSingleton<AccuracyDetector>();
         services.AddSingleton<AsteroidBeltOverviewDetector>();
         services.AddSingleton<LocationChangeTimerDetector>();
         services.AddSingleton<InventoryDetector>();
