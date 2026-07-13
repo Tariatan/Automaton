@@ -27,7 +27,7 @@ internal sealed class AccuracyDetector
     private const double EarlyExitScore = 240.0;
     private static readonly Rect SearchBounds = new(950, 20, 130, 90);
 
-    public AccuracyDetection Detect(Mat screen)
+    public static AccuracyDetection Detect(Mat screen)
     {
         if (screen.Empty())
         {
@@ -102,13 +102,13 @@ internal sealed class AccuracyDetector
     {
         candidate = default;
         var runs = BuildGlyphRuns(window, windowTop);
-        if (runs.Count < MinimumGlyphCount)
+        if (runs.Length < MinimumGlyphCount)
         {
             return false;
         }
 
         var textBottom = runs.Max(run => run.Bounds.Bottom);
-        var percentIndex = runs.Count - 1;
+        var percentIndex = runs.Length - 1;
         if (!IsPercentGlyph(runs[percentIndex]))
         {
             return false;
@@ -185,34 +185,23 @@ internal sealed class AccuracyDetector
     {
         var features = DigitFeatures.From(glyphMask);
 
-        if (features is { Width: <= 4, Top: < 0.55, Bottom: < 0.55 })
+        switch (features)
         {
-            digit = 1;
-            return true;
-        }
-
-        if (features is { UpperRight: < 0.15, Top: < 0.55, LowerLeft: > 0.45 })
-        {
-            digit = 4;
-            return true;
-        }
-
-        if (features is { UpperLeft: < 0.35, LowerLeft: > 0.45, LowerRight: < 0.45 })
-        {
-            digit = 2;
-            return true;
-        }
-
-        if (features is { UpperLeft: < 0.35, LowerLeft: < 0.35 })
-        {
-            digit = features.Bottom < 0.45 ? 7 : 3;
-            return true;
-        }
-
-        if (features is { UpperLeft: > 0.55, LowerLeft: > 0.55, UpperRight: < 0.55 })
-        {
-            digit = 6;
-            return true;
+            case { Width: <= 4, Top: < 0.55, Bottom: < 0.55 }:
+                digit = 1;
+                return true;
+            case { UpperRight: < 0.15, Top: < 0.55, LowerLeft: > 0.45 }:
+                digit = 4;
+                return true;
+            case { UpperLeft: < 0.35, LowerLeft: > 0.45, LowerRight: < 0.45 }:
+                digit = 2;
+                return true;
+            case { UpperLeft: < 0.35, LowerLeft: < 0.35 }:
+                digit = features.Bottom < 0.45 ? 7 : 3;
+                return true;
+            case { UpperLeft: > 0.55, LowerLeft: > 0.55, UpperRight: < 0.55 }:
+                digit = 6;
+                return true;
         }
 
         if (features.UpperRight < 0.45)
@@ -237,7 +226,7 @@ internal sealed class AccuracyDetector
         return true;
     }
 
-    private static IReadOnlyList<GlyphRun> BuildGlyphRuns(Mat window, int windowTop)
+    private static GlyphRun[] BuildGlyphRuns(Mat window, int windowTop)
     {
         using var columnProjection = new Mat();
         Cv2.Reduce(window, columnProjection, ReduceDimension.Row, ReduceTypes.Sum, MatType.CV_32S);
@@ -247,14 +236,15 @@ internal sealed class AccuracyDetector
         for (var x = 0; x < window.Width; x++)
         {
             var hasPixels = columnProjection.At<int>(0, x) > 0;
-            if (hasPixels && start < 0)
+            switch (hasPixels)
             {
-                start = x;
-            }
-            else if (!hasPixels && start >= 0)
-            {
-                runs.Add(new ColumnRun(start, x - 1));
-                start = -1;
+                case true when start < 0:
+                    start = x;
+                    break;
+                case false when start >= 0:
+                    runs.Add(new ColumnRun(start, x - 1));
+                    start = -1;
+                    break;
             }
         }
 
