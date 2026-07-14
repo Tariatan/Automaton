@@ -106,8 +106,7 @@ public sealed class DiscoverStateTests
             automationClock,
             new MaxSubmissionsPopupDetector(),
             new SlowDownPopupDetector(),
-            downtimeDetector,
-            new AccuracyDetector());
+            downtimeDetector);
     }
 
     private static Func<Mat> BuildCaptureSequence()

@@ -17,8 +17,7 @@ internal sealed class DiscoverState(
     IAutomationClock automationClock,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
     SlowDownPopupDetector slowDownPopupDetector,
-    DowntimeDetector downtimeDetector,
-    AccuracyDetector accuracyDetector) : IProjectDiscoveryAutomationState
+    DowntimeDetector downtimeDetector) : IProjectDiscoveryAutomationState
 {
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
@@ -177,7 +176,7 @@ internal sealed class DiscoverState(
     private void LogDetectedAccuracy(string capturePath, int pilotIndex)
     {
         using var image = Cv2.ImRead(capturePath);
-        var detection = accuracyDetector.Detect(image);
+        var detection = AccuracyDetector.Detect(image);
         if (detection.IsFound)
         {
             m_Logger.Information("Pilot {PilotIndex} accuracy = {Accuracy}", pilotIndex, detection.Text);
