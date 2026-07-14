@@ -185,7 +185,7 @@ internal sealed class SelectBeltAndWarpState(
         if (File.Exists(capturePath))
         {
             DrawDebugOverlay(screen, analysis);
-            Cv2.ImWrite(capturePath, screen);
+            ImageFileWriter.WriteImage(capturePath, screen);
         }
 
         return analysis;

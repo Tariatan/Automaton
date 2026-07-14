@@ -95,7 +95,7 @@ internal sealed class ProjectDiscoveryAutomationService(
             using var playfield = new Mat(image, detection.Bounds);
             var outputFileName = Path.GetFileNameWithoutExtension(imageFile) + ".png";
             var outputPath = Path.Combine(TrainingOutputFolderName, outputFileName);
-            Cv2.ImWrite(outputPath, playfield);
+            ImageFileWriter.WriteImage(outputPath, playfield);
             extracted++;
 
             Logger.Information(
@@ -148,7 +148,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         using var maskedPlayfield = new Mat(maskedImage, bounds);
         var maskedOutputFileName = baseName + ".masked.png";
         var maskedOutputPath = Path.Combine(outputDirectory, maskedOutputFileName);
-        Cv2.ImWrite(maskedOutputPath, maskedPlayfield);
+        ImageFileWriter.WriteImage(maskedOutputPath, maskedPlayfield);
 
         Logger.Information(
             "Extracted masked companion. Source={Source}, Output={Output}",

@@ -1,4 +1,5 @@
 using System.IO;
+using Automaton.Infrastructure;
 using Automaton.Helpers;
 using OpenCvSharp;
 using Serilog;
@@ -7,7 +8,6 @@ namespace Automaton.Detectors;
 
 internal sealed class PilotAvatarDetector : IDisposable
 {
-    private const string PilotFolderName = "pilot";
     private const double MinimumMatchScore = 0.90;
     private const double EarlyExitScore = 0.98;
     private static readonly double[] AllScales = [1.0, 0.95, 1.05, 0.90, 1.10];
@@ -42,13 +42,14 @@ internal sealed class PilotAvatarDetector : IDisposable
 
     private PilotAvatarLocation? TryLocateBest(Mat screen, int pilotIndex)
     {
-        if (screen.Empty() || !Directory.Exists(PilotFolderName))
+        var pilotDirectory = Path.GetFullPath(PilotAvatarDirectory.GetDirectory());
+        if (screen.Empty() || !Directory.Exists(pilotDirectory))
         {
             return null;
         }
 
         PilotAvatarLocation? bestLocation = null;
-        foreach (var candidate in BuildCandidates(PilotFolderName, pilotIndex))
+        foreach (var candidate in BuildCandidates(pilotDirectory, pilotIndex))
         {
             var variants = GetOrLoadVariants(candidate);
             if (variants is null)

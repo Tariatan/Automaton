@@ -83,7 +83,7 @@ internal sealed class ClickTraceRecorder
         }
 
         DebugOverlay.DrawClickTrace(image, capture.Clicks, capture.CaptureBounds);
-        Cv2.ImWrite(capture.ImagePath, image);
+        ImageFileWriter.WriteImage(capture.ImagePath, image);
     }
 
     private void EndSuppression()

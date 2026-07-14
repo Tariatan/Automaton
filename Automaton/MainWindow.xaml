@@ -22,6 +22,9 @@
                 <MenuItem x:Name="HallmarkMenuItem"
                           Header="Hallmark"
                           Click="HallmarkMenuItem_Click" />
+                <MenuItem x:Name="PilotAvatarsMenuItem"
+                          Header="Pilot Avatars"
+                          Click="PilotAvatarsMenuItem_Click" />
                 <Separator />
                 <MenuItem x:Name="SettingsDiscoveryModeMenuItem"
                           Header="Discovery"

@@ -142,7 +142,7 @@ internal sealed class UnloadingCargoState(
         }
 
         DebugOverlay.Annotate(annotated, items.ToArray());
-        Cv2.ImWrite(capturePath, annotated);
+        ImageFileWriter.WriteImage(capturePath, annotated);
     }
 
     private bool TryOpenInventoryWindow(

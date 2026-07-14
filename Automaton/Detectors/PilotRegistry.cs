@@ -1,15 +1,13 @@
 using System.IO;
+using Automaton.Infrastructure;
 
 namespace Automaton.Detectors;
 
 internal static class PilotRegistry
 {
-    private const string PilotFolderName = "pilot";
-    private static readonly Lazy<int[]> CachedPilotIndices = new(ScanPilotIndices);
-
     public static bool TryGetNextPilotIndex(int currentPilotIndex, out int nextPilotIndex)
     {
-        foreach (var pilotIndex in CachedPilotIndices.Value)
+        foreach (var pilotIndex in ScanPilotIndices())
         {
             if (pilotIndex > currentPilotIndex)
             {
@@ -24,13 +22,14 @@ internal static class PilotRegistry
 
     private static int[] ScanPilotIndices()
     {
-        if (!Directory.Exists(PilotFolderName))
+        var pilotDirectory = Path.GetFullPath(PilotAvatarDirectory.GetDirectory());
+        if (!Directory.Exists(pilotDirectory))
         {
             return [];
         }
 
         return Directory
-            .EnumerateFiles(PilotFolderName, "*.png", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(pilotDirectory, "*.png", SearchOption.TopDirectoryOnly)
             .Select(Path.GetFileNameWithoutExtension)
             .Select(ParsePilotIndex)
             .Where(pilotIndex => pilotIndex > 0)

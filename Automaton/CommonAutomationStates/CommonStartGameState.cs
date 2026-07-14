@@ -52,6 +52,6 @@ internal sealed class CommonStartGameState(
 
         DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, "PLAY NOW found", OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
+        ImageFileWriter.WriteImage(imagePath, image);
     }
 }

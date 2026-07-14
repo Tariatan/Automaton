@@ -69,8 +69,7 @@ internal sealed class ScreenCaptureService(
     {
         if (persistCaptures)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(capture.CapturePath)!);
-            Cv2.ImWrite(capture.CapturePath, capture.Image);
+            ImageFileWriter.WriteImage(capture.CapturePath, capture.Image);
             Logger.Information("Captured current screen trace. CapturePath={CapturePath}", capture.CapturePath);
             clickTraceRecorder?.BeginCapture(capture.CapturePath, capture.CaptureBounds);
         }
@@ -87,8 +86,7 @@ internal sealed class ScreenCaptureService(
         var captureBounds = GetCurrentCaptureBounds(image);
         if (persistCaptures)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-            Cv2.ImWrite(outputPath, image);
+            ImageFileWriter.WriteImage(outputPath, image);
             Logger.Information("Captured current screen to file. OutputPath={OutputPath}", outputPath);
             clickTraceRecorder?.BeginCapture(outputPath, captureBounds);
         }
@@ -132,7 +130,7 @@ internal sealed class ScreenCaptureService(
         var outputPath = Path.Combine(
             Path.GetDirectoryName(sourceImagePath)!,
             Path.GetFileNameWithoutExtension(sourceImagePath) + outputSuffix);
-        Cv2.ImWrite(outputPath, annotated);
+        ImageFileWriter.WriteImage(outputPath, annotated);
         return outputPath;
     }
 

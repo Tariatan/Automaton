@@ -1,4 +1,5 @@
 using System.IO;
+using Automaton.Infrastructure;
 using OpenCvSharp;
 using Serilog;
 
@@ -6,7 +7,6 @@ namespace Automaton.Detectors;
 
 internal sealed class LoggedInPilotDetector : IDisposable
 {
-    private const string PilotFolderName = "pilot";
     private const int PortraitX = 0;
     private const int PortraitY = 48;
     private const int PortraitSize = 48;
@@ -16,6 +16,7 @@ internal sealed class LoggedInPilotDetector : IDisposable
     private static readonly ILogger Logger = Log.ForContext<LoggedInPilotDetector>();
 
     private readonly Dictionary<string, Mat> m_TemplateCache = new(StringComparer.OrdinalIgnoreCase);
+    private string? m_CandidatesDirectory;
     private IReadOnlyList<LoggedInPilotCandidate>? m_CachedCandidates;
     private DateTime m_CandidatesCacheTime;
 
@@ -27,6 +28,7 @@ internal sealed class LoggedInPilotDetector : IDisposable
         }
 
         m_TemplateCache.Clear();
+        m_CandidatesDirectory = null;
         m_CachedCandidates = null;
     }
 
@@ -34,7 +36,8 @@ internal sealed class LoggedInPilotDetector : IDisposable
     {
         detection = default;
 
-        if (screen.Empty() || !IsPortraitRegionAvailable(screen.Size()) || !Directory.Exists(PilotFolderName))
+        var pilotDirectory = Path.GetFullPath(PilotAvatarDirectory.GetDirectory());
+        if (screen.Empty() || !IsPortraitRegionAvailable(screen.Size()) || !Directory.Exists(pilotDirectory))
         {
             return false;
         }
@@ -44,7 +47,7 @@ internal sealed class LoggedInPilotDetector : IDisposable
         using var result = new Mat();
         LoggedInPilotDetection? bestDetection = null;
 
-        foreach (var candidate in GetCandidates(PilotFolderName))
+        foreach (var candidate in GetCandidates(pilotDirectory))
         {
             var template = GetOrLoadTemplate(candidate);
             if (template is null)
@@ -78,13 +81,17 @@ internal sealed class LoggedInPilotDetector : IDisposable
 
     private IReadOnlyList<LoggedInPilotCandidate> GetCandidates(string pilotDirectory)
     {
-        var lastWrite = Directory.GetLastWriteTimeUtc(pilotDirectory);
-        if (m_CachedCandidates is not null && lastWrite == m_CandidatesCacheTime)
+        var fullDirectory = Path.GetFullPath(pilotDirectory);
+        var lastWrite = Directory.GetLastWriteTimeUtc(fullDirectory);
+        if (m_CachedCandidates is not null &&
+            lastWrite == m_CandidatesCacheTime &&
+            string.Equals(fullDirectory, m_CandidatesDirectory, StringComparison.OrdinalIgnoreCase))
         {
             return m_CachedCandidates;
         }
 
-        m_CachedCandidates = BuildCandidates(pilotDirectory);
+        m_CachedCandidates = BuildCandidates(fullDirectory);
+        m_CandidatesDirectory = fullDirectory;
         m_CandidatesCacheTime = lastWrite;
         return m_CachedCandidates;
     }

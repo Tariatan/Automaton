@@ -251,7 +251,7 @@ internal sealed class DiscoverState(
 
         DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
+        ImageFileWriter.WriteImage(imagePath, image);
     }
 
     private static void DrawEnabledButtonSearchOverlay(Mat image, EnabledButtonDetection detection)

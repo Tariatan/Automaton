@@ -48,6 +48,6 @@ internal sealed class CommonRecoverClientIsRunningButtonVisibleState(
 
         DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, "Client Is Running button found", OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
+        ImageFileWriter.WriteImage(imagePath, image);
     }
 }

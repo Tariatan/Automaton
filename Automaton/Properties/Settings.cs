@@ -33,4 +33,12 @@ internal sealed class Settings : ApplicationSettingsBase
         get => this[nameof(HallmarkRootDirectory)] as string ?? string.Empty;
         set => this[nameof(HallmarkRootDirectory)] = value;
     }
+
+    [UserScopedSetting]
+    [DefaultSettingValue("")]
+    public string PilotAvatarDirectory
+    {
+        get => this[nameof(PilotAvatarDirectory)] as string ?? string.Empty;
+        set => this[nameof(PilotAvatarDirectory)] = value;
+    }
 }

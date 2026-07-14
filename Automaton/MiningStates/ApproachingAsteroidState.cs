@@ -82,7 +82,7 @@ internal sealed class ApproachingAsteroidState(
                 mineOverviewBounds,
                 firstAsteroidRowBounds);
             DrawDebugOverlay(capture.Image, reachAnalysis);
-            Cv2.ImWrite(capture.CapturePath, capture.Image);
+            ImageFileWriter.WriteImage(capture.CapturePath, capture.Image);
             m_Logger.Information("Asteroid within reach detection. Attempt={Attempt}/{MaxAttempts}", attempt + 1, Settings.ApproachingAsteroidDistancePollingAttemptCount);
 
             if (attempt == Settings.ApproachingAsteroidDistancePollingAttemptCount / 2)

@@ -115,6 +115,6 @@ internal sealed class CommonLoginState(
 
         DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
-        Cv2.ImWrite(imagePath, image);
+        ImageFileWriter.WriteImage(imagePath, image);
     }
 }

@@ -22,12 +22,14 @@ public partial class App
             logFilePath,
             e.Args);
         Log.ForContext<App>().Information(
-            "Storage roots. ConfiguredTelemetryRoot={ConfiguredTelemetryRoot}, ConfiguredHallmarkRoot={ConfiguredHallmarkRoot}, EffectiveCapturesDirectory={EffectiveCapturesDirectory}, EffectiveLogsDirectory={EffectiveLogsDirectory}, EffectiveExpectedDirectory={EffectiveExpectedDirectory}",
+            "Storage roots. ConfiguredTelemetryRoot={ConfiguredTelemetryRoot}, ConfiguredHallmarkRoot={ConfiguredHallmarkRoot}, ConfiguredPilotAvatarDirectory={ConfiguredPilotAvatarDirectory}, EffectiveCapturesDirectory={EffectiveCapturesDirectory}, EffectiveLogsDirectory={EffectiveLogsDirectory}, EffectiveExpectedDirectory={EffectiveExpectedDirectory}, EffectivePilotAvatarDirectory={EffectivePilotAvatarDirectory}",
             TelemetryRootDirectory.GetConfiguredRootDirectory(),
             TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory(),
+            PilotAvatarDirectory.GetConfiguredDirectory(),
             TelemetryRootDirectory.GetCapturesDirectory(),
             TelemetryRootDirectory.GetLogsDirectory(),
-            TelemetryRootDirectory.GetExpectedDirectory());
+            TelemetryRootDirectory.GetExpectedDirectory(),
+            PilotAvatarDirectory.GetDirectory());
 
         try
         {

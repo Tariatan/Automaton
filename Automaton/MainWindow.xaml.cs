@@ -51,6 +51,7 @@ internal partial class MainWindow
         InitializeComponent();
         UpdateTelemetryMenuItemHeader();
         UpdateHallmarkMenuItemHeader();
+        UpdatePilotAvatarsMenuItemHeader();
         ApplyAutomationMode();
         RestoreWindowPosition();
         SourceInitialized += MainWindow_SourceInitialized;
@@ -433,6 +434,47 @@ internal partial class MainWindow
         var folderName = Path.GetFileName(configuredRootDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         HallmarkMenuItem.Header = string.IsNullOrWhiteSpace(folderName)
             ? configuredRootDirectory
+            : folderName;
+    }
+
+    private void PilotAvatarsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var folderDialog = new OpenFolderDialog
+        {
+            Title = "Select pilot avatar folder"
+        };
+
+        var configuredDirectory = PilotAvatarDirectory.GetConfiguredDirectory();
+        var initialDirectory = string.IsNullOrWhiteSpace(configuredDirectory)
+            ? PilotAvatarDirectory.GetDirectory()
+            : configuredDirectory;
+        if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
+        {
+            folderDialog.InitialDirectory = initialDirectory;
+        }
+
+        if (folderDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(folderDialog.FolderName))
+        {
+            return;
+        }
+
+        PilotAvatarDirectory.SetConfiguredDirectory(folderDialog.FolderName);
+        UpdatePilotAvatarsMenuItemHeader();
+        Logger.Information("Pilot avatar directory selected. PilotAvatarDirectory={PilotAvatarDirectory}", folderDialog.FolderName);
+    }
+
+    private void UpdatePilotAvatarsMenuItemHeader()
+    {
+        var configuredDirectory = PilotAvatarDirectory.GetConfiguredDirectory();
+        if (string.IsNullOrWhiteSpace(configuredDirectory))
+        {
+            PilotAvatarsMenuItem.Header = "Pilot Avatars";
+            return;
+        }
+
+        var folderName = Path.GetFileName(configuredDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        PilotAvatarsMenuItem.Header = string.IsNullOrWhiteSpace(folderName)
+            ? configuredDirectory
             : folderName;
     }
 
