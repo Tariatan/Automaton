@@ -13,13 +13,15 @@ namespace Automaton;
 public partial class App
 {
     private ServiceProvider? m_ServiceProvider;
+    private ApplicationLogFiles? m_LogFiles;
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        var logFilePath = ApplicationLogging.Configure();
+        m_LogFiles = ApplicationLogging.Configure();
         Log.ForContext<App>().Information(
-            "Automaton started. LogFilePath={LogFilePath}, Arguments={Arguments}",
-            logFilePath,
+            "Automaton started. ActiveLogFilePath={ActiveLogFilePath}, TelemetryLogFilePath={TelemetryLogFilePath}, Arguments={Arguments}",
+            m_LogFiles.ActiveLogFilePath,
+            m_LogFiles.TelemetryLogFilePath,
             e.Args);
         Log.ForContext<App>().Information(
             "Storage roots. ConfiguredTelemetryRoot={ConfiguredTelemetryRoot}, ConfiguredHallmarkRoot={ConfiguredHallmarkRoot}, ConfiguredPilotAvatarDirectory={ConfiguredPilotAvatarDirectory}, EffectiveCapturesDirectory={EffectiveCapturesDirectory}, EffectiveLogsDirectory={EffectiveLogsDirectory}, EffectiveExpectedDirectory={EffectiveExpectedDirectory}, EffectivePilotAvatarDirectory={EffectivePilotAvatarDirectory}",
@@ -62,12 +64,23 @@ public partial class App
         try
         {
             Log.ForContext<App>().Information("Automaton exited. ExitCode={ExitCode}", e.ApplicationExitCode);
+            Log.ForContext<App>().Information(
+                "Publishing completed log file on exit. ActiveLogFilePath={ActiveLogFilePath}, TelemetryLogFilePath={TelemetryLogFilePath}",
+                m_LogFiles?.ActiveLogFilePath,
+                m_LogFiles?.TelemetryLogFilePath);
         }
         finally
         {
-            m_ServiceProvider?.Dispose();
-            Log.CloseAndFlush();
-            base.OnExit(e);
+            try
+            {
+                m_ServiceProvider?.Dispose();
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+                ApplicationLogging.TryPublish(m_LogFiles);
+                base.OnExit(e);
+            }
         }
     }
 

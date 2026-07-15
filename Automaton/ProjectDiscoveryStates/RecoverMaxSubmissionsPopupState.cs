@@ -1,10 +1,12 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
+using Automaton.Primitives;
 using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class RecoverMaxSubmissionsPopupState(
+    IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     ScreenCaptureService screenCaptureService,
     PilotAvatarDetector pilotAvatarDetector) : IProjectDiscoveryAutomationState
@@ -19,6 +21,7 @@ internal sealed class RecoverMaxSubmissionsPopupState(
             context.CurrentPilotIndex);
 
         gameActionService.Logout(screenCaptureService, pilotAvatarDetector, context.CurrentPilotIndex, cancellationToken);
+        automationInputController.Delay(Delays.PilotSwitchDelayMs, cancellationToken);
 
         return new DiscoveryAutomationStateTransition(
             Kind,
