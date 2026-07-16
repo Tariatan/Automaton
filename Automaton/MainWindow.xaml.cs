@@ -147,21 +147,18 @@ internal partial class MainWindow
             {
                 Logger.Error("Discovery automation requested operating system reboot. Closing application.");
                 Application.Current.Shutdown();
-                Environment.Exit(0);
             }
             else if (automationActionKind == DiscoveryAutomationActionKind.Shutdown)
             {
                 Logger.Error("Discovery automation requested safe operating system shutdown.");
                 m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
                 Application.Current.Shutdown();
-                Environment.Exit(0);
             }
             else if (automationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
             {
                 Logger.Error("No further pilots are available. Scheduling operating system shutdown.");
                 m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
                 Application.Current.Shutdown();
-                Environment.Exit(0);
             }
         }
         catch (OperationCanceledException)
@@ -201,13 +198,11 @@ internal partial class MainWindow
             {
                 Logger.Error("Mining automation requested safe application exit.");
                 Application.Current.Shutdown();
-                Environment.Exit(0);
             }
             else if (automationActionKind == MiningAutomationActionKind.Reboot)
             {
                 Logger.Error("Mining automation requested operating system reboot. Closing application.");
                 Application.Current.Shutdown();
-                Environment.Exit(0);
             }
         }
         catch (OperationCanceledException)

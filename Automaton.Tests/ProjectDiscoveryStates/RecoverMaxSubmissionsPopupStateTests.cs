@@ -45,7 +45,6 @@ public sealed class RecoverMaxSubmissionsPopupStateTests
         Assert.Equal(DiscoveryAutomationActionKind.LoginNextPilot, transition.Action);
         Assert.True(gameActionService.LogoutCalled);
         Assert.Equal(1, gameActionService.LogoutCallCount);
-        Assert.Equal([Delays.PilotSwitchDelayMs], automationInputController.Delays);
     }
 
     private static RecoverMaxSubmissionsPopupState BuildState(

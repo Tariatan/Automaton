@@ -21,7 +21,6 @@ internal sealed class RecoverMaxSubmissionsPopupState(
             context.CurrentPilotIndex);
 
         gameActionService.Logout(screenCaptureService, pilotAvatarDetector, context.CurrentPilotIndex, cancellationToken);
-        automationInputController.Delay(Delays.PilotSwitchDelayMs, cancellationToken);
 
         return new DiscoveryAutomationStateTransition(
             Kind,
