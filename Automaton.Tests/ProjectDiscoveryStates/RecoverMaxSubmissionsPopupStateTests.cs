@@ -57,9 +57,7 @@ public sealed class RecoverMaxSubmissionsPopupStateTests
             new SampleImageProcessor(),
             persistCaptures: false);
 
-        return new RecoverMaxSubmissionsPopupState(
-            automationInputController,
-            gameActionService,
+        return new RecoverMaxSubmissionsPopupState(gameActionService,
             screenCaptureService,
             pilotAvatarDetector);
     }

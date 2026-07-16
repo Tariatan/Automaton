@@ -6,7 +6,6 @@ using Serilog;
 namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class RecoverMaxSubmissionsPopupState(
-    IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     ScreenCaptureService screenCaptureService,
     PilotAvatarDetector pilotAvatarDetector) : IProjectDiscoveryAutomationState
