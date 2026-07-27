@@ -14,7 +14,7 @@ public sealed class DockingStateTests
         // Arrange
         var state = new DockingState(
             new StubAutomationInputController(),
-            new StubGameActionService(),
+            new StubMiningGameActions(),
             new AsteroidBeltOverviewDetector());
 
         // Act
@@ -37,11 +37,11 @@ public sealed class DockingStateTests
                     ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
                     : SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
-        var state = new DockingState(automationInputController, gameActionService, new AsteroidBeltOverviewDetector());
+        var miningGameActions = new StubMiningGameActions();
+        var state = new DockingState(automationInputController, miningGameActions, new AsteroidBeltOverviewDetector());
 
         // Act
         var transition = state.Execute(
@@ -52,10 +52,10 @@ public sealed class DockingStateTests
         Assert.Equal(MiningAutomationStateKind.Dock, transition.State);
         Assert.Equal(MiningAutomationStateKind.UnloadCargo, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Dock, transition.Action);
-        Assert.Equal(1, gameActionService.WarpToTargetAndDockCallCount);
+        Assert.Equal(1, miningGameActions.WarpToTargetAndDockCallCount);
         Assert.Equal(1, automationInputController.ClickCount);
-        Assert.Contains(Delays.BeforeDockMs, automationInputController.Delays);
-        Assert.Contains(Delays.DockedBounceMs, automationInputController.Delays);
+        Assert.Contains(MiningDelays.BeforeDockMs, automationInputController.Delays);
+        Assert.Contains(MiningDelays.DockedBounceMs, automationInputController.Delays);
     }
 
     [Fact]
@@ -68,11 +68,11 @@ public sealed class DockingStateTests
             new OpenCvSharp.Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
-        var state = new DockingState(automationInputController, gameActionService, new AsteroidBeltOverviewDetector());
+        var miningGameActions = new StubMiningGameActions();
+        var state = new DockingState(automationInputController, miningGameActions, new AsteroidBeltOverviewDetector());
 
         // Act
         var transition = state.Execute(
@@ -85,7 +85,7 @@ public sealed class DockingStateTests
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
         Assert.Equal(0, automationInputController.ClickCount);
-        Assert.Equal(0, gameActionService.WarpToTargetAndDockCallCount);
+        Assert.Equal(0, miningGameActions.WarpToTargetAndDockCallCount);
     }
 
     [Fact]
@@ -94,11 +94,10 @@ public sealed class DockingStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var state = new DockingState(
             new StubAutomationInputController(),
-            new StubGameActionService(),
+            new StubMiningGameActions(),
             new AsteroidBeltOverviewDetector());
         using var cts = new CancellationTokenSource();
         cts.Cancel();

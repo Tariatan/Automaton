@@ -19,8 +19,7 @@ public sealed class LoginStateTests
         var currentDirectory = Directory.GetCurrentDirectory();
         var captureExistsBeforeClose = false;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)));
         var gameActionService = new StubGameActionService
         {
             OnCloseGameClient = () =>

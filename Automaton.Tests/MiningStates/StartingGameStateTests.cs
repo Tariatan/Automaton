@@ -1,3 +1,4 @@
+using Automaton.Infrastructure;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.MiningStates;
@@ -16,11 +17,10 @@ public sealed class StartingGameStateTests
         if (Directory.Exists("captures")) Directory.Delete("captures", true);
         using var screen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(screen.Clone),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(screen.Clone));
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
-        var state = new StartingGameState(automationInputControllerMock, gameActionService, new PlayNowButtonDetector());
+        var state = new StartingGameState(automationInputControllerMock, gameActionService, new PlayNowButtonDetector(ResourceLoader.Assembly));
 
         // Act
         var transition = state.Execute(
@@ -47,11 +47,10 @@ public sealed class StartingGameStateTests
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
-        var state = new StartingGameState(automationInputControllerMock, gameActionService, new PlayNowButtonDetector());
+        var state = new StartingGameState(automationInputControllerMock, gameActionService, new PlayNowButtonDetector(ResourceLoader.Assembly));
 
         // Act
         var transition = state.Execute(

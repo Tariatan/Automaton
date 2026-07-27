@@ -39,7 +39,6 @@ public sealed class PendingMiningAutomationStateTests
         var state = new PendingMiningAutomationState(MiningAutomationStateKind.Mining);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(() => new OpenCvSharp.Mat(1, 1, OpenCvSharp.MatType.CV_8UC3)),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
@@ -59,7 +58,6 @@ public sealed class PendingMiningAutomationStateTests
         var state = new PendingMiningAutomationState(MiningAutomationStateKind.Mining);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(() => new OpenCvSharp.Mat(1, 1, OpenCvSharp.MatType.CV_8UC3)),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
         using var cts = new CancellationTokenSource();

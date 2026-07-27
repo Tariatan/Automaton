@@ -10,7 +10,7 @@ namespace Automaton;
 
 internal sealed class ProjectDiscoveryAutomationService(
     ScreenCaptureService screenCaptureService,
-    SampleImageProcessor sampleImageProcessor,
+    DiscoveryCaptureFacade discoveryCapture,
     PlayfieldDetector playfieldDetector,
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
@@ -25,8 +25,6 @@ internal sealed class ProjectDiscoveryAutomationService(
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
     private ProjectDiscoveryAutomationContext m_Context = null!;
-
-    private ScreenCaptureService ScreenCaptureService { get; } = screenCaptureService;
 
     public SampleProcessingSummary ProcessSamples()
     {
@@ -47,8 +45,8 @@ internal sealed class ProjectDiscoveryAutomationService(
         foreach (var sampleFile in sampleFiles)
         {
             using var image = Cv2.ImRead(sampleFile);
-            var analysis = sampleImageProcessor.AnalyzeImage(image, sampleFile);
-            var outputPath = ScreenCaptureService.WriteAnnotatedOutput(image, analysis, sampleFile);
+            var analysis = discoveryCapture.AnalyzeImage(image, sampleFile);
+            var outputPath = DiscoveryCaptureFacade.WriteAnnotatedOutput(image, analysis, sampleFile);
             results.Add(analysis.Result with { OutputPath = outputPath });
         }
 
@@ -177,7 +175,7 @@ internal sealed class ProjectDiscoveryAutomationService(
                 if (m_CurrentState.Kind == DiscoveryAutomationStateKind.Discover)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    using var capture = ScreenCaptureService.CaptureCurrentScreenImage();
+                    using var capture = screenCaptureService.CaptureCurrentScreenImage();
                     gameActionService.TryHideUi(capture, cancellationToken);
                 }
 
@@ -235,7 +233,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         }
         finally
         {
-            ScreenCaptureService.FlushClickTrace();
+            screenCaptureService.FlushClickTrace();
         }
 
         return lastSummary ?? throw new OperationCanceledException(cancellationToken);
@@ -285,7 +283,7 @@ internal sealed class ProjectDiscoveryAutomationService(
     private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var capture = ScreenCaptureService.CaptureCurrentScreenInMemory(".discovery-connection-lost-popup-check");
+        using var capture = screenCaptureService.CaptureCurrentScreenInMemory(".discovery-connection-lost-popup-check");
         var detection = connectionLostPopupDetector.Detect(capture.Image);
         if (detection.State != PopupState.ConnectionLost)
         {
@@ -293,7 +291,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         }
 
         DrawPopupDebugOverlay(capture.Image, detection, "Connection lost popup detected");
-        ScreenCaptureService.SaveCapture(capture);
+        screenCaptureService.SaveCapture(capture);
         Logger.Warning("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
         m_CurrentState = CreateState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
         return true;
@@ -302,14 +300,14 @@ internal sealed class ProjectDiscoveryAutomationService(
     private bool TryTransitionToRecoverClientIsRunningButtonVisible(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var capture = ScreenCaptureService.CaptureCurrentScreenInMemory(".discovery-client-is-running-button-check");
+        using var capture = screenCaptureService.CaptureCurrentScreenInMemory(".discovery-client-is-running-button-check");
         if (!clientIsRunningButtonDetector.Detect(capture.Image, out var location))
         {
             return false;
         }
 
         DrawButtonDebugOverlay(capture.Image, location.Bounds, "Client Is Running button detected");
-        ScreenCaptureService.SaveCapture(capture);
+        screenCaptureService.SaveCapture(capture);
         Logger.Warning(
             "Client Is Running button detected during {CurrentState}. CapturePath={CapturePath}",
             m_CurrentState.Kind,

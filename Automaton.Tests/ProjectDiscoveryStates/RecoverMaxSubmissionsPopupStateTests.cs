@@ -1,6 +1,5 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
-using Automaton.Primitives;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;
@@ -54,7 +53,6 @@ public sealed class RecoverMaxSubmissionsPopupStateTests
     {
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)),
-            new SampleImageProcessor(),
             persistCaptures: false);
 
         return new RecoverMaxSubmissionsPopupState(gameActionService,

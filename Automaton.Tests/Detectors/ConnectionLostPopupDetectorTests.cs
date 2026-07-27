@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Infrastructure;
 using OpenCvSharp;
 
 namespace Automaton.Tests.Detectors;
@@ -12,7 +13,7 @@ public sealed class ConnectionLostPopupDetectorTests
         using var image = SyntheticCommonImageFactory.LoadConnectionLostPopupImage();
 
         // Act
-        var detection = ConnectionLostPopupDetectionEngine.DetectPopup(image);
+        var detection = new ConnectionLostPopupDetectionEngine(ResourceLoader.Assembly).DetectPopup(image);
 
         // Assert
         Assert.Equal(PopupState.ConnectionLost, detection.State);
@@ -25,7 +26,7 @@ public sealed class ConnectionLostPopupDetectorTests
         using var image = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
 
         // Act
-        var detection = ConnectionLostPopupDetectionEngine.DetectPopup(image);
+        var detection = new ConnectionLostPopupDetectionEngine(ResourceLoader.Assembly).DetectPopup(image);
 
         // Assert
         Assert.Equal(PopupState.None, detection.State);
@@ -67,7 +68,7 @@ public sealed class ConnectionLostPopupDetectorTests
         using var image = Cv2.ImRead(imagePath);
 
         // Act
-        var detection = ConnectionLostPopupDetectionEngine.DetectPopup(image);
+        var detection = new ConnectionLostPopupDetectionEngine(ResourceLoader.Assembly).DetectPopup(image);
 
         // Assert
         Assert.Equal(PopupState.None, detection.State);
@@ -81,7 +82,7 @@ public sealed class ConnectionLostPopupDetectorTests
         using var image = Cv2.ImRead(imagePath);
 
         // Act
-        var detection = ConnectionLostPopupDetectionEngine.DetectPopup(image);
+        var detection = new ConnectionLostPopupDetectionEngine(ResourceLoader.Assembly).DetectPopup(image);
 
         // Assert
         Assert.Equal(PopupState.None, detection.State);

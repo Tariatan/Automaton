@@ -168,7 +168,6 @@ public sealed class MiningAutomationContextTests
     {
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3)),
-            new SampleImageProcessor(),
             persistCaptures: false);
         return new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
     }

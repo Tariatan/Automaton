@@ -23,8 +23,8 @@ internal sealed class AsteroidBeltOverviewDetector : IDisposable
     private static readonly double[] OverviewBeltTemplateScales = [1.0, 0.95, 1.05];
     private static readonly double[] HomeStationTemplateScales = [1.0, 0.90, 1.10, 0.80, 1.20, 1.30];
 
-    private readonly Mat m_OverviewBeltTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_belt.png");
-    private readonly Mat m_HomeStationTemplate = EmbeddedResourceLoader.LoadMat("overview.home_station.png");
+    private readonly Mat m_OverviewBeltTemplate = ResourceLoader.LoadMat("overview.overview_belt.png");
+    private readonly Mat m_HomeStationTemplate = ResourceLoader.LoadMat("overview.home_station.png");
 
     public void Dispose()
     {

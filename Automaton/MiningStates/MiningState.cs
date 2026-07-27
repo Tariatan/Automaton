@@ -35,10 +35,10 @@ internal sealed class MiningState(
 
         // Start mining
         m_Logger.Information("Start mining...");
-        while (DateTime.Now - loopStart < Delays.MiningLoopDuration)
+        while (DateTime.Now - loopStart < MiningDelays.MiningLoopDuration)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            automationInputController.Delay(Delays.MiningPollingMs, cancellationToken);
+            automationInputController.Delay(MiningDelays.MiningPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             using var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);

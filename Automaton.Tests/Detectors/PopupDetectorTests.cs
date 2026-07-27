@@ -1,4 +1,5 @@
 using Automaton.Detectors;
+using Automaton.Infrastructure;
 using OpenCvSharp;
 
 namespace Automaton.Tests.Detectors;
@@ -46,7 +47,7 @@ public sealed class PopupDetectorTests
 
     private static PopupState DetectPopupState(Mat image)
     {
-        var connectionLostDetection = ConnectionLostPopupDetectionEngine.DetectPopup(image);
+        var connectionLostDetection = new ConnectionLostPopupDetectionEngine(ResourceLoader.Assembly).DetectPopup(image);
         return connectionLostDetection.State == PopupState.ConnectionLost ? PopupState.ConnectionLost : PopupDetectionEngine.Detect(image).State;
     }
 }

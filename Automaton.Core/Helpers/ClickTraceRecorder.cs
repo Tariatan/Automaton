@@ -1,4 +1,3 @@
-using System.IO;
 using OpenCvSharp;
 using DrawingRectangle = System.Drawing.Rectangle;
 using Point = OpenCvSharp.Point;

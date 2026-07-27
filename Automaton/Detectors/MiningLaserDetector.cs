@@ -14,7 +14,7 @@ internal sealed class MiningLaserDetector : IDisposable
 
     public MiningLaserDetector()
     {
-        var original = EmbeddedResourceLoader.LoadMat("mining.mining_laser.png");
+        var original = ResourceLoader.LoadMat("mining.mining_laser.png");
         m_TemplateVariants = BuildScaledVariants(original);
     }
 

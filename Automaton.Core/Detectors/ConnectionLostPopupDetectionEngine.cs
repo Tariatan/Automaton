@@ -1,3 +1,4 @@
+using System.Reflection;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
@@ -5,7 +6,7 @@ using Serilog;
 
 namespace Automaton.Detectors;
 
-internal static class ConnectionLostPopupDetectionEngine
+internal sealed class ConnectionLostPopupDetectionEngine : IDisposable
 {
     private const int ExpectedPopupLeft = 960;
     private const int ExpectedPopupTop = 830;
@@ -20,9 +21,23 @@ internal static class ConnectionLostPopupDetectionEngine
     private const double StrongTitleThreshold = 0.62;
     private const double TitleAnchorThreshold = 0.52;
     private static readonly ILogger Logger = Log.ForContext("SourceContext", "ConnectionLostPopupDetectionEngine");
-    private static readonly Lazy<PopupTemplates> SPopupTemplates = new(PopupTemplates.Load);
 
-    public static PopupDetection DetectPopup(Mat image)
+    private readonly Lazy<PopupTemplates> m_Templates;
+
+    public ConnectionLostPopupDetectionEngine(Assembly resourceAssembly)
+    {
+        m_Templates = new Lazy<PopupTemplates>(() => PopupTemplates.Load(resourceAssembly));
+    }
+
+    public void Dispose()
+    {
+        if (m_Templates.IsValueCreated)
+        {
+            m_Templates.Value.Dispose();
+        }
+    }
+
+    public PopupDetection DetectPopup(Mat image)
     {
         if (image.Empty())
         {
@@ -86,7 +101,7 @@ internal static class ConnectionLostPopupDetectionEngine
             : PopupState.None;
     }
 
-    private static PopupScore ScorePopup(Mat searchGray, Rect searchBounds, Rect popupBounds)
+    private PopupScore ScorePopup(Mat searchGray, Rect searchBounds, Rect popupBounds)
     {
         var localPopupBounds = new Rect(
             popupBounds.X - searchBounds.X,
@@ -102,7 +117,7 @@ internal static class ConnectionLostPopupDetectionEngine
         using var titleRoi = new Mat(searchGray, titleBounds);
         using var titleRoiBinary = ToBinaryMask(titleRoi);
 
-        var templates = SPopupTemplates.Value;
+        var templates = m_Templates.Value;
         return new PopupScore(
             ButtonQuit: MatchTemplateScore(buttonRoi, templates.ButtonQuitGray),
             IconWarning: MatchTemplateScore(iconRoi, templates.IconWarningGray),
@@ -143,11 +158,11 @@ internal static class ConnectionLostPopupDetectionEngine
         return new TemplateMatchResult(maxValue, maxLocation);
     }
 
-    private static bool TryFindPopupBoundsByTitleAnchor(Mat searchGray, Rect searchBounds, Size imageSize, out Rect popupBounds)
+    private bool TryFindPopupBoundsByTitleAnchor(Mat searchGray, Rect searchBounds, Size imageSize, out Rect popupBounds)
     {
         using var searchBinary = ToBinaryMask(searchGray);
 
-        var templates = SPopupTemplates.Value;
+        var templates = m_Templates.Value;
         var titleGrayMatch = MatchTemplate(searchGray, templates.TitleConnectionLostGray);
         var titleBinaryMatch = MatchTemplate(searchBinary, templates.TitleConnectionLostBinary);
         var best = titleGrayMatch.Score >= titleBinaryMatch.Score ? titleGrayMatch : titleBinaryMatch;
@@ -194,13 +209,13 @@ internal static class ConnectionLostPopupDetectionEngine
         public Mat TitleConnectionLostGray { get; }
         public Mat TitleConnectionLostBinary { get; }
 
-        public static PopupTemplates Load()
+        public static PopupTemplates Load(Assembly resourceAssembly)
         {
             return new PopupTemplates(
-                LoadGrayTemplate("popups.button_quit.png"),
-                LoadGrayTemplate("popups.icon_warning.png"),
-                LoadGrayTemplate("popups.title_connection_lost.png"),
-                LoadBinaryTemplate("popups.title_connection_lost.png"));
+                LoadGrayTemplate("popups.button_quit.png", resourceAssembly),
+                LoadGrayTemplate("popups.icon_warning.png", resourceAssembly),
+                LoadGrayTemplate("popups.title_connection_lost.png", resourceAssembly),
+                LoadBinaryTemplate("popups.title_connection_lost.png", resourceAssembly));
         }
 
         public void Dispose()
@@ -211,9 +226,9 @@ internal static class ConnectionLostPopupDetectionEngine
             TitleConnectionLostBinary.Dispose();
         }
 
-        private static Mat LoadGrayTemplate(string resourceFile)
+        private static Mat LoadGrayTemplate(string resourceFile, Assembly assembly)
         {
-            using var template = EmbeddedResourceLoader.LoadMat(resourceFile);
+            using var template = EmbeddedResourceLoader.LoadMat(resourceFile, assembly);
             if (template.Empty())
             {
                 throw new InvalidOperationException("Popup template resource could not be decoded.");
@@ -224,9 +239,9 @@ internal static class ConnectionLostPopupDetectionEngine
             return gray;
         }
 
-        private static Mat LoadBinaryTemplate(string resourceFile)
+        private static Mat LoadBinaryTemplate(string resourceFile, Assembly assembly)
         {
-            using var gray = LoadGrayTemplate(resourceFile);
+            using var gray = LoadGrayTemplate(resourceFile, assembly);
             return ToBinaryMask(gray);
         }
     }

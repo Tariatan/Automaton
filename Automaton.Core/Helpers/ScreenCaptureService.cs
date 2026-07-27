@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.IO;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 using Serilog;
@@ -8,7 +7,6 @@ namespace Automaton.Helpers;
 
 internal sealed class ScreenCaptureService(
     IScreenCaptureProvider screenCaptureProvider,
-    SampleImageProcessor sampleImageProcessor,
     ClickTraceRecorder? clickTraceRecorder = null,
     bool persistCaptures = true)
 {
@@ -26,24 +24,6 @@ internal sealed class ScreenCaptureService(
     private const int VirtualScreenWidthMetric = 78;
     private const int VirtualScreenHeightMetric = 79;
     private static readonly ILogger Logger = Log.ForContext<ScreenCaptureService>();
-
-    public ScreenCaptureSummary CaptureAndProcessCurrentScreen()
-    {
-        var analysis = CaptureAndAnalyzeCurrentScreen();
-        return new ScreenCaptureSummary(analysis.CapturesDirectory, analysis.CapturePath, analysis.Analysis.Result);
-    }
-
-    internal ScreenCaptureAnalysisSummary CaptureAndAnalyzeCurrentScreen()
-    {
-        var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
-        using var capture = CaptureCurrentScreen();
-        var analysis = sampleImageProcessor.AnalyzeImage(capture.Image, capture.CapturePath);
-        var annotatedPath = WriteAnnotatedOutput(capture.Image, analysis, capture.CapturePath);
-        var resultWithAnnotatedPath = analysis.Result with { OutputPath = annotatedPath };
-        var analysisWithAnnotatedPath = analysis with { Result = resultWithAnnotatedPath };
-
-        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysisWithAnnotatedPath);
-    }
 
     internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "")
     {
@@ -119,35 +99,6 @@ internal sealed class ScreenCaptureService(
         return exception is ArgumentException;
     }
 
-    internal static string WriteAnnotatedOutput(Mat image, SampleImageAnalysisResult analysis, string sourceImagePath)
-    {
-        using var annotated = image.Clone();
-        DebugOverlay.DrawPlayfieldOverlay(annotated, analysis.PlayfieldDetection, analysis.Polygons);
-
-        var outputSuffix = analysis.UsedKnownSampleTemplate
-            ? $".annotated.byexample{BuildMatchedExampleSuffix(analysis.MatchedSampleFileName)}.png"
-            : ".annotated.png";
-        var outputPath = Path.Combine(
-            Path.GetDirectoryName(sourceImagePath)!,
-            Path.GetFileNameWithoutExtension(sourceImagePath) + outputSuffix);
-        ImageFileWriter.WriteImage(outputPath, annotated);
-        return outputPath;
-    }
-
-    private static string BuildMatchedExampleSuffix(string? matchedSampleFileName)
-    {
-        if (string.IsNullOrWhiteSpace(matchedSampleFileName))
-        {
-            return string.Empty;
-        }
-
-        var sampleName = Path.GetFileNameWithoutExtension(matchedSampleFileName);
-        var firstSegment = sampleName.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
-        return string.IsNullOrWhiteSpace(firstSegment)
-            ? string.Empty
-            : $".{firstSegment}";
-    }
-
     internal static Rectangle BuildGameCaptureBounds(Rectangle virtualScreenBounds)
     {
         var gameBounds = new Rectangle(
@@ -203,13 +154,3 @@ internal sealed record ScreenCaptureResult(Mat Image, string CapturePath, Rectan
 {
     public void Dispose() => Image.Dispose();
 }
-
-internal sealed record ScreenCaptureSummary(
-    string CapturesDirectory,
-    string CapturePath,
-    SampleProcessingResult Result);
-
-internal sealed record ScreenCaptureAnalysisSummary(
-    string CapturesDirectory,
-    string CapturePath,
-    SampleImageAnalysisResult Analysis);

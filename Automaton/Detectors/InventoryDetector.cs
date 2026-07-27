@@ -12,8 +12,8 @@ internal sealed class InventoryDetector : IDisposable
     private const int FirstRowHeight = 30;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_ItemHangarTemplate = EmbeddedResourceLoader.LoadMat("mining.item_hangar.png");
-    private readonly Mat m_MiningHoldTemplate = EmbeddedResourceLoader.LoadMat("mining.mining_hold.png");
+    private readonly Mat m_ItemHangarTemplate = ResourceLoader.LoadMat("mining.item_hangar.png");
+    private readonly Mat m_MiningHoldTemplate = ResourceLoader.LoadMat("mining.mining_hold.png");
 
     public void Dispose()
     {

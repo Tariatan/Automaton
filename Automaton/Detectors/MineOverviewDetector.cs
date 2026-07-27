@@ -1,6 +1,5 @@
 using Automaton.Helpers;
 using Automaton.Infrastructure;
-using Automaton.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
@@ -9,9 +8,11 @@ internal sealed class MineOverviewDetector : IDisposable
 {
     private const double MinimumHeaderMatchScore = 0.90;
     private const double EarlyExitScore = 0.95;
+    private const int MineOverviewWidth = 185;
+    private const int MineOverviewHeight = 210;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_OverviewMineTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_mine.png");
+    private readonly Mat m_OverviewMineTemplate = ResourceLoader.LoadMat("overview.overview_mine.png");
 
     public void Dispose()
     {
@@ -92,8 +93,8 @@ internal sealed class MineOverviewDetector : IDisposable
     {
         var left = Math.Clamp(overviewMineHeaderBounds.X - 10, 0, imageSize.Width);
         var top = Math.Clamp(overviewMineHeaderBounds.Y - 10, 0, imageSize.Height);
-        var right = Math.Clamp(left + Settings.MineOverviewWidth, left, imageSize.Width);
-        var bottom = Math.Clamp(top + Settings.MineOverviewHeight, top, imageSize.Height);
+        var right = Math.Clamp(left + MineOverviewWidth, left, imageSize.Width);
+        var bottom = Math.Clamp(top + MineOverviewHeight, top, imageSize.Height);
         return new Rect(left, top, right - left, bottom - top);
     }
 

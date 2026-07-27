@@ -10,6 +10,7 @@ namespace Automaton.MiningStates;
 internal sealed class SelectBeltAndWarpState(
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
+    IMiningGameActions miningGameActions,
     AsteroidBeltOverviewDetector beltOverviewDetector,
     MineOverviewDetector mineOverviewDetector,
     WarOverviewDetector warOverviewDetector,
@@ -103,7 +104,7 @@ internal sealed class SelectBeltAndWarpState(
         // Select asteroid belt
         automationInputController.ClickUiElement(GeometryHelper.Center(selectedAsteroidBelt.Bounds), cancellationToken);
         // Warp to asteroid belt
-        gameActionService.WarpToTarget(cancellationToken);
+        miningGameActions.WarpToTarget(cancellationToken);
         capture.Dispose();
 
         m_Logger.Information("Warp to asteroid belt {SelectedIndexBased} / {DetectedBeltCount}", selectedAsteroidBeltIndex + 1, availableAsteroidBelts.Length);
@@ -172,7 +173,7 @@ internal sealed class SelectBeltAndWarpState(
             }
 
             capture.Dispose();
-            automationInputController.Delay(Delays.LandingPollingMs, cancellationToken);
+            automationInputController.Delay(MiningDelays.LandingPollingMs, cancellationToken);
         }
 
         return Recover(capture.CapturePath, MiningAutomationFailureReason.DetectionMiss);

@@ -10,10 +10,11 @@ using Rect = OpenCvSharp.Rect;
 namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class DiscoverState(
-    ScreenCaptureService screenCaptureService,
+    DiscoveryCaptureFacade discoveryCapture,
     IAutomationInputController automationInputController,
     ClickTraceRecorder clickTraceRecorder,
     IGameActionService gameActionService,
+    IDiscoveryGameActions discoveryGameActions,
     IAutomationClock automationClock,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
     SlowDownPopupDetector slowDownPopupDetector,
@@ -21,6 +22,11 @@ internal sealed class DiscoverState(
 {
     private const int MaximumConsecutivePlayfieldMisses = 5;
     private const int MaximumSubmissionsPerWindow = 5;
+    private const int HoverMs = 200;
+    private const int SubmitResultMs = 5_000;
+    private const int SubmitActivationMs = 1_500;
+    private const int SubmissionWindowMs = 70_000;
+
     private static readonly OverlayColor EnabledButtonSearchOverlayColor = OverlayColor.Yellow;
     private readonly Queue<DateTime> m_SubmittedAtLocal = new();
     private readonly ILogger m_Logger = Log.ForContext<DiscoverState>();
@@ -33,11 +39,11 @@ internal sealed class DiscoverState(
         if (context.LastAction == DiscoveryAutomationActionKind.LoginPilot)
         {
             m_Logger.Information("Activate Discovery Project window after login");
-            gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
+            discoveryGameActions.ToggleProjectDiscoveryWindow(cancellationToken);
             automationInputController.Delay(Delays.LoadWindowMs, cancellationToken);
         }
 
-        var captureSummary = screenCaptureService.CaptureAndAnalyzeCurrentScreen();
+        var captureSummary = discoveryCapture.CaptureAndAnalyzeCurrentScreen();
 
         if (captureSummary.Analysis.Result.PlayfieldFound)
         {
@@ -68,17 +74,17 @@ internal sealed class DiscoverState(
             ClickPolygonPoints(captureSummary.Analysis.Polygons, cancellationToken);
         }
 
-        automationInputController.Delay(Delays.SubmitActivationMs, cancellationToken);
+        automationInputController.Delay(SubmitActivationMs, cancellationToken);
 
         var playfieldBounds = captureSummary.Analysis.PlayfieldDetection.Bounds;
-        using var postPolygonCapture = screenCaptureService.CaptureCurrentScreenInMemory(".discovery-post-polygons");
+        using var postPolygonCapture = discoveryCapture.CaptureCurrentScreenInMemory(".discovery-post-polygons");
         var enabledButtonDetection = EnabledButtonDetector.Detect(postPolygonCapture.Image, playfieldBounds);
 
         // Disabled Submit button most probably means overlapping polygons.
         if (!enabledButtonDetection.IsFound || enabledButtonDetection.ButtonBounds is null)
         {
             DrawEnabledButtonSearchOverlay(postPolygonCapture.Image, enabledButtonDetection);
-            screenCaptureService.SaveCapture(postPolygonCapture);
+            discoveryCapture.SaveCapture(postPolygonCapture);
             m_Logger.Warning("Enabled submit button was not detected after polygon clicking. Transitioning to overlap recovery");
             return new DiscoveryAutomationStateTransition(
                 Kind,
@@ -95,7 +101,7 @@ internal sealed class DiscoverState(
         // Left-click the 'Submit' button.
         automationInputController.LeftClick(cancellationToken);
         RecordSubmit(automationClock.LocalNow);
-        automationInputController.Delay(Delays.SubmitResultMs, cancellationToken);
+        automationInputController.Delay(SubmitResultMs, cancellationToken);
 
         // Take focused screen to trace the result of submission.
         var focusedCapturePath = CaptureFocusedScreenTrace(captureSummary, cancellationToken);
@@ -187,7 +193,7 @@ internal sealed class DiscoverState(
     {
         var anchor = GeometryHelper.Center(buttonBounds);
         automationInputController.MoveTo(anchor);
-        automationInputController.Delay(Delays.HoverMs, cancellationToken);
+        automationInputController.Delay(HoverMs, cancellationToken);
     }
 
     private string CaptureFocusedScreenTrace(ScreenCaptureAnalysisSummary captureSummary, CancellationToken cancellationToken)
@@ -196,7 +202,7 @@ internal sealed class DiscoverState(
         var focusedCapturePath = Path.Combine(
             captureSummary.CapturesDirectory,
             $"{Path.GetFileNameWithoutExtension(captureSummary.CapturePath)}.focused.png");
-        screenCaptureService.CaptureCurrentScreenToFile(focusedCapturePath);
+        discoveryCapture.CaptureCurrentScreenToFile(focusedCapturePath);
         return focusedCapturePath;
     }
 
@@ -221,7 +227,7 @@ internal sealed class DiscoverState(
         }
 
         var elapsed = localNow - m_SubmittedAtLocal.Peek();
-        var remaining = TimeSpan.FromMilliseconds(Delays.SubmissionWindowMs) - elapsed;
+        var remaining = TimeSpan.FromMilliseconds(SubmissionWindowMs) - elapsed;
         return remaining <= TimeSpan.Zero ? TimeSpan.Zero : remaining;
     }
 
@@ -234,7 +240,7 @@ internal sealed class DiscoverState(
     private void RemoveExpiredSubmissions(DateTime localNow)
     {
         while (m_SubmittedAtLocal.Count > 0 &&
-               (localNow - m_SubmittedAtLocal.Peek()).TotalMilliseconds >= Delays.SubmissionWindowMs)
+               (localNow - m_SubmittedAtLocal.Peek()).TotalMilliseconds >= SubmissionWindowMs)
         {
             m_SubmittedAtLocal.Dequeue();
         }

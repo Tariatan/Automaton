@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
+using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;
 
@@ -118,7 +119,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             AddTemplateDirectory(directories, adjacentSamplesDirectory);
         }
 
-        AddTemplateDirectory(directories, TelemetryRootDirectory.GetExpectedDirectory());
+        AddTemplateDirectory(directories, TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName));
         return directories;
     }
 
@@ -190,7 +191,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         polygons = [];
         playfieldSize = default;
 
-        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
+        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName);
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedExpectedPath))
         {
@@ -218,7 +219,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     {
         polygons = [];
 
-        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory();
+        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName);
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedExpectedPath))
         {

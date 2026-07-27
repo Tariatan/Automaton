@@ -1,6 +1,5 @@
 using Automaton.Detectors;
 using Automaton.Infrastructure;
-using Automaton.Properties;
 
 namespace Automaton.Tests.Detectors;
 
@@ -16,7 +15,7 @@ public sealed class PilotRegistryTests
         Directory.CreateDirectory(pilotDirectory);
         File.WriteAllText(Path.Combine(pilotDirectory, "1.png"), string.Empty);
         File.WriteAllText(Path.Combine(pilotDirectory, "2_focused.png"), string.Empty);
-        var originalDirectory = Settings.Default.PilotAvatarDirectory;
+        var originalDirectory = UserSettings.Default.PilotAvatarDirectory;
 
         try
         {
@@ -31,8 +30,8 @@ public sealed class PilotRegistryTests
         }
         finally
         {
-            Settings.Default.PilotAvatarDirectory = originalDirectory;
-            Settings.Default.Save();
+            UserSettings.Default.PilotAvatarDirectory = originalDirectory;
+            UserSettings.Default.Save();
         }
     }
 }

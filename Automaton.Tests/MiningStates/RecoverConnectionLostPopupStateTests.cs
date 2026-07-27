@@ -34,7 +34,6 @@ public sealed class RecoverConnectionLostPopupStateTests
         var state = new RecoverConnectionLostPopupState(behavior);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(() => new OpenCvSharp.Mat(1, 1, OpenCvSharp.MatType.CV_8UC3)),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 

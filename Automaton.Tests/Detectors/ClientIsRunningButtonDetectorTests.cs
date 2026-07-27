@@ -12,12 +12,12 @@ public sealed class ClientIsRunningButtonDetectorTests
         // Arrange
         using var workspace = new TemporaryDirectory();
         using var playButtonScreen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
-        using var playNowButtonDetector = new PlayNowButtonDetector();
+        using var playNowButtonDetector = new PlayNowButtonDetector(ResourceLoader.Assembly);
         var playButtonScreenPath = Path.Combine(workspace.Path, "play-button-screen.png");
         Cv2.ImWrite(playButtonScreenPath, playButtonScreen);
         Assert.True(playNowButtonDetector.Detect(playButtonScreenPath, out var playNowButtonLocation));
 
-        using var clientIsRunningButton = EmbeddedResourceLoader.LoadMat("client_is_running.png");
+        using var clientIsRunningButton = EmbeddedResourceLoader.LoadMat("client_is_running.png", ResourceLoader.Assembly);
         using var screen = new Mat(playButtonScreen.Size(), MatType.CV_8UC3, Scalar.Black);
         var expectedBounds = new Rect(
             playNowButtonLocation.Bounds.X,
@@ -31,7 +31,7 @@ public sealed class ClientIsRunningButtonDetectorTests
 
         var screenPath = Path.Combine(workspace.Path, "client-is-running-screen.png");
         Cv2.ImWrite(screenPath, screen);
-        using var detector = new ClientIsRunningButtonDetector();
+        using var detector = new ClientIsRunningButtonDetector(ResourceLoader.Assembly);
 
         // Act
         var isDetected = detector.Detect(screenPath, out var location);

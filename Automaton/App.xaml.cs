@@ -30,7 +30,7 @@ public partial class App
             PilotAvatarDirectory.GetConfiguredDirectory(),
             TelemetryRootDirectory.GetCapturesDirectory(),
             TelemetryRootDirectory.GetLogsDirectory(),
-            TelemetryRootDirectory.GetExpectedDirectory(),
+            TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName),
             PilotAvatarDirectory.GetDirectory());
 
         try
@@ -89,16 +89,16 @@ public partial class App
         Log.ForContext<App>().Information("Command-line sample processing started.");
 
         var processor = new SampleImageProcessor(new PlayfieldDetector(), null);
-        if (!Directory.Exists(Settings.ProjectDiscoverySamplesFolderName))
+        if (!Directory.Exists(DiscoverySettings.SamplesFolderName))
         {
-            throw new DirectoryNotFoundException($"Samples folder was not found: {Settings.ProjectDiscoverySamplesFolderName}");
+            throw new DirectoryNotFoundException($"Samples folder was not found: {DiscoverySettings.SamplesFolderName}");
         }
 
-        var sampleFiles = SampleImageProcessor.EnumerateSampleImageFiles(Settings.ProjectDiscoverySamplesFolderName);
+        var sampleFiles = SampleImageProcessor.EnumerateSampleImageFiles(DiscoverySettings.SamplesFolderName);
 
         if (sampleFiles.Count == 0)
         {
-            throw new InvalidOperationException($"No files were found in {Settings.ProjectDiscoverySamplesFolderName}.");
+            throw new InvalidOperationException($"No files were found in {DiscoverySettings.SamplesFolderName}.");
         }
 
         var results = new List<SampleProcessingResult>(sampleFiles.Count);
@@ -106,13 +106,13 @@ public partial class App
         {
             using var image = Cv2.ImRead(sampleFile);
             var analysis = processor.AnalyzeImage(image, sampleFile);
-            var outputPath = ScreenCaptureService.WriteAnnotatedOutput(image, analysis, sampleFile);
+            var outputPath = DiscoveryCaptureFacade.WriteAnnotatedOutput(image, analysis, sampleFile);
             results.Add(analysis.Result with { OutputPath = outputPath });
         }
 
         Log.ForContext<App>().Information(
             "Command-line sample processing finished. SamplesDirectory={SamplesDirectory}, ResultCount={ResultCount}",
-            Settings.ProjectDiscoverySamplesFolderName,
+            DiscoverySettings.SamplesFolderName,
             results.Count);
     }
 }

@@ -11,7 +11,7 @@ internal sealed class LocationChangeTimerDetector : IDisposable
     private static readonly Rect SearchBounds = new(130, 20, 270, 80);
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_Template = EmbeddedResourceLoader.LoadMat("location_change_timer.png");
+    private readonly Mat m_Template = ResourceLoader.LoadMat("location_change_timer.png");
 
     public void Dispose() => m_Template.Dispose();
 

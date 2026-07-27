@@ -16,9 +16,9 @@ internal sealed class MiningAsteroidDetector : IDisposable
     {
         Mat[] originals =
         [
-            EmbeddedResourceLoader.LoadMat("mining.asteroid_pyroxeres.png"),
-            EmbeddedResourceLoader.LoadMat("mining.asteroid_scordite.png"),
-            EmbeddedResourceLoader.LoadMat("mining.asteroid_veldspar.png")
+            ResourceLoader.LoadMat("mining.asteroid_pyroxeres.png"),
+            ResourceLoader.LoadMat("mining.asteroid_scordite.png"),
+            ResourceLoader.LoadMat("mining.asteroid_veldspar.png")
         ];
 
         m_TemplateVariants = new Mat[originals.Length][];

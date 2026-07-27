@@ -72,7 +72,7 @@ internal static class NothingFoundDetector
 
     private static Mat[] BuildScaledTemplates()
     {
-        using var original = EmbeddedResourceLoader.LoadMat("overview.nothing_found.png");
+        using var original = ResourceLoader.LoadMat("overview.nothing_found.png");
         using var originalGray = new Mat();
         Cv2.CvtColor(original, originalGray, ColorConversionCodes.BGR2GRAY);
 

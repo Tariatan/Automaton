@@ -11,7 +11,7 @@ internal class FirstAsteroidWithinReachDetector : IDisposable
 
     private static Mat LoadGray(string resourceFileName)
     {
-        using var color = EmbeddedResourceLoader.LoadMat(resourceFileName);
+        using var color = ResourceLoader.LoadMat(resourceFileName);
         var gray = new Mat();
         Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
         return gray;

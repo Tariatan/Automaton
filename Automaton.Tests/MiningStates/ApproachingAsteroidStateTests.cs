@@ -14,7 +14,7 @@ public sealed class ApproachingAsteroidStateTests
         // Arrange
         var state = new ApproachingAsteroidState(
             new StubAutomationInputController(),
-            new StubGameActionService(),
+            new StubMiningGameActions(),
             new MineOverviewDetector(),
             new FirstAsteroidWithinReachDetector());
 
@@ -31,13 +31,13 @@ public sealed class ApproachingAsteroidStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticCommonImageFactory.LoadPlayButtonScreenImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionServiceMock = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
-            gameActionServiceMock,
+            miningGameActions,
             new MineOverviewDetector(),
             new FirstAsteroidWithinReachDetector());
 
@@ -51,12 +51,12 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
-        Assert.Equal(1, gameActionServiceMock.TogglePropulsionModuleCallCount);
+        Assert.Equal(1, miningGameActions.TogglePropulsionModuleCallCount);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
-        Assert.Equal(0, gameActionServiceMock.TriggerTargetApproachCallCount);
-        Assert.Equal(0, gameActionServiceMock.TriggerTargetLockCallCount);
-        Assert.Equal(0, gameActionServiceMock.ToggleFirstLaserCallCount);
-        Assert.Equal(0, gameActionServiceMock.ToggleSecondLaserCallCount);
+        Assert.Equal(0, miningGameActions.TriggerTargetApproachCallCount);
+        Assert.Equal(0, miningGameActions.TriggerTargetLockCallCount);
+        Assert.Equal(0, miningGameActions.ToggleFirstLaserCallCount);
+        Assert.Equal(0, miningGameActions.ToggleSecondLaserCallCount);
     }
 
     [Fact]
@@ -65,13 +65,13 @@ public sealed class ApproachingAsteroidStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadLandedOnEmptyAsteroidBeltImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionServiceMock = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
-            gameActionServiceMock,
+            miningGameActions,
             new MineOverviewDetector(),
             new FirstAsteroidWithinReachDetector());
 
@@ -85,7 +85,7 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
-        Assert.Equal(1, gameActionServiceMock.TogglePropulsionModuleCallCount);
+        Assert.Equal(1, miningGameActions.TogglePropulsionModuleCallCount);
         Assert.Empty(automationInputControllerMock.MoveTargets);
         Assert.Equal(0, automationInputControllerMock.ClickCount);
     }
@@ -97,13 +97,13 @@ public sealed class ApproachingAsteroidStateTests
         var detectInvocationCount = 0;
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionServiceMock = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
-            gameActionServiceMock,
+            miningGameActions,
             new MineOverviewDetector(),
             new StubFirstAsteroidWithinReachDetector(
                 () =>
@@ -126,12 +126,12 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(1, detectInvocationCount);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
         Assert.Single(automationInputControllerMock.Delays);
-        Assert.Equal(Delays.LockAsteroidMs, automationInputControllerMock.Delays[0]);
-        Assert.Equal(2, gameActionServiceMock.TogglePropulsionModuleCallCount);
-        Assert.Equal(1, gameActionServiceMock.TriggerTargetApproachCallCount);
-        Assert.Equal(1, gameActionServiceMock.TriggerTargetLockCallCount);
-        Assert.Equal(1, gameActionServiceMock.ToggleFirstLaserCallCount);
-        Assert.Equal(1, gameActionServiceMock.ToggleSecondLaserCallCount);
+        Assert.Equal(MiningDelays.LockAsteroidMs, automationInputControllerMock.Delays[0]);
+        Assert.Equal(2, miningGameActions.TogglePropulsionModuleCallCount);
+        Assert.Equal(1, miningGameActions.TriggerTargetApproachCallCount);
+        Assert.Equal(1, miningGameActions.TriggerTargetLockCallCount);
+        Assert.Equal(1, miningGameActions.ToggleFirstLaserCallCount);
+        Assert.Equal(1, miningGameActions.ToggleSecondLaserCallCount);
     }
 
     [Fact]
@@ -148,10 +148,10 @@ public sealed class ApproachingAsteroidStateTests
                     ? SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage()
                     : SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImageWithMetersDistance();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionServiceMock = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var firstAsteroidWithinReachDetectorMock = new StubFirstAsteroidWithinReachDetector(
             () =>
             {
@@ -161,7 +161,7 @@ public sealed class ApproachingAsteroidStateTests
             });
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
-            gameActionServiceMock,
+            miningGameActions,
             new MineOverviewDetector(),
             firstAsteroidWithinReachDetectorMock);
 
@@ -180,13 +180,13 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(2, detectInvocationCount);
         Assert.Equal(2, automationInputControllerMock.MoveTargets.Count);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
-        Assert.Equal(Delays.ApproachAsteroidDistancePollingMs, automationInputControllerMock.Delays[0]);
-        Assert.Equal(Delays.LockAsteroidMs, automationInputControllerMock.Delays[1]);
-        Assert.Equal(2, gameActionServiceMock.TogglePropulsionModuleCallCount);
-        Assert.Equal(1, gameActionServiceMock.TriggerTargetApproachCallCount);
-        Assert.Equal(1, gameActionServiceMock.TriggerTargetLockCallCount);
-        Assert.Equal(1, gameActionServiceMock.ToggleFirstLaserCallCount);
-        Assert.Equal(1, gameActionServiceMock.ToggleSecondLaserCallCount);
+        Assert.Equal(MiningDelays.ApproachAsteroidDistancePollingMs, automationInputControllerMock.Delays[0]);
+        Assert.Equal(MiningDelays.LockAsteroidMs, automationInputControllerMock.Delays[1]);
+        Assert.Equal(2, miningGameActions.TogglePropulsionModuleCallCount);
+        Assert.Equal(1, miningGameActions.TriggerTargetApproachCallCount);
+        Assert.Equal(1, miningGameActions.TriggerTargetLockCallCount);
+        Assert.Equal(1, miningGameActions.ToggleFirstLaserCallCount);
+        Assert.Equal(1, miningGameActions.ToggleSecondLaserCallCount);
     }
 
     [Fact]
@@ -195,13 +195,13 @@ public sealed class ApproachingAsteroidStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionServiceMock = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
-            gameActionServiceMock,
+            miningGameActions,
             new MineOverviewDetector(),
             new StubFirstAsteroidWithinReachDetector(
                 () => new FirstAsteroidWithinReachAnalysis(false, null, null, 0.99, 1.0)));
@@ -217,11 +217,11 @@ public sealed class ApproachingAsteroidStateTests
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
         Assert.Equal(2, automationInputControllerMock.ClickCount);
-        Assert.Equal(1, gameActionServiceMock.TogglePropulsionModuleCallCount);
-        Assert.Equal(2, gameActionServiceMock.TriggerTargetApproachCallCount);
-        Assert.Equal(0, gameActionServiceMock.TriggerTargetLockCallCount);
-        Assert.Equal(0, gameActionServiceMock.ToggleFirstLaserCallCount);
-        Assert.Equal(0, gameActionServiceMock.ToggleSecondLaserCallCount);
+        Assert.Equal(1, miningGameActions.TogglePropulsionModuleCallCount);
+        Assert.Equal(2, miningGameActions.TriggerTargetApproachCallCount);
+        Assert.Equal(0, miningGameActions.TriggerTargetLockCallCount);
+        Assert.Equal(0, miningGameActions.ToggleFirstLaserCallCount);
+        Assert.Equal(0, miningGameActions.ToggleSecondLaserCallCount);
     }
 
     [Fact]
@@ -230,12 +230,12 @@ public sealed class ApproachingAsteroidStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var gameActionServiceMock = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new ApproachingAsteroidState(
             new StubAutomationInputController(),
-            gameActionServiceMock,
+            miningGameActions,
             new MineOverviewDetector(),
             new FirstAsteroidWithinReachDetector());
         using var cts = new CancellationTokenSource();
@@ -246,7 +246,7 @@ public sealed class ApproachingAsteroidStateTests
             state.Execute(
                 new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
                 cts.Token));
-        Assert.Equal(0, gameActionServiceMock.TogglePropulsionModuleCallCount);
+        Assert.Equal(0, miningGameActions.TogglePropulsionModuleCallCount);
     }
 
     [Fact]
@@ -255,7 +255,6 @@ public sealed class ApproachingAsteroidStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         using var cts = new CancellationTokenSource();
         var automationInputControllerMock = new StubAutomationInputController
@@ -263,9 +262,10 @@ public sealed class ApproachingAsteroidStateTests
             OnDelay = _ => cts.Cancel()
         };
         var gameActionServiceMock = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new ApproachingAsteroidState(
             automationInputControllerMock,
-            gameActionServiceMock,
+            miningGameActions,
             new MineOverviewDetector(),
             new StubFirstAsteroidWithinReachDetector(
                 () => new FirstAsteroidWithinReachAnalysis(false, null, null, 0.99, 1.0)));
@@ -275,8 +275,8 @@ public sealed class ApproachingAsteroidStateTests
             state.Execute(
                 new MiningAutomationContext(screenCaptureService, new StubAutomationClock()),
                 cts.Token));
-        Assert.Equal(1, gameActionServiceMock.TogglePropulsionModuleCallCount);
-        Assert.Equal(1, gameActionServiceMock.TriggerTargetApproachCallCount);
+        Assert.Equal(1, miningGameActions.TogglePropulsionModuleCallCount);
+        Assert.Equal(1, miningGameActions.TriggerTargetApproachCallCount);
         Assert.Equal(1, automationInputControllerMock.ClickCount);
     }
 

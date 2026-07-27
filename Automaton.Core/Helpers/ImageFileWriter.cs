@@ -1,4 +1,3 @@
-using System.IO;
 using OpenCvSharp;
 
 namespace Automaton.Helpers;

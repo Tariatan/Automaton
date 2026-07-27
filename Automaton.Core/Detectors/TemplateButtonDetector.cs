@@ -1,3 +1,4 @@
+using System.Reflection;
 using Automaton.Helpers;
 using Automaton.Infrastructure;
 using OpenCvSharp;
@@ -12,9 +13,9 @@ internal sealed class TemplateButtonDetector : IDisposable
 
     private readonly Mat m_TemplateGray;
 
-    public TemplateButtonDetector(string resourceFileName)
+    public TemplateButtonDetector(string resourceFileName, Assembly resourceAssembly)
     {
-        using var template = EmbeddedResourceLoader.LoadMat(resourceFileName);
+        using var template = EmbeddedResourceLoader.LoadMat(resourceFileName, resourceAssembly);
         m_TemplateGray = new Mat();
         Cv2.CvtColor(template, m_TemplateGray, ColorConversionCodes.BGR2GRAY);
     }

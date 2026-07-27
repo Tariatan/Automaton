@@ -391,7 +391,7 @@ internal sealed class PlayfieldDetector : IDisposable
 
     private static Mat LoadMarkerFromResources()
     {
-        return EmbeddedResourceLoader.LoadMat("discovery.marker.png", ImreadModes.Grayscale);
+        return ResourceLoader.LoadMat("discovery.marker.png", ImreadModes.Grayscale);
     }
 
     private static Mat BuildEdgeMap(Mat input)

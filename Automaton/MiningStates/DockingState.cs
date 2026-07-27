@@ -7,12 +7,13 @@ namespace Automaton.MiningStates;
 
 internal sealed class DockingState(
     IAutomationInputController automationInputController,
-    IGameActionService gameActionService,
+    IMiningGameActions miningGameActions,
     AsteroidBeltOverviewDetector asteroidBeltOverviewDetector)
     : IMiningAutomationState
 {
     private const string CaptureSuffix = ".mining-dock";
     private const string DockedCaptureSuffix = ".mining-docked-polling";
+    private const int DockedPollingMs = 5_000;
 
     private readonly ILogger m_Logger = Log.ForContext<DockingState>();
 
@@ -40,15 +41,15 @@ internal sealed class DockingState(
         automationInputController.ClickUiElement(GeometryHelper.Center(analysis.HomeStationBounds!.Value), cancellationToken);
 
         // Wait 1 second
-        automationInputController.Delay(Delays.BeforeDockMs, cancellationToken);
+        automationInputController.Delay(MiningDelays.BeforeDockMs, cancellationToken);
 
         // Warping home
-        gameActionService.WarpToTargetAndDock(cancellationToken);
+        miningGameActions.WarpToTargetAndDock(cancellationToken);
 
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            automationInputController.Delay(Delays.DockedPollingMs, cancellationToken);
+            automationInputController.Delay(DockedPollingMs, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             capture = context.ScreenCaptureService.CaptureCurrentScreen(DockedCaptureSuffix);
@@ -63,7 +64,7 @@ internal sealed class DockingState(
             capture.Dispose();
         }
 
-        automationInputController.Delay(Delays.DockedBounceMs, cancellationToken);
+        automationInputController.Delay(MiningDelays.DockedBounceMs, cancellationToken);
 
         var transitionResult = new MiningAutomationStateTransition(
             Kind,

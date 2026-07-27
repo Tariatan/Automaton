@@ -22,7 +22,6 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -30,7 +29,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -52,7 +51,6 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -60,7 +58,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -82,15 +80,14 @@ public sealed class RecoveryStateTests
         using var screen = CreatePlayButtonScreen(new Point(260, 340));
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(screen.Clone),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(screen.Clone));
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
         var state = new RecoveryState(
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
         // Act
@@ -110,7 +107,6 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -118,7 +114,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
         // Act
@@ -139,7 +135,6 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -147,7 +142,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -171,7 +166,6 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -179,7 +173,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.Recover
@@ -203,7 +197,6 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -211,7 +204,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
         {
             LastAction = MiningAutomationActionKind.RestartGame
@@ -236,7 +229,6 @@ public sealed class RecoveryStateTests
         var beltOverviewDetector = new AsteroidBeltOverviewDetector();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(screen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -244,7 +236,7 @@ public sealed class RecoveryStateTests
             automationInputController,
             gameActionService,
             beltOverviewDetector,
-            new PlayNowButtonDetector());
+            new PlayNowButtonDetector(ResourceLoader.Assembly));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock());
 
         // Act
@@ -263,7 +255,7 @@ public sealed class RecoveryStateTests
     private static Mat CreatePlayButtonScreen(Point playButtonLocation)
     {
         var screen = new Mat(new Size(900, 640), MatType.CV_8UC3, new Scalar(18, 18, 18));
-        using var playButton = EmbeddedResourceLoader.LoadMat("play.png");
+        using var playButton = EmbeddedResourceLoader.LoadMat("play.png", ResourceLoader.Assembly);
         using var region = new Mat(screen, new Rect(playButtonLocation.X, playButtonLocation.Y, playButton.Width, playButton.Height));
         playButton.CopyTo(region);
         return screen;

@@ -155,7 +155,6 @@ public sealed class LoginStateTests
         using var pilotScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(pilotScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var gameActionService = new StubGameActionService();
         var automationInputControllerMock = new StubAutomationInputController();
@@ -201,8 +200,7 @@ public sealed class LoginStateTests
         WritePilotAvatarTemplates(pilotDirectory, 2);
         using var blankScreen = SyntheticCommonImageFactory.LoadPilotAvatarImage(1);
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(blankScreen.Clone));
         var automationInputControllerMock = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
         var state = new LoginState(gameActionService, automationInputControllerMock, new PilotAvatarDetector(), new LoggedInPilotDetector());
@@ -251,8 +249,7 @@ public sealed class LoginStateTests
         return new ScreenCaptureService(
             new StubScreenCaptureProvider(() => captures.Count > 0
                 ? captures.Dequeue()()
-                : throw new InvalidOperationException("No screen capture queued.")),
-            new SampleImageProcessor());
+                : throw new InvalidOperationException("No screen capture queued.")));
     }
 
     private static Mat BuildLoggedInScreenWithoutPilotPortrait(Mat source)

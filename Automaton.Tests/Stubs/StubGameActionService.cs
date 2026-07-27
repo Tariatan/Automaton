@@ -13,14 +13,6 @@ internal sealed class StubGameActionService : IGameActionService
     public bool RebootOperatingSystemCalled { get; private set; }
     public bool ShutdownOperatingSystemCalled { get; private set; }
     public int CloseActiveWindowCallCount { get; private set; }
-    public int ToggleProjectDiscoveryWindowCallCount { get; private set; }
-    public int ToggleFirstLaserCallCount { get; private set; }
-    public int ToggleSecondLaserCallCount { get; private set; }
-    public int TogglePropulsionModuleCallCount { get; private set; }
-    public int TriggerTargetLockCallCount { get; private set; }
-    public int TriggerTargetApproachCallCount { get; private set; }
-    public int WarpToTargetCallCount { get; private set; }
-    public int WarpToTargetAndDockCallCount { get; private set; }
     public int TryHideUiCallCount { get; private set; }
     public Size? LastTryHideUiImageSize { get; private set; }
     public Action? OnCloseGameClient { get; init; }
@@ -74,53 +66,5 @@ internal sealed class StubGameActionService : IGameActionService
     {
         cancellationToken.ThrowIfCancellationRequested();
         CloseActiveWindowCallCount++;
-    }
-
-    public void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ToggleProjectDiscoveryWindowCallCount++;
-    }
-
-    public void ToggleFirstLaser(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ToggleFirstLaserCallCount++;
-    }
-
-    public void ToggleSecondLaser(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ToggleSecondLaserCallCount++;
-    }
-
-    public void TogglePropulsionModule(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        TogglePropulsionModuleCallCount++;
-    }
-
-    public void TriggerTargetLock(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        TriggerTargetLockCallCount++;
-    }
-
-    public void TriggerTargetApproach(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        TriggerTargetApproachCallCount++;
-    }
-
-    public void WarpToTarget(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        WarpToTargetCallCount++;
-    }
-
-    public void WarpToTargetAndDock(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        WarpToTargetAndDockCallCount++;
     }
 }

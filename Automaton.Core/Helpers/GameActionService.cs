@@ -80,7 +80,7 @@ internal sealed class GameActionService : IGameActionService
             VirtualKeys.Shift,
             VirtualKeys.Q,
             cancellationToken,
-            holdDelayMs: Delays.ProjectDiscoveryWindowToggleChordHoldMs);
+            holdDelayMs: Delays.CloseGameClientChordHoldMs);
     }
 
     public void Logout(
@@ -220,59 +220,6 @@ internal sealed class GameActionService : IGameActionService
     {
         m_Logger.Information("Hide active window");
         m_InputController.PressKeyChordWithHold(VirtualKeys.Control, VirtualKeys.Q, cancellationToken);
-    }
-
-    public void ToggleProjectDiscoveryWindow(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Toggle Project Discovery window");
-        m_InputController.PressKeyChordWithHold(
-            VirtualKeys.Alt,
-            VirtualKeys.L,
-            cancellationToken,
-            holdDelayMs: Delays.ProjectDiscoveryWindowToggleChordHoldMs);
-        m_InputController.Delay(Delays.WindowActivationMs, cancellationToken);
-    }
-
-    public void ToggleFirstLaser(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Toggle first laser");
-        m_InputController.PressKey(VirtualKeys.F1, cancellationToken);
-    }
-
-    public void ToggleSecondLaser(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Toggle second laser");
-        m_InputController.PressKey(VirtualKeys.F2, cancellationToken);
-    }
-
-    public void TogglePropulsionModule(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Toggle propulsion module");
-        m_InputController.PressKey(VirtualKeys.F4, cancellationToken);
-    }
-
-    public void TriggerTargetLock(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Trigger target lock");
-        m_InputController.PressKey(VirtualKeys.Control, cancellationToken);
-    }
-
-    public void TriggerTargetApproach(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Trigger target approach");
-        m_InputController.PressKey(VirtualKeys.A, cancellationToken);
-    }
-
-    public void WarpToTarget(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Warping to target");
-        m_InputController.PressKey(VirtualKeys.S, cancellationToken);
-    }
-
-    public void WarpToTargetAndDock(CancellationToken cancellationToken)
-    {
-        m_Logger.Information("Warping to target and docking");
-        m_InputController.PressKey(VirtualKeys.D, cancellationToken);
     }
 
     private void ToggleUiVisibility(CancellationToken cancellationToken)

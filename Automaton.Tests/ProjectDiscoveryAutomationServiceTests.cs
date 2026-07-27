@@ -311,7 +311,7 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     private sealed class ProjectDiscoveryAutomationServiceHarness : IDisposable
     {
         private readonly PlayfieldDetector m_PlayfieldDetector = new();
-        private readonly ClientIsRunningButtonDetector m_ClientIsRunningButtonDetector = new();
+        private readonly ClientIsRunningButtonDetector m_ClientIsRunningButtonDetector = new(ResourceLoader.Assembly);
 
         public ProjectDiscoveryAutomationServiceHarness(
             IDiscoveryAutomationStateFactory? discoveryAutomationStateFactory = null,
@@ -323,16 +323,16 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             var sampleImageProcessor = new SampleImageProcessor(m_PlayfieldDetector, null);
             var screenCaptureService = new ScreenCaptureService(
                 screenCaptureProvider ?? new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)),
-                sampleImageProcessor,
                 persistCaptures: persistCaptures);
+            var discoveryCapture = new DiscoveryCaptureFacade(screenCaptureService, sampleImageProcessor);
 
             Service = new ProjectDiscoveryAutomationService(
                 screenCaptureService,
-                sampleImageProcessor,
+                discoveryCapture,
                 m_PlayfieldDetector,
                 automationInputController ?? new StubAutomationInputController(),
                 gameActionService ?? new StubGameActionService(),
-                new ConnectionLostPopupDetector(),
+                new ConnectionLostPopupDetector(ResourceLoader.Assembly),
                 m_ClientIsRunningButtonDetector,
                 discoveryAutomationStateFactory ?? new StubDiscoveryAutomationStateFactory());
         }
@@ -377,13 +377,13 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     private static Mat CreateClientIsRunningButtonScreen()
     {
         using var playButtonScreen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
-        using var playNowButtonDetector = new PlayNowButtonDetector();
+        using var playNowButtonDetector = new PlayNowButtonDetector(ResourceLoader.Assembly);
         using var workspace = new TemporaryDirectory();
         var playButtonScreenPath = Path.Combine(workspace.Path, "play-button-screen.png");
         Cv2.ImWrite(playButtonScreenPath, playButtonScreen);
         Assert.True(playNowButtonDetector.Detect(playButtonScreenPath, out var playNowButtonLocation));
 
-        using var clientIsRunningButton = EmbeddedResourceLoader.LoadMat("client_is_running.png");
+        using var clientIsRunningButton = EmbeddedResourceLoader.LoadMat("client_is_running.png", ResourceLoader.Assembly);
         var screen = new Mat(playButtonScreen.Size(), MatType.CV_8UC3, Scalar.Black);
         var expectedBounds = new Rect(
             playNowButtonLocation.Bounds.X,

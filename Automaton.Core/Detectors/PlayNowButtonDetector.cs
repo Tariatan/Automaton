@@ -1,10 +1,16 @@
+using System.Reflection;
 using OpenCvSharp;
 
 namespace Automaton.Detectors;
 
 internal sealed class PlayNowButtonDetector : IDisposable
 {
-    private readonly TemplateButtonDetector m_Detector = new("play.png");
+    private readonly TemplateButtonDetector m_Detector;
+
+    public PlayNowButtonDetector(Assembly resourceAssembly)
+    {
+        m_Detector = new TemplateButtonDetector("play.png", resourceAssembly);
+    }
 
     public void Dispose()
     {

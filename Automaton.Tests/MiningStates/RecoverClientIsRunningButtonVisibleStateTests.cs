@@ -16,7 +16,7 @@ public sealed class RecoverClientIsRunningButtonVisibleStateTests
     {
         // Arrange
         var automationInputController = new StubAutomationInputController();
-        using var clientIsRunningButtonDetector = new ClientIsRunningButtonDetector();
+        using var clientIsRunningButtonDetector = new ClientIsRunningButtonDetector(ResourceLoader.Assembly);
         var state = new RecoverClientIsRunningButtonVisibleState(
             new CommonRecoverClientIsRunningButtonVisibleState(automationInputController, clientIsRunningButtonDetector));
 
@@ -34,10 +34,9 @@ public sealed class RecoverClientIsRunningButtonVisibleStateTests
         using var screen = CreateClientIsRunningButtonScreen(out var expectedBounds);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(screen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        using var clientIsRunningButtonDetector = new ClientIsRunningButtonDetector();
+        using var clientIsRunningButtonDetector = new ClientIsRunningButtonDetector(ResourceLoader.Assembly);
         var state = new RecoverClientIsRunningButtonVisibleState(
             new CommonRecoverClientIsRunningButtonVisibleState(automationInputController, clientIsRunningButtonDetector));
         var context = new MiningAutomationContext(screenCaptureService, new StubAutomationClock())
@@ -61,7 +60,7 @@ public sealed class RecoverClientIsRunningButtonVisibleStateTests
 
     private static Mat CreateClientIsRunningButtonScreen(out Rect expectedBounds)
     {
-        using var clientIsRunningButton = EmbeddedResourceLoader.LoadMat("client_is_running.png");
+        using var clientIsRunningButton = EmbeddedResourceLoader.LoadMat("client_is_running.png", ResourceLoader.Assembly);
         expectedBounds = new Rect(120, 80, clientIsRunningButton.Width, clientIsRunningButton.Height);
         var screen = new Mat(
             new Size(expectedBounds.Right + 80, expectedBounds.Bottom + 80),

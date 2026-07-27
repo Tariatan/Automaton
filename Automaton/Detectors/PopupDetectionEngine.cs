@@ -284,7 +284,7 @@ internal static class PopupDetectionEngine
 
         private static Mat LoadGrayTemplate(string resourceFile)
         {
-            using var template = EmbeddedResourceLoader.LoadMat(resourceFile);
+            using var template = ResourceLoader.LoadMat(resourceFile);
             if (template.Empty())
             {
                 throw new InvalidOperationException("Popup template resource could not be decoded.");

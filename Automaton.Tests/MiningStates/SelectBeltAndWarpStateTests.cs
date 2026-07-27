@@ -22,13 +22,14 @@ public sealed class SelectBeltAndWarpStateTests
                     ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
                     : SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new SelectBeltAndWarpState(
             automationInputController,
             gameActionService,
+            miningGameActions,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),
@@ -46,9 +47,9 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
-        Assert.Equal([Delays.LandingPollingMs], automationInputController.Delays);
+        Assert.Equal([MiningDelays.LandingPollingMs], automationInputController.Delays);
         Assert.Equal(4, automationInputController.MoveTargets.Count);
-        Assert.Equal(1, gameActionService.WarpToTargetCallCount);
+        Assert.Equal(1, miningGameActions.WarpToTargetCallCount);
         Assert.InRange(automationInputController.MoveTargets[0].X, 2200, 2320);
         Assert.InRange(automationInputController.MoveTargets[0].Y, 330, 370);
         AssertMouseParked(automationInputController.MoveTargets[1]);
@@ -63,12 +64,12 @@ public sealed class SelectBeltAndWarpStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadUndockedWithoutBeltOverviewImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             automationInputController,
             new StubGameActionService(),
+            new StubMiningGameActions(),
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),
@@ -101,13 +102,13 @@ public sealed class SelectBeltAndWarpStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadInSpaceBeltOverviewWithoutHomeStationImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
         var state = new SelectBeltAndWarpState(
             automationInputController,
             gameActionService,
+            new StubMiningGameActions(),
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),
@@ -142,13 +143,14 @@ public sealed class SelectBeltAndWarpStateTests
                         ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
                         : SyntheticMiningImageFactory.LoadLandedOnAsteroidBeltImage();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
+        var miningGameActions = new StubMiningGameActions();
         var state = new SelectBeltAndWarpState(
             automationInputController,
             gameActionService,
+            miningGameActions,
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),
@@ -166,7 +168,7 @@ public sealed class SelectBeltAndWarpStateTests
         Assert.Equal(MiningAutomationFailureReason.None, transition.FailureReason);
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(2, automationInputController.ClickCount);
-        Assert.Equal(1, gameActionService.WarpToTargetCallCount);
+        Assert.Equal(1, miningGameActions.WarpToTargetCallCount);
     }
 
     [Fact]
@@ -182,12 +184,12 @@ public sealed class SelectBeltAndWarpStateTests
                     ? SyntheticMiningImageFactory.LoadWarpToAsteroidFieldImage()
                     : SyntheticMiningImageFactory.LoadLandedOnBusyAsteroidBeltImage();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new SelectBeltAndWarpState(
             automationInputController,
             new StubGameActionService(),
+            new StubMiningGameActions(),
             new AsteroidBeltOverviewDetector(),
             new MineOverviewDetector(),
             new WarOverviewDetector(),

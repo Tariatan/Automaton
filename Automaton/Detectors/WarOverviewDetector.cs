@@ -10,7 +10,7 @@ internal sealed class WarOverviewDetector : IDisposable
     private const double EarlyExitScore = 0.95;
     private static readonly double[] TemplateScales = [1.0, 0.95, 1.05];
 
-    private readonly Mat m_OverviewWarTemplate = EmbeddedResourceLoader.LoadMat("overview.overview_war.png");
+    private readonly Mat m_OverviewWarTemplate = ResourceLoader.LoadMat("overview.overview_war.png");
 
     public void Dispose()
     {

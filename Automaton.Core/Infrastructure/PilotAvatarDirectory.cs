@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace Automaton.Infrastructure;
 
 internal static class PilotAvatarDirectory
@@ -15,7 +13,7 @@ internal static class PilotAvatarDirectory
     {
         try
         {
-            var configuredDirectory = Properties.Settings.Default.PilotAvatarDirectory;
+            var configuredDirectory = UserSettings.Default.PilotAvatarDirectory;
             return string.IsNullOrWhiteSpace(configuredDirectory) ? null : configuredDirectory;
         }
         catch (Exception) when (!OperatingSystem.IsWindows())
@@ -27,7 +25,7 @@ internal static class PilotAvatarDirectory
     public static void SetConfiguredDirectory(string directory)
     {
         var fullDirectory = Path.GetFullPath(directory);
-        Properties.Settings.Default.PilotAvatarDirectory = fullDirectory;
-        Properties.Settings.Default.Save();
+        UserSettings.Default.PilotAvatarDirectory = fullDirectory;
+        UserSettings.Default.Save();
     }
 }

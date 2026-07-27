@@ -14,7 +14,8 @@ public sealed class ScreenCaptureServiceTests
         using var workspace = new TemporaryDirectory();
         var screenCaptureProvider = new StubScreenCaptureProvider(
             () => ScreenshotLoader.LoadOrSkip("Discovery/active_playfield_two_clusters.png"));
-        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
+        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider);
+        var discoveryCapture = new DiscoveryCaptureFacade(screenCaptureService, new SampleImageProcessor());
         ScreenCaptureSummary summary;
 
         // Act
@@ -23,7 +24,7 @@ public sealed class ScreenCaptureServiceTests
 
         try
         {
-            summary = screenCaptureService.CaptureAndProcessCurrentScreen();
+            summary = discoveryCapture.CaptureAndProcessCurrentScreen();
         }
         finally
         {
@@ -47,7 +48,8 @@ public sealed class ScreenCaptureServiceTests
         DefaultFallbackExampleFactory.Create(workspace.Path);
         var screenCaptureProvider = new StubScreenCaptureProvider(
             () => new Mat(new Size(1200, 900), MatType.CV_8UC3, Scalar.All(0)));
-        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
+        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider);
+        var discoveryCapture = new DiscoveryCaptureFacade(screenCaptureService, new SampleImageProcessor());
         ScreenCaptureSummary summary;
 
         // Act
@@ -56,7 +58,7 @@ public sealed class ScreenCaptureServiceTests
 
         try
         {
-            summary = screenCaptureService.CaptureAndProcessCurrentScreen();
+            summary = discoveryCapture.CaptureAndProcessCurrentScreen();
         }
         finally
         {
@@ -77,7 +79,7 @@ public sealed class ScreenCaptureServiceTests
         using var workspace = new TemporaryDirectory();
         var screenCaptureProvider = new StubScreenCaptureProvider(
             () => new Mat(new Size(4, 3), MatType.CV_8UC3, Scalar.Black));
-        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
+        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider);
         var currentDirectory = Directory.GetCurrentDirectory();
 
         // Act
@@ -105,7 +107,7 @@ public sealed class ScreenCaptureServiceTests
         using var workspace = new TemporaryDirectory();
         var screenCaptureProvider = new StubScreenCaptureProvider(
             () => new Mat(new Size(4, 3), MatType.CV_8UC3, Scalar.Black));
-        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider, new SampleImageProcessor());
+        var screenCaptureService = new ScreenCaptureService(screenCaptureProvider);
         var currentDirectory = Directory.GetCurrentDirectory();
 
         // Act

@@ -6,8 +6,11 @@ namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class RecoverSlowDownPopupState(
     IAutomationInputController automationInputController,
-    IGameActionService gameActionService) : IProjectDiscoveryAutomationState
+    IGameActionService gameActionService,
+    IDiscoveryGameActions discoveryGameActions) : IProjectDiscoveryAutomationState
 {
+    private const int SubmissionWindowMs = 70_000;
+
     private readonly ILogger m_Logger = Log.ForContext<RecoverSlowDownPopupState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.RecoverSlowDownPopup;
 
@@ -15,11 +18,11 @@ internal sealed class RecoverSlowDownPopupState(
     {
         m_Logger.Warning(
             "Slow Down popup detected, RecoveryDelayMilliseconds={RecoveryDelayMilliseconds}",
-            Delays.SubmissionWindowMs);
+            SubmissionWindowMs);
         gameActionService.CloseActiveWindow(cancellationToken);
-        automationInputController.Delay(Delays.SubmissionWindowMs, cancellationToken);
+        automationInputController.Delay(SubmissionWindowMs, cancellationToken);
         automationInputController.Delay(Delays.MinimumClickMs, cancellationToken);
-        gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
+        discoveryGameActions.ToggleProjectDiscoveryWindow(cancellationToken);
         return new DiscoveryAutomationStateTransition(
             Kind,
             DiscoveryAutomationStateKind.Discover,

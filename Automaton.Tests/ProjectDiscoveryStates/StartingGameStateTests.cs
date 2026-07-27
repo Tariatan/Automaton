@@ -1,3 +1,4 @@
+using Automaton.Infrastructure;
 using Automaton.CommonAutomationStates;
 using Automaton.Detectors;
 using Automaton.Helpers;
@@ -15,13 +16,12 @@ public sealed class StartingGameStateTests
         if (Directory.Exists("captures")) Directory.Delete("captures", true);
         using var screen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(screen.Clone),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(screen.Clone));
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
         var state = new StartingGameState(
             screenCaptureService,
-            new CommonStartGameState(automationInputController, gameActionService, new PlayNowButtonDetector()));
+            new CommonStartGameState(automationInputController, gameActionService, new PlayNowButtonDetector(ResourceLoader.Assembly)));
         var context = new ProjectDiscoveryAutomationContext(1)
         {
             ConsecutivePlayfieldMisses = 4

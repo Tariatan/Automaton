@@ -39,7 +39,6 @@ public sealed class MiningStateTests
                     ? SyntheticMiningImageFactory.LoadMiningGtfoImage()
                     : new Mat();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new MiningState(
@@ -66,7 +65,6 @@ public sealed class MiningStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(() => new Mat()),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new MiningState(
@@ -84,7 +82,7 @@ public sealed class MiningStateTests
         Assert.Equal(MiningAutomationStateKind.Recovery, transition.NextState);
         Assert.Equal(MiningAutomationActionKind.Recover, transition.Action);
         Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
-        Assert.Equal(Delays.MiningPollingMs, automationInputController.Delays[0]);
+        Assert.Equal(MiningDelays.MiningPollingMs, automationInputController.Delays[0]);
     }
 
     [Fact]
@@ -93,7 +91,6 @@ public sealed class MiningStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadMiningAsteroidDepletedImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new MiningState(
@@ -119,7 +116,6 @@ public sealed class MiningStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadMiningLasersDeactivatedImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new MiningState(
@@ -145,7 +141,6 @@ public sealed class MiningStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadMiningAsteroidDepletedImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         using var cts = new CancellationTokenSource();
         var automationInputController = new StubAutomationInputController

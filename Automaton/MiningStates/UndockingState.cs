@@ -27,7 +27,7 @@ internal sealed class UndockingState(
         var capture = context.ScreenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         cancellationToken.ThrowIfCancellationRequested();
 
-        automationInputController.Delay(Delays.UndockingBounceMs, cancellationToken);
+        automationInputController.Delay(MiningDelays.UndockingBounceMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         // TryLocate Undock button
@@ -51,7 +51,7 @@ internal sealed class UndockingState(
         automationInputController.ClickUiElement(GeometryHelper.Center(undockButtonBounds), cancellationToken);
         capture.Dispose();
 
-        automationInputController.Delay(Delays.InitialUndockMs, cancellationToken);
+        automationInputController.Delay(MiningDelays.InitialUndockMs, cancellationToken);
 
         // Try to locate Location Change Timer icon with 1 second interval
         for (var attempt = 0; attempt < LocationChangeTimerPollingAttemptCount; attempt++)
@@ -73,7 +73,7 @@ internal sealed class UndockingState(
             }
 
             capture.Dispose();
-            automationInputController.Delay(Delays.LocationChangeTimerPollingMs, cancellationToken);
+            automationInputController.Delay(MiningDelays.LocationChangeTimerPollingMs, cancellationToken);
         }
 
         return new MiningAutomationStateTransition(

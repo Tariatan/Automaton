@@ -1,3 +1,4 @@
+using Automaton.Infrastructure;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Primitives;
@@ -17,7 +18,6 @@ public sealed class GameActionServiceTests
         using var pilotScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(pilotScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = CreateGameActionService(automationInputController, screenCaptureService);
@@ -54,7 +54,6 @@ public sealed class GameActionServiceTests
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var rebootOperatingSystemCalled = false;
@@ -91,8 +90,7 @@ public sealed class GameActionServiceTests
         using var workspace = new TemporaryDirectory();
         using var playButtonScreen = SyntheticCommonImageFactory.LoadPlayButtonScreenImage();
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(playButtonScreen.Clone),
-            new SampleImageProcessor());
+            new StubScreenCaptureProvider(playButtonScreen.Clone));
         var automationInputController = new StubAutomationInputController();
         var rebootOperatingSystemCalled = false;
         var gameActionService = CreateGameActionService(
@@ -126,7 +124,6 @@ public sealed class GameActionServiceTests
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var rebootOperatingSystemCalled = false;
@@ -144,7 +141,7 @@ public sealed class GameActionServiceTests
         Assert.Equal(VirtualKeys.Alt, keyInput.ModifierVirtualKey);
         Assert.Equal(VirtualKeys.Shift, keyInput.SecondModifierVirtualKey);
         Assert.Equal(VirtualKeys.Q, keyInput.VirtualKey);
-        Assert.Equal(Delays.ProjectDiscoveryWindowToggleChordHoldMs, keyInput.HoldDelayMs);
+        Assert.Equal(3_000, keyInput.HoldDelayMs);
         Assert.False(rebootOperatingSystemCalled);
     }
 
@@ -155,7 +152,6 @@ public sealed class GameActionServiceTests
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var rebootOperatingSystemCalled = false;
@@ -181,7 +177,6 @@ public sealed class GameActionServiceTests
         using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var shutdownOperatingSystemCalled = false;
@@ -204,7 +199,6 @@ public sealed class GameActionServiceTests
         using var blankScreen = new Mat(new Size(1, 1), MatType.CV_8UC3, Scalar.Black);
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = CreateGameActionService(automationInputController, screenCaptureService);
@@ -226,16 +220,11 @@ public sealed class GameActionServiceTests
     public void ToggleProjectDiscoveryWindow_WhenCalled_HoldsAltLChordBeforeActivationDelay()
     {
         // Arrange
-        using var blankScreen = new Mat(new Size(900, 640), MatType.CV_8UC3, Scalar.Black);
-        var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(blankScreen.Clone),
-            new SampleImageProcessor(),
-            persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
-        var gameActionService = CreateGameActionService(automationInputController, screenCaptureService);
+        var gameActions = new DiscoveryGameActions(automationInputController);
 
         // Act
-        gameActionService.ToggleProjectDiscoveryWindow(CancellationToken.None);
+        gameActions.ToggleProjectDiscoveryWindow(CancellationToken.None);
 
         // Assert
         var keyInput = Assert.Single(automationInputController.KeyInputs);
@@ -243,7 +232,7 @@ public sealed class GameActionServiceTests
         Assert.Null(keyInput.SecondModifierVirtualKey);
         Assert.Equal(VirtualKeys.L, keyInput.VirtualKey);
         Assert.Equal(Delays.KeyChordTransitionMs, keyInput.TransitionDelayMs);
-        Assert.Equal(Delays.ProjectDiscoveryWindowToggleChordHoldMs, keyInput.HoldDelayMs);
+        Assert.Equal(3_000, keyInput.HoldDelayMs);
         Assert.Equal([Delays.WindowActivationMs], automationInputController.Delays);
     }
 
@@ -272,7 +261,7 @@ public sealed class GameActionServiceTests
         return new GameActionService(
             automationInputController,
             screenCaptureService,
-            new PlayNowButtonDetector(),
+            new PlayNowButtonDetector(ResourceLoader.Assembly),
             rebootOperatingSystemOverride,
             shutdownOperatingSystemOverride);
     }

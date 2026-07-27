@@ -6,7 +6,8 @@ namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class RecoverOverlapState(
     IAutomationInputController automationInputController,
-    IGameActionService gameActionService) : IProjectDiscoveryAutomationState
+    IGameActionService gameActionService,
+    IDiscoveryGameActions discoveryGameActions) : IProjectDiscoveryAutomationState
 {
     private readonly ILogger m_Logger = Log.ForContext<RecoverOverlapState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.RecoverOverlap;
@@ -16,7 +17,7 @@ internal sealed class RecoverOverlapState(
         m_Logger.Warning("Recovering from overlap: re-opening discovery playfield.");
         gameActionService.CloseActiveWindow(cancellationToken);
         automationInputController.Delay(Delays.WindowActivationMs, cancellationToken);
-        gameActionService.ToggleProjectDiscoveryWindow(cancellationToken);
+        discoveryGameActions.ToggleProjectDiscoveryWindow(cancellationToken);
         return new DiscoveryAutomationStateTransition(
             Kind,
             DiscoveryAutomationStateKind.Discover,

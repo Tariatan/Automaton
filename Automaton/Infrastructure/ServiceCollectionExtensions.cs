@@ -1,6 +1,6 @@
+using Automaton.CommonAutomationStates;
 using Automaton.Detectors;
 using Automaton.Helpers;
-using Automaton.CommonAutomationStates;
 using Automaton.ProjectDiscoveryStates;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,16 +13,20 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IScreenCaptureProvider, ScreenCaptureProvider>();
         services.AddSingleton<ClickTraceRecorder>();
         services.AddSingleton<IAutomationInputController, AutomationInputController>();
-        services.AddSingleton<IGameActionService, GameActionService>();
+        services.AddSingleton<GameActionService>();
+        services.AddSingleton<IGameActionService>(sp => sp.GetRequiredService<GameActionService>());
+        services.AddSingleton<IMiningGameActions, MiningGameActions>();
+        services.AddSingleton<IDiscoveryGameActions, DiscoveryGameActions>();
         services.AddSingleton<IAutomationClock, SystemAutomationClock>();
 
+        var resourceAssembly = ResourceLoader.Assembly;
         services.AddSingleton<PlayfieldDetector>();
-        services.AddSingleton<PlayNowButtonDetector>();
-        services.AddSingleton<ClientIsRunningButtonDetector>();
+        services.AddSingleton(_ => new PlayNowButtonDetector(resourceAssembly));
+        services.AddSingleton(_ => new ClientIsRunningButtonDetector(resourceAssembly));
+        services.AddSingleton(_ => new ConnectionLostPopupDetector(resourceAssembly));
         services.AddSingleton<KnownSampleMatcher>();
         services.AddSingleton<MaxSubmissionsPopupDetector>();
         services.AddSingleton<SlowDownPopupDetector>();
-        services.AddSingleton<ConnectionLostPopupDetector>();
         services.AddSingleton<AccuracyDetector>();
         services.AddSingleton<AsteroidBeltOverviewDetector>();
         services.AddSingleton<LocationChangeTimerDetector>();
@@ -38,6 +42,7 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<SampleImageProcessor>();
         services.AddSingleton<ScreenCaptureService>();
+        services.AddSingleton<DiscoveryCaptureFacade>();
 
         services.AddSingleton<CommonStartGameState>();
         services.AddSingleton<ConnectionLostPopupRecoveryBehavior>();

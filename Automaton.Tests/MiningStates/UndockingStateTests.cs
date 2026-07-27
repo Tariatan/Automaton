@@ -24,7 +24,6 @@ public sealed class UndockingStateTests
                     _ => SyntheticMiningImageFactory.LoadUndockedCompleteImage()
                 };
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new UndockingState(automationInputController, new LocationChangeTimerDetector());
@@ -42,10 +41,10 @@ public sealed class UndockingStateTests
         Assert.Equal(4, captureInvocationCount);
         Assert.Equal(
         [
-            Delays.UndockingBounceMs,
-            Delays.InitialUndockMs,
-            Delays.LocationChangeTimerPollingMs,
-            Delays.LocationChangeTimerPollingMs,
+            MiningDelays.UndockingBounceMs,
+            MiningDelays.InitialUndockMs,
+            MiningDelays.LocationChangeTimerPollingMs,
+            MiningDelays.LocationChangeTimerPollingMs,
         ],
         automationInputController.Delays);
     }
@@ -63,7 +62,6 @@ public sealed class UndockingStateTests
                     ? SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage()
                     : SyntheticMiningImageFactory.LoadUndockedWithoutLocationChangeTimerImage();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var state = new UndockingState(automationInputController, new LocationChangeTimerDetector());
@@ -80,8 +78,8 @@ public sealed class UndockingStateTests
         Assert.Equal(MiningAutomationFailureReason.DetectionMiss, transition.FailureReason);
         Assert.Equal(31, captureInvocationCount);
         Assert.Equal(32, automationInputController.Delays.Count);
-        Assert.Equal(Delays.UndockingBounceMs, automationInputController.Delays[0]);
-        Assert.Equal(Delays.InitialUndockMs, automationInputController.Delays[1]);
-        Assert.All(automationInputController.Delays.Skip(2), delay => Assert.Equal(Delays.LocationChangeTimerPollingMs, delay));
+        Assert.Equal(MiningDelays.UndockingBounceMs, automationInputController.Delays[0]);
+        Assert.Equal(MiningDelays.InitialUndockMs, automationInputController.Delays[1]);
+        Assert.All(automationInputController.Delays.Skip(2), delay => Assert.Equal(MiningDelays.LocationChangeTimerPollingMs, delay));
     }
 }

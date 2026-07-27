@@ -1,4 +1,3 @@
-using Automaton.Detectors;
 using OpenCvSharp;
 using DrawingRectangle = System.Drawing.Rectangle;
 
@@ -58,46 +57,6 @@ internal static class DebugOverlay
             HersheyFonts.HersheySimplex,
             TextScale,
             color.ToScalar(),
-            TextThickness,
-            LineTypes.AntiAlias);
-    }
-
-    public static void DrawPlayfieldOverlay(Mat image, PlayfieldDetectionResult playfieldDetection, IReadOnlyList<Point[]> polygons)
-    {
-        if (playfieldDetection.IsFound)
-        {
-            Cv2.Rectangle(image, playfieldDetection.Bounds, new Scalar(70, 150, 255), StrokeThickness);
-
-            foreach (var marker in playfieldDetection.MarkerBounds)
-            {
-                Cv2.Rectangle(image, marker, new Scalar(255, 120, 80), StrokeThickness);
-            }
-        }
-
-        for (var index = 0; index < polygons.Count; index++)
-        {
-            var color = Palette[index % Palette.Length];
-            Cv2.Polylines(image, [polygons[index]], true, color, StrokeThickness, LineTypes.AntiAlias);
-
-            foreach (var point in polygons[index])
-            {
-                Cv2.Circle(image, point, PointRadius, color, -1, LineTypes.AntiAlias);
-            }
-        }
-
-        Cv2.PutText(
-            image,
-            playfieldDetection.IsFound
-                ? $"Playfield found, clusters: {polygons.Count}"
-                : polygons.Count > 0
-                    ? $"Playfield not found, using fallback: {polygons.Count}"
-                    : "Playfield not found",
-            new Point(
-                playfieldDetection.IsFound ? playfieldDetection.Bounds.X : TextOrigin.X,
-                playfieldDetection.IsFound ? Math.Max(MinimumLabelY, playfieldDetection.Bounds.Y - LabelYOffset) : TextOrigin.Y),
-            HersheyFonts.HersheySimplex,
-            TextScale,
-            playfieldDetection.IsFound ? new Scalar(80, 220, 120) : new Scalar(80, 120, 255),
             TextThickness,
             LineTypes.AntiAlias);
     }

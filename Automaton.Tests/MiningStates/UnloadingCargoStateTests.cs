@@ -14,7 +14,6 @@ public sealed class UnloadingCargoStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -48,7 +47,6 @@ public sealed class UnloadingCargoStateTests
         // Arrange
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();
@@ -82,7 +80,6 @@ public sealed class UnloadingCargoStateTests
                     ? SyntheticMiningImageFactory.LoadDockedWithoutInventoryVisibleImage()
                     : SyntheticMiningImageFactory.LoadDockedItemHangarAndMiningHoldVisibleImage();
             }),
-            new SampleImageProcessor(),
             persistCaptures: false);
         var automationInputController = new StubAutomationInputController();
         var gameActionService = new StubGameActionService();

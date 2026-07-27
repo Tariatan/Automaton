@@ -1,6 +1,5 @@
 using Automaton.Detectors;
 using Automaton.Helpers;
-using Automaton.Primitives;
 using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;

@@ -4,6 +4,8 @@
 .claude/
 Automaton/bin/
 Automaton/obj/
+Automaton.Core/bin/
+Automaton.Core/obj/
 Automaton/Hallmark
 Automaton.Tests/bin/
 Automaton.Tests/obj/
