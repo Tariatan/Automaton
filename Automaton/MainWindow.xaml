@@ -53,9 +53,6 @@
                 <MenuItem x:Name="SamplesMenuItem"
                           Header="Samples"
                           Click="Samples_Click" />
-                <MenuItem x:Name="ExtractPlayfieldsMenuItem"
-                          Header="Extract Playfields"
-                          Click="ExtractPlayfields_Click" />
             </MenuItem>
         </Menu>
         <Button Grid.Row="1"

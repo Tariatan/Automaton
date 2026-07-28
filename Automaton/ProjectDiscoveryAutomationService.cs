@@ -13,7 +13,6 @@ namespace Automaton;
 internal sealed class ProjectDiscoveryAutomationService(
     ScreenCaptureService screenCaptureService,
     SampleImageProcessor sampleImageProcessor,
-    PlayfieldDetector playfieldDetector,
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
     ConnectionLostPopupDetector connectionLostPopupDetector,
@@ -21,8 +20,6 @@ internal sealed class ProjectDiscoveryAutomationService(
     IDiscoveryAutomationStateFactory discoveryAutomationStateFactory)
 {
     private const string SamplesFolderName = "samples";
-    private const string TrainingFolderName = "Training";
-    private const string TrainingOutputFolderName = "playfields";
     private const int InitialPilotIndex = 1;
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
@@ -57,103 +54,6 @@ internal sealed class ProjectDiscoveryAutomationService(
             SamplesFolderName,
             results.Count);
         return new SampleProcessingSummary(SamplesFolderName, results);
-    }
-
-    public TrainingExtractionSummary ExtractTrainingPlayfields()
-    {
-        var imageFiles = Directory
-            .EnumerateFiles(TrainingFolderName, "*.png", SearchOption.TopDirectoryOnly)
-            .Where(file => !Path.GetFileName(file).Contains("masked", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        if (imageFiles.Length == 0)
-        {
-            throw new InvalidOperationException($"No PNG files were found in {TrainingFolderName}.");
-        }
-
-        var extracted = 0;
-        var skipped = 0;
-
-        foreach (var imageFile in imageFiles)
-        {
-            using var image = Cv2.ImRead(imageFile);
-            if (image.Empty())
-            {
-                skipped++;
-                continue;
-            }
-
-            var detection = playfieldDetector.Detect(image);
-            if (!detection.IsFound)
-            {
-                Logger.Warning("Playfield not found, skipping. File={File}", Path.GetFileName(imageFile));
-                skipped++;
-                continue;
-            }
-
-            using var playfield = new Mat(image, detection.Bounds);
-            var outputFileName = Path.GetFileNameWithoutExtension(imageFile) + ".png";
-            var outputPath = Path.Combine(TrainingOutputFolderName, outputFileName);
-            ImageFileWriter.WriteImage(outputPath, playfield);
-            extracted++;
-
-            Logger.Information(
-                "Extracted playfield. Source={Source}, Bounds={Bounds}, Output={Output}",
-                Path.GetFileName(imageFile),
-                detection.Bounds,
-                outputFileName);
-
-            TryExtractMaskedCompanion(TrainingFolderName, imageFile, detection.Bounds, TrainingOutputFolderName);
-        }
-
-        Logger.Information(
-            "Training extraction completed. Extracted={Extracted}, Skipped={Skipped}, OutputDirectory={OutputDirectory}",
-            extracted, skipped, TrainingOutputFolderName);
-
-        return new TrainingExtractionSummary(extracted, skipped, TrainingOutputFolderName);
-    }
-
-    private static void TryExtractMaskedCompanion(string trainingDirectory, string originalFile, Rect bounds, string outputDirectory)
-    {
-        var baseName = Path.GetFileNameWithoutExtension(originalFile);
-        var maskedFile = Directory
-            .EnumerateFiles(trainingDirectory, "*.png", SearchOption.TopDirectoryOnly)
-            .FirstOrDefault(file =>
-            {
-                var fileName = Path.GetFileName(file);
-                return fileName.Contains("masked", StringComparison.OrdinalIgnoreCase) &&
-                       fileName.StartsWith(baseName + ".", StringComparison.OrdinalIgnoreCase);
-            });
-
-        if (maskedFile is null)
-        {
-            return;
-        }
-
-        using var maskedImage = Cv2.ImRead(maskedFile);
-        if (maskedImage.Empty())
-        {
-            return;
-        }
-
-        if (bounds.Right > maskedImage.Width || bounds.Bottom > maskedImage.Height)
-        {
-            Logger.Warning(
-                "Masked image too small for playfield bounds, skipping. MaskedFile={MaskedFile}, ImageSize={Width}x{Height}, Bounds={Bounds}",
-                Path.GetFileName(maskedFile), maskedImage.Width, maskedImage.Height, bounds);
-            return;
-        }
-
-        using var maskedPlayfield = new Mat(maskedImage, bounds);
-        var maskedOutputFileName = baseName + ".masked.png";
-        var maskedOutputPath = Path.Combine(outputDirectory, maskedOutputFileName);
-        ImageFileWriter.WriteImage(maskedOutputPath, maskedPlayfield);
-
-        Logger.Information(
-            "Extracted masked companion. Source={Source}, Output={Output}",
-            Path.GetFileName(maskedFile),
-            maskedOutputFileName);
     }
 
     public DiscoveryAutomationStepSummary Automate(
@@ -349,8 +249,3 @@ internal sealed class ProjectDiscoveryAutomationService(
 internal sealed record SampleProcessingSummary(
     string SamplesDirectory,
     IReadOnlyList<SampleProcessingResult> Results);
-
-internal sealed record TrainingExtractionSummary(
-    int Extracted,
-    int Skipped,
-    string OutputDirectory);
