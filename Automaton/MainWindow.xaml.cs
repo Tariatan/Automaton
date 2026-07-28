@@ -114,22 +114,22 @@ internal partial class MainWindow
                 automationActionKind,
                 capturePath);
 
-            if (automationActionKind == DiscoveryAutomationActionKind.Reboot)
+            switch (automationActionKind)
             {
-                Logger.Error("Discovery automation requested operating system reboot. Closing application.");
-                Application.Current.Shutdown();
-            }
-            else if (automationActionKind == DiscoveryAutomationActionKind.Shutdown)
-            {
-                Logger.Error("Discovery automation requested safe operating system shutdown.");
-                m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
-                Application.Current.Shutdown();
-            }
-            else if (automationActionKind is DiscoveryAutomationActionKind.NoFurtherPilotsAvailable)
-            {
-                Logger.Error("No further pilots are available. Scheduling operating system shutdown.");
-                m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
-                Application.Current.Shutdown();
+                case DiscoveryAutomationActionKind.Reboot:
+                    Logger.Error("Discovery automation requested operating system reboot. Closing application.");
+                    Application.Current.Shutdown();
+                    break;
+                case DiscoveryAutomationActionKind.Shutdown:
+                    Logger.Error("Discovery automation requested safe operating system shutdown.");
+                    m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
+                    Application.Current.Shutdown();
+                    break;
+                case DiscoveryAutomationActionKind.NoFurtherPilotsAvailable:
+                    Logger.Error("No further pilots are available. Scheduling operating system shutdown.");
+                    m_GameActionService.ShutdownOperatingSystem(CancellationToken.None);
+                    Application.Current.Shutdown();
+                    break;
             }
         }
         catch (OperationCanceledException)
@@ -193,12 +193,14 @@ internal partial class MainWindow
 
     private IntPtr WindowMessageHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (message == WindowMessageHotKey && wParam.ToInt32() == HotKeyId)
+        if (message != WindowMessageHotKey || wParam.ToInt32() != HotKeyId)
         {
-            handled = true;
-            Logger.Information("Global hotkey activated.");
-            Automate_Click(this, new RoutedEventArgs());
+            return IntPtr.Zero;
         }
+
+        handled = true;
+        Logger.Information("Global hotkey activated.");
+        Automate_Click(this, new RoutedEventArgs());
 
         return IntPtr.Zero;
     }
@@ -282,7 +284,7 @@ internal partial class MainWindow
     {
         var folderDialog = new OpenFolderDialog
         {
-            Title = "Select telemetry root folder"
+            Title = "Select the root folder to store logs and captures"
         };
 
         var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredRootDirectory();
@@ -320,7 +322,7 @@ internal partial class MainWindow
     {
         var folderDialog = new OpenFolderDialog
         {
-            Title = "Select hallmark root folder"
+            Title = "Select the root folder containing expected examples"
         };
 
         var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory();
@@ -358,7 +360,7 @@ internal partial class MainWindow
     {
         var folderDialog = new OpenFolderDialog
         {
-            Title = "Select pilot avatar folder"
+            Title = "Select pilots avatars folder"
         };
 
         var configuredDirectory = PilotAvatarDirectory.GetConfiguredDirectory();
@@ -377,7 +379,7 @@ internal partial class MainWindow
 
         PilotAvatarDirectory.SetConfiguredDirectory(folderDialog.FolderName);
         UpdatePilotAvatarsMenuItemHeader();
-        Logger.Information("Pilot avatar directory selected. PilotAvatarDirectory={PilotAvatarDirectory}", folderDialog.FolderName);
+        Logger.Information("Pilots avatars directory selected. PilotAvatarDirectory={PilotAvatarDirectory}", folderDialog.FolderName);
     }
 
     private void UpdatePilotAvatarsMenuItemHeader()
