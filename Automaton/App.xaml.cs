@@ -107,7 +107,7 @@ public partial class App
         {
             using var image = Cv2.ImRead(sampleFile);
             var analysis = processor.AnalyzeImage(image, sampleFile);
-            var outputPath = DiscoveryCaptureFacade.WriteAnnotatedOutput(image, analysis, sampleFile);
+            var outputPath = ImageAnnotator.WriteAnnotatedOutput(image, analysis, sampleFile);
             results.Add(analysis.Result with { OutputPath = outputPath });
         }
 

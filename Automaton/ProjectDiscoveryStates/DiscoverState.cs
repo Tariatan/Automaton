@@ -1,6 +1,7 @@
 using System.IO;
 using Automaton.Core.Detectors;
 using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using Automaton.Core.Primitives;
 using Automaton.Detectors;
 using Automaton.Helpers;
@@ -12,7 +13,8 @@ using Rect = OpenCvSharp.Rect;
 namespace Automaton.ProjectDiscoveryStates;
 
 internal sealed class DiscoverState(
-    DiscoveryCaptureFacade discoveryCapture,
+    SampleImageProcessor sampleImageProcessor,
+    ScreenCaptureService screenCaptureService,
     IAutomationInputController automationInputController,
     ClickTraceRecorder clickTraceRecorder,
     IGameActionService gameActionService,
@@ -45,7 +47,7 @@ internal sealed class DiscoverState(
             automationInputController.Delay(Delays.LoadWindowMs, cancellationToken);
         }
 
-        var captureSummary = discoveryCapture.CaptureAndAnalyzeCurrentScreen();
+        var captureSummary = CaptureAndAnalyzeCurrentScreen();
 
         if (captureSummary.Analysis.Result.PlayfieldFound)
         {
@@ -79,14 +81,14 @@ internal sealed class DiscoverState(
         automationInputController.Delay(SubmitActivationMs, cancellationToken);
 
         var playfieldBounds = captureSummary.Analysis.PlayfieldDetection.Bounds;
-        using var postPolygonCapture = discoveryCapture.CaptureCurrentScreenInMemory(".discovery-post-polygons");
+        using var postPolygonCapture = screenCaptureService.CaptureCurrentScreenInMemory(".discovery-post-polygons");
         var enabledButtonDetection = EnabledButtonDetector.Detect(postPolygonCapture.Image, playfieldBounds);
 
         // Disabled Submit button most probably means overlapping polygons.
         if (!enabledButtonDetection.IsFound || enabledButtonDetection.ButtonBounds is null)
         {
             DrawEnabledButtonSearchOverlay(postPolygonCapture.Image, enabledButtonDetection);
-            discoveryCapture.SaveCapture(postPolygonCapture);
+            screenCaptureService.SaveCapture(postPolygonCapture);
             m_Logger.Warning("Enabled submit button was not detected after polygon clicking. Transitioning to overlap recovery");
             return new DiscoveryAutomationStateTransition(
                 Kind,
@@ -204,7 +206,7 @@ internal sealed class DiscoverState(
         var focusedCapturePath = Path.Combine(
             captureSummary.CapturesDirectory,
             $"{Path.GetFileNameWithoutExtension(captureSummary.CapturePath)}.focused.png");
-        discoveryCapture.CaptureCurrentScreenToFile(focusedCapturePath);
+        screenCaptureService.CaptureCurrentScreenToFile(focusedCapturePath);
         return focusedCapturePath;
     }
 
@@ -279,4 +281,20 @@ internal sealed class DiscoverState(
             2,
             LineTypes.AntiAlias);
     }
+
+    private ScreenCaptureAnalysisSummary CaptureAndAnalyzeCurrentScreen()
+    {
+        var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
+        using var capture = screenCaptureService.CaptureCurrentScreen();
+        var analysis = sampleImageProcessor.AnalyzeImage(capture.Image, capture.CapturePath);
+        var annotatedPath = ImageAnnotator.WriteAnnotatedOutput(capture.Image, analysis, capture.CapturePath);
+        var resultWithAnnotatedPath = analysis.Result with { OutputPath = annotatedPath };
+        var analysisWithAnnotatedPath = analysis with { Result = resultWithAnnotatedPath };
+        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysisWithAnnotatedPath);
+    }
 }
+
+internal sealed record ScreenCaptureAnalysisSummary(
+    string CapturesDirectory,
+    string CapturePath,
+    SampleImageAnalysisResult Analysis);

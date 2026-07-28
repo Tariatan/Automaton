@@ -327,11 +327,9 @@ public sealed class ProjectDiscoveryAutomationServiceTests
             var screenCaptureService = new ScreenCaptureService(
                 screenCaptureProvider ?? new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)),
                 persistCaptures: persistCaptures);
-            var discoveryCapture = new DiscoveryCaptureFacade(screenCaptureService, sampleImageProcessor);
-
             Service = new ProjectDiscoveryAutomationService(
                 screenCaptureService,
-                discoveryCapture,
+                sampleImageProcessor,
                 m_PlayfieldDetector,
                 automationInputController ?? new StubAutomationInputController(),
                 gameActionService ?? new StubGameActionService(),

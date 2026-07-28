@@ -97,10 +97,9 @@ public sealed class DiscoverStateTests
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(captureSequence ?? BuildCaptureSequence()),
             clickTraceRecorder);
-        var discoveryCapture = new DiscoveryCaptureFacade(screenCaptureService, new SampleImageProcessor());
-
         return new DiscoverState(
-            discoveryCapture,
+            new SampleImageProcessor(),
+            screenCaptureService,
             automationInputController,
             clickTraceRecorder,
             gameActionService,

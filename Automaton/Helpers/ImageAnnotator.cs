@@ -1,53 +1,12 @@
 using System.IO;
 using Automaton.Core.Helpers;
-using Automaton.Core.Infrastructure;
 using Automaton.Detectors;
 using OpenCvSharp;
 
 namespace Automaton.Helpers;
 
-internal sealed class DiscoveryCaptureFacade(
-    ScreenCaptureService screenCaptureService,
-    SampleImageProcessor sampleImageProcessor)
+internal static class ImageAnnotator
 {
-    internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "") =>
-        screenCaptureService.CaptureCurrentScreen(suffix);
-
-    internal ScreenCaptureResult CaptureCurrentScreenInMemory(string suffix = "") =>
-        screenCaptureService.CaptureCurrentScreenInMemory(suffix);
-
-    internal void SaveCapture(ScreenCaptureResult capture) =>
-        screenCaptureService.SaveCapture(capture);
-
-    internal Mat CaptureCurrentScreenImage() =>
-        screenCaptureService.CaptureCurrentScreenImage();
-
-    internal void CaptureCurrentScreenToFile(string outputPath) =>
-        screenCaptureService.CaptureCurrentScreenToFile(outputPath);
-
-    internal void FlushClickTrace() =>
-        screenCaptureService.FlushClickTrace();
-
-    internal SampleImageAnalysisResult AnalyzeImage(Mat image, string imagePath) =>
-        sampleImageProcessor.AnalyzeImage(image, imagePath);
-
-    internal ScreenCaptureSummary CaptureAndProcessCurrentScreen()
-    {
-        var analysis = CaptureAndAnalyzeCurrentScreen();
-        return new ScreenCaptureSummary(analysis.CapturesDirectory, analysis.CapturePath, analysis.Analysis.Result);
-    }
-
-    internal ScreenCaptureAnalysisSummary CaptureAndAnalyzeCurrentScreen()
-    {
-        var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
-        using var capture = screenCaptureService.CaptureCurrentScreen();
-        var analysis = sampleImageProcessor.AnalyzeImage(capture.Image, capture.CapturePath);
-        var annotatedPath = WriteAnnotatedOutput(capture.Image, analysis, capture.CapturePath);
-        var resultWithAnnotatedPath = analysis.Result with { OutputPath = annotatedPath };
-        var analysisWithAnnotatedPath = analysis with { Result = resultWithAnnotatedPath };
-        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysisWithAnnotatedPath);
-    }
-
     internal static string WriteAnnotatedOutput(Mat image, SampleImageAnalysisResult analysis, string sourceImagePath)
     {
         using var annotated = image.Clone();
@@ -133,13 +92,3 @@ internal sealed class DiscoveryCaptureFacade(
             : $".{firstSegment}";
     }
 }
-
-internal sealed record ScreenCaptureSummary(
-    string CapturesDirectory,
-    string CapturePath,
-    SampleProcessingResult Result);
-
-internal sealed record ScreenCaptureAnalysisSummary(
-    string CapturesDirectory,
-    string CapturePath,
-    SampleImageAnalysisResult Analysis);

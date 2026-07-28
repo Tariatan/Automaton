@@ -35,7 +35,6 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<SampleImageProcessor>();
         services.AddSingleton<ScreenCaptureService>();
-        services.AddSingleton<DiscoveryCaptureFacade>();
 
         services.AddSingleton<CommonStartGameState>();
         services.AddSingleton<ConnectionLostPopupRecoveryBehavior>();

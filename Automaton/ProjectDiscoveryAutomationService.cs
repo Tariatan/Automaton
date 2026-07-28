@@ -12,7 +12,7 @@ namespace Automaton;
 
 internal sealed class ProjectDiscoveryAutomationService(
     ScreenCaptureService screenCaptureService,
-    DiscoveryCaptureFacade discoveryCapture,
+    SampleImageProcessor sampleImageProcessor,
     PlayfieldDetector playfieldDetector,
     IAutomationInputController automationInputController,
     IGameActionService gameActionService,
@@ -47,8 +47,8 @@ internal sealed class ProjectDiscoveryAutomationService(
         foreach (var sampleFile in sampleFiles)
         {
             using var image = Cv2.ImRead(sampleFile);
-            var analysis = discoveryCapture.AnalyzeImage(image, sampleFile);
-            var outputPath = DiscoveryCaptureFacade.WriteAnnotatedOutput(image, analysis, sampleFile);
+            var analysis = sampleImageProcessor.AnalyzeImage(image, sampleFile);
+            var outputPath = ImageAnnotator.WriteAnnotatedOutput(image, analysis, sampleFile);
             results.Add(analysis.Result with { OutputPath = outputPath });
         }
 
