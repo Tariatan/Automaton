@@ -1,4 +1,4 @@
-using Automaton.Helpers;
+using Automaton.Core.Helpers;
 
 namespace Automaton.Tests.Stubs;
 

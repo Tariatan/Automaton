@@ -1,8 +1,9 @@
-using Automaton.CommonAutomationStates;
-using Automaton.Detectors;
-using Automaton.Helpers;
+using Automaton.Core.CommonAutomationStates;
+using Automaton.Core.Detectors;
+using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
+using Automaton.Core.Primitives;
 using Automaton.Infrastructure;
-using Automaton.Primitives;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;

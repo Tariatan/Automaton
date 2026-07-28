@@ -1,7 +1,7 @@
 using System.Reflection;
 using OpenCvSharp;
 
-namespace Automaton.Infrastructure;
+namespace Automaton.Core.Infrastructure;
 
 internal static class EmbeddedResourceLoader
 {

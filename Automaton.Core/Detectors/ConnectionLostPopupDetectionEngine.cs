@@ -1,12 +1,12 @@
 using System.Reflection;
-using Automaton.Helpers;
-using Automaton.Infrastructure;
+using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton.Detectors;
+namespace Automaton.Core.Detectors;
 
-internal sealed class ConnectionLostPopupDetectionEngine : IDisposable
+internal sealed class ConnectionLostPopupDetectionEngine(Assembly resourceAssembly) : IDisposable
 {
     private const int ExpectedPopupLeft = 960;
     private const int ExpectedPopupTop = 830;
@@ -22,12 +22,7 @@ internal sealed class ConnectionLostPopupDetectionEngine : IDisposable
     private const double TitleAnchorThreshold = 0.52;
     private static readonly ILogger Logger = Log.ForContext("SourceContext", "ConnectionLostPopupDetectionEngine");
 
-    private readonly Lazy<PopupTemplates> m_Templates;
-
-    public ConnectionLostPopupDetectionEngine(Assembly resourceAssembly)
-    {
-        m_Templates = new Lazy<PopupTemplates>(() => PopupTemplates.Load(resourceAssembly));
-    }
+    private readonly Lazy<PopupTemplates> m_Templates = new (() => PopupTemplates.Load(resourceAssembly));
 
     public void Dispose()
     {

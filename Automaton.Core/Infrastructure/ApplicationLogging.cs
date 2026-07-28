@@ -1,9 +1,9 @@
-using System.Globalization;
 using System.Diagnostics;
+using System.Globalization;
 using Serilog;
 using Serilog.Events;
 
-namespace Automaton.Infrastructure;
+namespace Automaton.Core.Infrastructure;
 
 internal static class ApplicationLogging
 {

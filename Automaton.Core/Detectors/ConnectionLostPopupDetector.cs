@@ -1,15 +1,10 @@
 using System.Reflection;
 
-namespace Automaton.Detectors;
+namespace Automaton.Core.Detectors;
 
-internal sealed class ConnectionLostPopupDetector : PopupDetectorBase, IDisposable
+internal sealed class ConnectionLostPopupDetector(Assembly resourceAssembly) : PopupDetectorBase, IDisposable
 {
-    private readonly ConnectionLostPopupDetectionEngine m_Engine;
-
-    public ConnectionLostPopupDetector(Assembly resourceAssembly)
-    {
-        m_Engine = new ConnectionLostPopupDetectionEngine(resourceAssembly);
-    }
+    private readonly ConnectionLostPopupDetectionEngine m_Engine = new (resourceAssembly);
 
     public void Dispose() => m_Engine.Dispose();
 

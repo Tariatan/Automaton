@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using Automaton.Core.Infrastructure;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.Infrastructure;

@@ -1,6 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Automaton.Helpers;
+using Automaton.Core.Helpers;
 
 namespace Automaton.Tests.Helpers;
 

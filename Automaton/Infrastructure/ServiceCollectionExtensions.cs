@@ -1,4 +1,6 @@
-using Automaton.CommonAutomationStates;
+using Automaton.Core.CommonAutomationStates;
+using Automaton.Core.Detectors;
+using Automaton.Core.Helpers;
 using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.ProjectDiscoveryStates;

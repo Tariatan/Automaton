@@ -1,7 +1,7 @@
-using Automaton.Detectors;
+using Automaton.Core.Detectors;
 using OpenCvSharp;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal interface IGameActionService
 {

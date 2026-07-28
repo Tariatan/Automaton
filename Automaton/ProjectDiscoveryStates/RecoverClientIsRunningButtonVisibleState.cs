@@ -1,5 +1,5 @@
-using Automaton.CommonAutomationStates;
-using Automaton.Helpers;
+using Automaton.Core.CommonAutomationStates;
+using Automaton.Core.Helpers;
 using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;

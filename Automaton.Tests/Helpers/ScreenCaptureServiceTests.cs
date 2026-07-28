@@ -1,3 +1,4 @@
+using Automaton.Core.Helpers;
 using Automaton.Helpers;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;

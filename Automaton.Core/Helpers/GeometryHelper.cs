@@ -1,6 +1,6 @@
 using OpenCvSharp;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal static class GeometryHelper
 {

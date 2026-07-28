@@ -1,5 +1,5 @@
 using System.IO;
-using Automaton.Infrastructure;
+using Automaton.Core.Infrastructure;
 
 namespace Automaton.Detectors;
 

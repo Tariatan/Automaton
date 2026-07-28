@@ -1,8 +1,8 @@
 using System.IO;
+using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using Automaton.Detectors;
-using Automaton.Infrastructure;
 using OpenCvSharp;
-using Serilog;
 
 namespace Automaton.Helpers;
 
@@ -10,8 +10,6 @@ internal sealed class DiscoveryCaptureFacade(
     ScreenCaptureService screenCaptureService,
     SampleImageProcessor sampleImageProcessor)
 {
-    private static readonly ILogger Logger = Log.ForContext<DiscoveryCaptureFacade>();
-
     internal ScreenCaptureResult CaptureCurrentScreen(string suffix = "") =>
         screenCaptureService.CaptureCurrentScreen(suffix);
 

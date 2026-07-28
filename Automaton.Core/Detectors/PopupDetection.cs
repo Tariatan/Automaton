@@ -1,6 +1,6 @@
 using OpenCvSharp;
 
-namespace Automaton.Detectors;
+namespace Automaton.Core.Detectors;
 
 internal enum PopupState
 {

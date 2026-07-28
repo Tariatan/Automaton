@@ -1,5 +1,10 @@
 # AGENTS.md
 
+## Architecture
+
+- `Automaton.Core` is project-agnostic. It must not contain any game-, discovery-, or domain-specific logic or settings.
+- Domain-specific constants, settings, and configuration belong in the `Automaton` project, not in `Automaton.Core`.
+
 ## Editing Rules
 
 - Never add an empty line at the end of a file.

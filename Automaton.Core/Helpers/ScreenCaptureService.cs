@@ -1,9 +1,9 @@
 using System.Drawing;
-using Automaton.Infrastructure;
+using Automaton.Core.Infrastructure;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal sealed class ScreenCaptureService(
     IScreenCaptureProvider screenCaptureProvider,

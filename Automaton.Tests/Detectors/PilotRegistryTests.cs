@@ -1,5 +1,5 @@
+using Automaton.Core.Infrastructure;
 using Automaton.Detectors;
-using Automaton.Infrastructure;
 
 namespace Automaton.Tests.Detectors;
 

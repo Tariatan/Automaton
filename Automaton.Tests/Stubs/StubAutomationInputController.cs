@@ -1,4 +1,5 @@
-using Automaton.Helpers;
+using Automaton.Core.Helpers;
+using Automaton.Core.Primitives;
 using OpenCvSharp;
 
 namespace Automaton.Tests.Stubs;
@@ -41,8 +42,8 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         ushort modifierVirtualKey,
         ushort virtualKey,
         CancellationToken cancellationToken,
-        int holdDelayMs = Automaton.Primitives.Delays.KeyChordHoldMs,
-        int transitionDelayMs = Automaton.Primitives.Delays.KeyChordTransitionMs)
+        int holdDelayMs = Core.Primitives.Delays.KeyChordHoldMs,
+        int transitionDelayMs = Core.Primitives.Delays.KeyChordTransitionMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
         KeyInputs.Add(new KeyboardInput(modifierVirtualKey, null, virtualKey, transitionDelayMs, holdDelayMs));
@@ -54,8 +55,8 @@ internal sealed class StubAutomationInputController : IAutomationInputController
         ushort secondModifier,
         ushort virtualKey,
         CancellationToken cancellationToken,
-        int holdDelayMs = Automaton.Primitives.Delays.KeyChordHoldMs,
-        int transitionDelayMs = Automaton.Primitives.Delays.KeyChordTransitionMs)
+        int holdDelayMs = Core.Primitives.Delays.KeyChordHoldMs,
+        int transitionDelayMs = Core.Primitives.Delays.KeyChordTransitionMs)
     {
         cancellationToken.ThrowIfCancellationRequested();
         KeyInputs.Add(new KeyboardInput(firstModifier, secondModifier, virtualKey, transitionDelayMs, holdDelayMs));
@@ -79,5 +80,5 @@ internal readonly record struct KeyboardInput(
     ushort? ModifierVirtualKey,
     ushort? SecondModifierVirtualKey,
     ushort VirtualKey,
-    int TransitionDelayMs = Automaton.Primitives.Delays.KeyChordTransitionMs,
-    int HoldDelayMs = Automaton.Primitives.Delays.KeyChordHoldMs);
+    int TransitionDelayMs = Delays.KeyChordTransitionMs,
+    int HoldDelayMs = Delays.KeyChordHoldMs);

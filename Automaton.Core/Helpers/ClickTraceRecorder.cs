@@ -2,7 +2,7 @@ using OpenCvSharp;
 using DrawingRectangle = System.Drawing.Rectangle;
 using Point = OpenCvSharp.Point;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal sealed class ClickTraceRecorder
 {

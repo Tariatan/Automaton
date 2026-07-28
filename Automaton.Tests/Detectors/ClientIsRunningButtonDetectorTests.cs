@@ -1,4 +1,5 @@
-using Automaton.Detectors;
+using Automaton.Core.Detectors;
+using Automaton.Core.Infrastructure;
 using Automaton.Infrastructure;
 using OpenCvSharp;
 

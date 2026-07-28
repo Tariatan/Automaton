@@ -1,4 +1,4 @@
-namespace Automaton.Primitives;
+namespace Automaton.Core.Primitives;
 
 internal static class Delays
 {

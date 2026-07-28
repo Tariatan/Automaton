@@ -1,3 +1,5 @@
+using Automaton.Core.Detectors;
+
 namespace Automaton.Detectors;
 
 internal sealed class MaxSubmissionsPopupDetector : PopupDetectorBase

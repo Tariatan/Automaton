@@ -1,4 +1,4 @@
-using Automaton.Helpers;
+using Automaton.Core.Helpers;
 using OpenCvSharp;
 using DrawingRectangle = System.Drawing.Rectangle;
 using Point = OpenCvSharp.Point;

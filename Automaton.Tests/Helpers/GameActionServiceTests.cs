@@ -1,7 +1,8 @@
+using Automaton.Core.Detectors;
+using Automaton.Core.Helpers;
+using Automaton.Core.Primitives;
 using Automaton.Infrastructure;
-using Automaton.Detectors;
 using Automaton.Helpers;
-using Automaton.Primitives;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;
 

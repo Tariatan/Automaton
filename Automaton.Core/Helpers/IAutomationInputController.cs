@@ -1,7 +1,7 @@
-using Automaton.Primitives;
+using Automaton.Core.Primitives;
 using OpenCvSharp;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal interface IAutomationInputController
 {

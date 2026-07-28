@@ -1,8 +1,8 @@
-using Automaton.Helpers;
-using Automaton.Primitives;
+using Automaton.Core.Helpers;
+using Automaton.Core.Primitives;
 using Serilog;
 
-namespace Automaton.CommonAutomationStates;
+namespace Automaton.Core.CommonAutomationStates;
 
 internal sealed class ConnectionLostPopupRecoveryBehavior(
     IAutomationInputController automationInputController,

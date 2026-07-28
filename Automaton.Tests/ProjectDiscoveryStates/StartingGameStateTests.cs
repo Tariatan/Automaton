@@ -1,7 +1,7 @@
+using Automaton.Core.CommonAutomationStates;
+using Automaton.Core.Detectors;
+using Automaton.Core.Helpers;
 using Automaton.Infrastructure;
-using Automaton.CommonAutomationStates;
-using Automaton.Detectors;
-using Automaton.Helpers;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Tests.Stubs;
 

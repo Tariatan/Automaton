@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.IO;
-using Automaton.Helpers;
-using Automaton.Infrastructure;
+using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using Automaton.Primitives;
 using OpenCvSharp;
 using Serilog;

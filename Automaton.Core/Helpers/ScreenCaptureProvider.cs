@@ -2,7 +2,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using OpenCvSharp;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal sealed class ScreenCaptureProvider : IScreenCaptureProvider
 {

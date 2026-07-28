@@ -1,10 +1,10 @@
 using System.Diagnostics;
-using Automaton.Detectors;
-using Automaton.Primitives;
+using Automaton.Core.Detectors;
+using Automaton.Core.Primitives;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal sealed class GameActionService : IGameActionService
 {

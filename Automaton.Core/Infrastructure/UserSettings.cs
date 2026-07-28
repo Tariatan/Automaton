@@ -1,12 +1,10 @@
 using System.Configuration;
 
-namespace Automaton.Infrastructure;
+namespace Automaton.Core.Infrastructure;
 
 internal sealed class UserSettings : ApplicationSettingsBase
 {
-    private static readonly UserSettings SDefaultInstance = (UserSettings)Synchronized(new UserSettings());
-
-    public static UserSettings Default => SDefaultInstance;
+    public static UserSettings Default { get; } = (UserSettings)Synchronized(new UserSettings());
 
     [UserScopedSetting]
     [DefaultSettingValue("")]

@@ -1,9 +1,9 @@
-using Automaton.Primitives;
+using System.Runtime.InteropServices;
+using Automaton.Core.Primitives;
 using OpenCvSharp;
 using Serilog;
-using System.Runtime.InteropServices;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal sealed class AutomationInputController(ClickTraceRecorder clickTraceRecorder) : IAutomationInputController
 {

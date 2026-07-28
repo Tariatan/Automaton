@@ -1,4 +1,4 @@
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal sealed class SystemAutomationClock : IAutomationClock
 {

@@ -1,4 +1,4 @@
-namespace Automaton.Infrastructure;
+namespace Automaton.Core.Infrastructure;
 
 internal static class PilotAvatarDirectory
 {

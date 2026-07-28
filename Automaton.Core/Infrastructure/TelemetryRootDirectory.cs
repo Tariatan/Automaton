@@ -1,16 +1,18 @@
-namespace Automaton.Infrastructure;
+using Automaton.Core.Primitives;
+
+namespace Automaton.Core.Infrastructure;
 
 internal static class TelemetryRootDirectory
 {
 
     public static string GetCapturesDirectory()
     {
-        return BuildDirectoryPath(Primitives.Settings.CapturesFolderName);
+        return BuildDirectoryPath(Settings.CapturesFolderName);
     }
 
     public static string GetLogsDirectory()
     {
-        return BuildDirectoryPath(Primitives.Settings.LogsFolderName);
+        return BuildDirectoryPath(Settings.LogsFolderName);
     }
 
     public static string GetExpectedDirectory(string folderName)

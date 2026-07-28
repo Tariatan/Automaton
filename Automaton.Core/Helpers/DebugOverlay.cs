@@ -1,7 +1,7 @@
 using OpenCvSharp;
 using DrawingRectangle = System.Drawing.Rectangle;
 
-namespace Automaton.Helpers;
+namespace Automaton.Core.Helpers;
 
 internal readonly record struct OverlayColor(byte R, byte G, byte B)
 {
@@ -19,26 +19,13 @@ internal readonly record struct OverlayColor(byte R, byte G, byte B)
 internal static class DebugOverlay
 {
     private const int StrokeThickness = 2;
-    private const int PointRadius = 4;
     private const double TextScale = 0.8;
     private const int TextThickness = 2;
-    private const int LabelYOffset = 14;
-    private const int MinimumLabelY = 30;
     private const int ClickRadius = 10;
     private const int ClickCrosshairLength = 9;
     private const int ClickStrokeThickness = 1;
     private static readonly Point TextOrigin = new(30, 40);
     private static readonly Scalar ClickColor = new(0, 0, 255);
-
-    private static readonly Scalar[] Palette =
-    [
-        new Scalar(0, 255, 255),
-        new Scalar(255, 180, 0),
-        new Scalar(0, 220, 120),
-        new Scalar(220, 120, 255),
-        new Scalar(80, 180, 255),
-        new Scalar(255, 120, 120)
-    ];
 
     public static void Annotate(Mat image, params (Rect Bounds, OverlayColor Color)[] items)
     {

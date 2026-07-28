@@ -1,9 +1,9 @@
 using System.Reflection;
-using Automaton.Helpers;
-using Automaton.Infrastructure;
+using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using OpenCvSharp;
 
-namespace Automaton.Detectors;
+namespace Automaton.Core.Detectors;
 
 internal sealed class TemplateButtonDetector : IDisposable
 {

@@ -1,9 +1,9 @@
-using Automaton.Infrastructure;
-using Automaton.Helpers;
+using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton.Detectors;
+namespace Automaton.Core.Detectors;
 
 internal sealed class PilotAvatarDetector : IDisposable
 {

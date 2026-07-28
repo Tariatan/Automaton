@@ -1,4 +1,5 @@
 using System.Reflection;
+using Automaton.Core.Infrastructure;
 using OpenCvSharp;
 
 namespace Automaton.Infrastructure;

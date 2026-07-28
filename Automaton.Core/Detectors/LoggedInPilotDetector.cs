@@ -1,8 +1,8 @@
-using Automaton.Infrastructure;
+using Automaton.Core.Infrastructure;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton.Detectors;
+namespace Automaton.Core.Detectors;
 
 internal sealed class LoggedInPilotDetector : IDisposable
 {

@@ -1,4 +1,4 @@
-using Automaton.Infrastructure;
+using Automaton.Core.Infrastructure;
 
 namespace Automaton.Tests.Infrastructure;
 

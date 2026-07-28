@@ -1,10 +1,10 @@
-using Automaton.Detectors;
-using Automaton.Helpers;
-using Automaton.Primitives;
+using Automaton.Core.Detectors;
+using Automaton.Core.Helpers;
+using Automaton.Core.Primitives;
 using OpenCvSharp;
 using Serilog;
 
-namespace Automaton.CommonAutomationStates;
+namespace Automaton.Core.CommonAutomationStates;
 
 internal sealed class CommonLoginState(
     IGameActionService gameActionService,

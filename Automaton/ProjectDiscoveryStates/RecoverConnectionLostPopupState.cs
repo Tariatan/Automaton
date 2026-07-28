@@ -1,4 +1,4 @@
-using Automaton.CommonAutomationStates;
+using Automaton.Core.CommonAutomationStates;
 using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;
