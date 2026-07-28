@@ -5,7 +5,7 @@ namespace Automaton.Tests.Infrastructure;
 public sealed class ApplicationStartupOptionsTests
 {
     [Fact]
-    public void Parse_NoAutomationModeArgument_UsesProjectDiscoveryMode()
+    public void Parse_NoArguments_DoesNotAutoStart()
     {
         // Arrange
         var arguments = Array.Empty<string>();
@@ -15,21 +15,7 @@ public sealed class ApplicationStartupOptionsTests
 
         // Assert
         Assert.False(options.ProcessSamples);
-        Assert.Equal(ApplicationAutomationMode.ProjectDiscovery, options.AutomationMode);
-    }
-
-    [Fact]
-    public void Parse_MinerArgument_UsesMiningMode()
-    {
-        // Arrange
-        var arguments = new[] { "-miner" };
-
-        // Act
-        var options = ApplicationStartupOptions.Parse(arguments);
-
-        // Assert
-        Assert.False(options.ProcessSamples);
-        Assert.Equal(ApplicationAutomationMode.Mining, options.AutomationMode);
+        Assert.False(options.AutoStartAutomation);
     }
 
     [Fact]
@@ -43,6 +29,20 @@ public sealed class ApplicationStartupOptionsTests
 
         // Assert
         Assert.True(options.ProcessSamples);
-        Assert.Equal(ApplicationAutomationMode.ProjectDiscovery, options.AutomationMode);
+        Assert.False(options.AutoStartAutomation);
+    }
+
+    [Fact]
+    public void Parse_DiscoveryArgument_AutoStartsAutomation()
+    {
+        // Arrange
+        var arguments = new[] { "-discovery" };
+
+        // Act
+        var options = ApplicationStartupOptions.Parse(arguments);
+
+        // Assert
+        Assert.False(options.ProcessSamples);
+        Assert.True(options.AutoStartAutomation);
     }
 }

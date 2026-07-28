@@ -15,7 +15,6 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IAutomationInputController, AutomationInputController>();
         services.AddSingleton<GameActionService>();
         services.AddSingleton<IGameActionService>(sp => sp.GetRequiredService<GameActionService>());
-        services.AddSingleton<IMiningGameActions, MiningGameActions>();
         services.AddSingleton<IDiscoveryGameActions, DiscoveryGameActions>();
         services.AddSingleton<IAutomationClock, SystemAutomationClock>();
 
@@ -28,15 +27,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<MaxSubmissionsPopupDetector>();
         services.AddSingleton<SlowDownPopupDetector>();
         services.AddSingleton<AccuracyDetector>();
-        services.AddSingleton<AsteroidBeltOverviewDetector>();
-        services.AddSingleton<LocationChangeTimerDetector>();
-        services.AddSingleton<InventoryDetector>();
         services.AddSingleton<DowntimeDetector>();
-        services.AddSingleton<MineOverviewDetector>();
-        services.AddSingleton<FirstAsteroidWithinReachDetector>();
-        services.AddSingleton<MiningAsteroidDetector>();
-        services.AddSingleton<MiningLaserDetector>();
-        services.AddSingleton<WarOverviewDetector>();
         services.AddSingleton<PilotAvatarDetector>();
         services.AddSingleton<LoggedInPilotDetector>();
 
@@ -59,7 +50,6 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IDiscoveryAutomationStateFactory, DiscoveryAutomationStateFactory>();
 
         services.AddSingleton<ProjectDiscoveryAutomationService>();
-        services.AddSingleton<MiningAutomationService>();
         services.AddTransient<MainWindow>();
 
         return services;

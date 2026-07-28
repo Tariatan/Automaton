@@ -5,7 +5,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using Automaton.Infrastructure;
 using Automaton.Helpers;
-using Automaton.MiningStates;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Properties;
 using Microsoft.Win32;
@@ -25,41 +24,35 @@ internal partial class MainWindow
     private static readonly ILogger Logger = Log.ForContext<MainWindow>();
 
     private readonly ProjectDiscoveryAutomationService m_ProjectDiscoveryAutomationService;
-    private readonly MiningAutomationService m_MiningAutomationService;
     private readonly IGameActionService m_GameActionService;
-    private ApplicationAutomationMode m_AutomationMode;
     private HwndSource? m_WindowSource;
     private CancellationTokenSource? m_AutomationCancellationSource;
     private bool m_IsAutomationRunning;
     private long m_CurrentAutomationSessionId;
     private readonly bool m_AutoStartAutomation;
     private int m_DefaultPilotIndex = 1;
-    private MiningAutomationStateKind m_SelectedMiningStartState = MiningAutomationStateKind.StartingGame;
     private DiscoveryAutomationStateKind m_SelectedDiscoveryStartState = DiscoveryAutomationStateKind.StartingGame;
 
     public MainWindow(
         ApplicationStartupOptions startupOptions,
         ProjectDiscoveryAutomationService projectDiscoveryAutomationService,
-        MiningAutomationService miningAutomationService,
         IGameActionService gameActionService)
     {
         m_ProjectDiscoveryAutomationService = projectDiscoveryAutomationService;
-        m_MiningAutomationService = miningAutomationService;
         m_GameActionService = gameActionService;
-        m_AutomationMode = startupOptions.AutomationMode;
         m_AutoStartAutomation = startupOptions.AutoStartAutomation;
         InitializeComponent();
         UpdateTelemetryMenuItemHeader();
         UpdateHallmarkMenuItemHeader();
         UpdatePilotAvatarsMenuItemHeader();
-        ApplyAutomationMode();
+        SetDiscoveryStartState(m_SelectedDiscoveryStartState);
+        SetPilotIndexControlsEnabled(isEnabled: true);
         RestoreWindowPosition();
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
         Logger.Information(
-            "Main window initialized. AutomationMode={AutomationMode}, AutoStartAutomation={AutoStartAutomation}",
-            m_AutomationMode,
+            "Main window initialized. AutoStartAutomation={AutoStartAutomation}",
             m_AutoStartAutomation);
     }
 
@@ -77,13 +70,6 @@ internal partial class MainWindow
             return;
         }
 
-        if (m_AutomationMode == ApplicationAutomationMode.Mining)
-        {
-            Logger.Information("Start requested from automation button. AutomationMode={AutomationMode}, SelectedMiningStartState={SelectedMiningStartState}", m_AutomationMode, m_SelectedMiningStartState);
-            await StartMiningAutomationAsync(new CancellationTokenSource());
-            return;
-        }
-
         var initialPilotIndex = GetPilotIndex();
         Logger.Information("Start requested from automation button. InitialPilotIndex={InitialPilotIndex}, SelectedDiscoveryStartState={SelectedDiscoveryStartState}", initialPilotIndex, m_SelectedDiscoveryStartState);
         await StartProjectDiscoveryAutomationAsync(initialPilotIndex, new CancellationTokenSource());
@@ -97,30 +83,14 @@ internal partial class MainWindow
             return;
         }
 
-        await TryRunStartupAutomationAsync();
-    }
-
-    private async Task TryRunStartupAutomationAsync()
-    {
         if (m_IsAutomationRunning)
         {
             return;
         }
 
-        switch (m_AutomationMode)
-        {
-            case ApplicationAutomationMode.Mining:
-                Logger.Information("Starting mining automation from startup argument.");
-                await StartMiningAutomationAsync(new CancellationTokenSource());
-                break;
-            case ApplicationAutomationMode.ProjectDiscovery:
-            {
-                Logger.Information("Starting project discovery automation from startup argument.");
-                var initialPilotIndex = GetPilotIndex();
-                await StartProjectDiscoveryAutomationAsync(initialPilotIndex, new CancellationTokenSource());
-                break;
-            }
-        }
+        Logger.Information("Starting project discovery automation from startup argument.");
+        var initialPilotIndex = GetPilotIndex();
+        await StartProjectDiscoveryAutomationAsync(initialPilotIndex, new CancellationTokenSource());
     }
 
     private async Task StartProjectDiscoveryAutomationAsync(int initialPilotIndex, CancellationTokenSource cancellationSource, long? sessionId = null)
@@ -173,50 +143,6 @@ internal partial class MainWindow
         finally
         {
             EndAutomationSession(cancellationSource, effectiveSessionId, disposeCancellationSource: true);
-        }
-    }
-
-    private async Task StartMiningAutomationAsync(CancellationTokenSource cancellationSource)
-    {
-        var sessionId = BeginAutomationSession(cancellationSource);
-        Logger.Information("Mining automation started");
-
-        try
-        {
-            var automationTask = Task.Run(
-                () => m_MiningAutomationService.Automate(m_SelectedMiningStartState, cancellationSource.Token),
-                cancellationSource.Token);
-            var (automationStateKind, nextState, automationActionKind, capturePath) = await automationTask;
-            Logger.Information(
-                "Mining automation completed. State={State}, NextState={NextState}, Action={Action}, CapturePath={CapturePath}",
-                automationStateKind,
-                nextState,
-                automationActionKind,
-                capturePath);
-
-            if (automationActionKind == MiningAutomationActionKind.QuitGameAndExitApplication)
-            {
-                Logger.Error("Mining automation requested safe application exit.");
-                Application.Current.Shutdown();
-            }
-            else if (automationActionKind == MiningAutomationActionKind.Reboot)
-            {
-                Logger.Error("Mining automation requested operating system reboot. Closing application.");
-                Application.Current.Shutdown();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            Logger.Error("Mining automation was canceled.");
-        }
-        catch (Exception exception)
-        {
-            Logger.Error(exception, "Mining automation failed.");
-            throw;
-        }
-        finally
-        {
-            EndAutomationSession(cancellationSource, sessionId, disposeCancellationSource: true);
         }
     }
 
@@ -347,13 +273,8 @@ internal partial class MainWindow
 
     private void SetPilotIndexControlsEnabled(bool isEnabled)
     {
-        var projectDiscoveryControlsEnabled = isEnabled &&
-                                              m_AutomationMode == ApplicationAutomationMode.ProjectDiscovery;
-        var miningControlsEnabled = isEnabled &&
-                                    m_AutomationMode == ApplicationAutomationMode.Mining;
-        DiscoveryMenuItem.IsEnabled = projectDiscoveryControlsEnabled;
-        SamplesMenuItem.IsEnabled = projectDiscoveryControlsEnabled;
-        MiningMenuItem.IsEnabled = miningControlsEnabled;
+        DiscoveryMenuItem.IsEnabled = isEnabled;
+        SamplesMenuItem.IsEnabled = isEnabled;
     }
 
     private void TelemetryMenuItem_Click(object sender, RoutedEventArgs e)
@@ -552,66 +473,6 @@ internal partial class MainWindow
         SetDiscoveryStartState(DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup);
     }
 
-    private void MiningStartingGameMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.StartingGame);
-    }
-
-    private void MiningLoginMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.Login);
-    }
-
-    private void MiningDockMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.Dock);
-    }
-
-    private void MiningUndockingMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.Undocking);
-    }
-
-    private void MiningEmptyOnUndockMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.SelectBeltAndWarp);
-    }
-
-    private void MiningApproachingAsteroidMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.ApproachingAsteroid);
-    }
-
-    private void MiningMiningMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.Mining);
-    }
-
-    private void MiningUnloadCargoMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.UnloadCargo);
-    }
-
-    private void MiningRecoveryMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetMiningStartState(MiningAutomationStateKind.Recovery);
-    }
-
-    private void SetMiningStartState(MiningAutomationStateKind stateKind)
-    {
-        m_SelectedMiningStartState = stateKind;
-        MiningStartingGameMenuItem.IsChecked = stateKind == MiningAutomationStateKind.StartingGame;
-        MiningLoginMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Login;
-        MiningUnloadCargoMenuItem.IsChecked = stateKind == MiningAutomationStateKind.UnloadCargo;
-        MiningUndockingMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Undocking;
-        MiningEmptyOnUndockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.SelectBeltAndWarp;
-        MiningApproachingAsteroidMenuItem.IsChecked = stateKind == MiningAutomationStateKind.ApproachingAsteroid;
-        MiningMiningMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Mining;
-        MiningDockMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Dock;
-        MiningRecoveryMenuItem.IsChecked = stateKind == MiningAutomationStateKind.Recovery;
-        Logger.Information("Mining start state changed. MiningStartState={MiningStartState}", m_SelectedMiningStartState);
-    }
-
     private void SetDiscoveryStartState(DiscoveryAutomationStateKind stateKind)
     {
         m_SelectedDiscoveryStartState = stateKind;
@@ -623,53 +484,5 @@ internal partial class MainWindow
         DiscoveryRecoverConnectionLostPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverConnectionLostPopup;
         DiscoveryRecoverMaxSubmissionsPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup;
         Logger.Information("Discovery start state changed. DiscoveryStartState={DiscoveryStartState}", m_SelectedDiscoveryStartState);
-    }
-
-    private void ApplyAutomationMode()
-    {
-        Title = m_AutomationMode == ApplicationAutomationMode.Mining
-            ? "Automaton - Miner"
-            : "Automaton - Discovery";
-        SettingsDiscoveryModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.ProjectDiscovery;
-        SettingsMiningModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.Mining;
-
-        SetMiningStartState(m_SelectedMiningStartState);
-        SetDiscoveryStartState(m_SelectedDiscoveryStartState);
-        SetPilotIndexControlsEnabled(isEnabled: true);
-    }
-
-    private void SettingsDiscoveryModeMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetAutomationMode(ApplicationAutomationMode.ProjectDiscovery);
-    }
-
-    private void SettingsMiningModeMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetAutomationMode(ApplicationAutomationMode.Mining);
-    }
-
-    private void SetAutomationMode(ApplicationAutomationMode automationMode)
-    {
-        if (m_IsAutomationRunning)
-        {
-            SettingsDiscoveryModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.ProjectDiscovery;
-            SettingsMiningModeMenuItem.IsChecked = m_AutomationMode == ApplicationAutomationMode.Mining;
-            Logger.Information(
-                "Automation mode change ignored because automation is running. CurrentMode={CurrentMode}, RequestedMode={RequestedMode}",
-                m_AutomationMode,
-                automationMode);
-            return;
-        }
-
-        if (m_AutomationMode == automationMode)
-        {
-            SettingsDiscoveryModeMenuItem.IsChecked = automationMode == ApplicationAutomationMode.ProjectDiscovery;
-            SettingsMiningModeMenuItem.IsChecked = automationMode == ApplicationAutomationMode.Mining;
-            return;
-        }
-
-        m_AutomationMode = automationMode;
-        ApplyAutomationMode();
-        Logger.Information("Automation mode changed from settings. AutomationMode={AutomationMode}", m_AutomationMode);
     }
 }

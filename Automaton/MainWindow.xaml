@@ -25,16 +25,6 @@
                 <MenuItem x:Name="PilotAvatarsMenuItem"
                           Header="Pilot Avatars"
                           Click="PilotAvatarsMenuItem_Click" />
-                <Separator />
-                <MenuItem x:Name="SettingsDiscoveryModeMenuItem"
-                          Header="Discovery"
-                          IsCheckable="True"
-                          IsChecked="True"
-                          Click="SettingsDiscoveryModeMenuItem_Click" />
-                <MenuItem x:Name="SettingsMiningModeMenuItem"
-                          Header="Mining"
-                          IsCheckable="True"
-                          Click="SettingsMiningModeMenuItem_Click" />
             </MenuItem>
             <MenuItem x:Name="DiscoveryMenuItem"
                       Header="Discovery">
@@ -66,18 +56,6 @@
                 <MenuItem x:Name="ExtractPlayfieldsMenuItem"
                           Header="Extract Playfields"
                           Click="ExtractPlayfields_Click" />
-            </MenuItem>
-            <MenuItem x:Name="MiningMenuItem"
-                      Header="Mining">
-                <MenuItem x:Name="MiningStartingGameMenuItem" Header="StartingGame" IsCheckable="True" IsChecked="True" Click="MiningStartingGameMenuItem_Click" />
-                <MenuItem x:Name="MiningLoginMenuItem" Header="Login" IsCheckable="True" Click="MiningLoginMenuItem_Click" />
-                <MenuItem x:Name="MiningUnloadCargoMenuItem" Header="UnloadCargo" IsCheckable="True" Click="MiningUnloadCargoMenuItem_Click" />
-                <MenuItem x:Name="MiningUndockingMenuItem" Header="Undocking" IsCheckable="True" Click="MiningUndockingMenuItem_Click" />
-                <MenuItem x:Name="MiningEmptyOnUndockMenuItem" Header="SelectBeltAndWarp" IsCheckable="True" Click="MiningEmptyOnUndockMenuItem_Click" />
-                <MenuItem x:Name="MiningApproachingAsteroidMenuItem" Header="ApproachingAsteroid" IsCheckable="True" Click="MiningApproachingAsteroidMenuItem_Click" />
-                <MenuItem x:Name="MiningMiningMenuItem" Header="Mining" IsCheckable="True" Click="MiningMiningMenuItem_Click" />
-                <MenuItem x:Name="MiningDockMenuItem" Header="Dock" IsCheckable="True" Click="MiningDockMenuItem_Click" />
-                <MenuItem x:Name="MiningRecoveryMenuItem" Header="Recovery" IsCheckable="True" Click="MiningRecoveryMenuItem_Click" />
             </MenuItem>
         </Menu>
         <Button Grid.Row="1"
