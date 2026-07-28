@@ -80,19 +80,30 @@ internal sealed class LoggedInPilotDetector : IDisposable
 
     private IReadOnlyList<LoggedInPilotCandidate> GetCandidates(string pilotDirectory)
     {
-        var fullDirectory = Path.GetFullPath(pilotDirectory);
-        var lastWrite = Directory.GetLastWriteTimeUtc(fullDirectory);
+        var lastWrite = Directory.GetLastWriteTimeUtc(pilotDirectory);
         if (m_CachedCandidates is not null &&
             lastWrite == m_CandidatesCacheTime &&
-            string.Equals(fullDirectory, m_CandidatesDirectory, StringComparison.OrdinalIgnoreCase))
+            string.Equals(pilotDirectory, m_CandidatesDirectory, StringComparison.OrdinalIgnoreCase))
         {
             return m_CachedCandidates;
         }
 
-        m_CachedCandidates = BuildCandidates(fullDirectory);
-        m_CandidatesDirectory = fullDirectory;
+        var newCandidates = BuildCandidates(pilotDirectory);
+        EvictStaleCacheEntries(newCandidates);
+        m_CachedCandidates = newCandidates;
+        m_CandidatesDirectory = pilotDirectory;
         m_CandidatesCacheTime = lastWrite;
         return m_CachedCandidates;
+    }
+
+    private void EvictStaleCacheEntries(IReadOnlyList<LoggedInPilotCandidate> currentCandidates)
+    {
+        var currentPaths = new HashSet<string>(currentCandidates.Select(c => c.Path), StringComparer.OrdinalIgnoreCase);
+        foreach (var key in m_TemplateCache.Keys.Where(k => !currentPaths.Contains(k)).ToList())
+        {
+            m_TemplateCache[key].Dispose();
+            m_TemplateCache.Remove(key);
+        }
     }
 
     private Mat? GetOrLoadTemplate(LoggedInPilotCandidate candidate)
@@ -120,35 +131,25 @@ internal sealed class LoggedInPilotDetector : IDisposable
         return scaled;
     }
 
-    private static IReadOnlyList<LoggedInPilotCandidate> BuildCandidates(string pilotDirectory)
-    {
-        return Directory
+    private static LoggedInPilotCandidate[] BuildCandidates(string pilotDirectory) =>
+    [
+        .. Directory
             .EnumerateFiles(pilotDirectory, "*_focused.png", SearchOption.TopDirectoryOnly)
-            .Select(path => new LoggedInPilotCandidate(ParsePilotIndex(Path.GetFileNameWithoutExtension(path)), path))
+            .Select(path =>
+                new LoggedInPilotCandidate(ParsePilotIndex(Path.GetFileNameWithoutExtension(path)), path))
             .Where(candidate => candidate.PilotIndex > 0)
             .OrderBy(candidate => candidate.PilotIndex)
-            .ToArray();
-    }
+    ];
 
-    private static int ParsePilotIndex(string? fileNameWithoutExtension)
+    private static int ParsePilotIndex(string fileNameWithoutExtension)
     {
-        if (string.IsNullOrWhiteSpace(fileNameWithoutExtension))
-        {
-            return 0;
-        }
-
-        var indexText = fileNameWithoutExtension.EndsWith("_focused", StringComparison.OrdinalIgnoreCase)
-            ? fileNameWithoutExtension[..^"_focused".Length]
-            : fileNameWithoutExtension;
-        return int.TryParse(indexText, out var pilotIndex)
-            ? pilotIndex
-            : 0;
+        const string Suffix = "_focused";
+        var indexText = fileNameWithoutExtension.AsSpan(0, fileNameWithoutExtension.Length - Suffix.Length);
+        return int.TryParse(indexText, out var pilotIndex) ? pilotIndex : 0;
     }
 
     private static bool IsPortraitRegionAvailable(Size screenSize)
-    {
-        return screenSize.Width >= PortraitBounds.Right && screenSize.Height >= PortraitBounds.Bottom;
-    }
+        => screenSize.Width >= PortraitBounds.Right && screenSize.Height >= PortraitBounds.Bottom;
 
     private static Mat PrepareBgr(Mat image)
     {
