@@ -18,10 +18,11 @@ public partial class App
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        m_LogFiles = ApplicationLogging.Configure();
 
         var startupOptions = ApplicationStartupOptions.Parse(e.Args);
         UserSettings.Initialize(startupOptions.SettingsFilePath ?? PrivateSettings.SettingsFilePath);
+
+        m_LogFiles = ApplicationLogging.Configure();
 
         Log.ForContext<App>().Information(
             "Automaton started. ActiveLogFilePath={ActiveLogFilePath}, TelemetryLogFilePath={TelemetryLogFilePath}, Arguments={Arguments}",

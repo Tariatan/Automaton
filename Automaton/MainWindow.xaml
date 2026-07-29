@@ -5,51 +5,921 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Automaton"
-        Topmost="True" ResizeMode="NoResize" Height="120" Width="251" WindowStyle="ToolWindow" Background="{DynamicResource {x:Static SystemColors.DesktopBrushKey}}">
-    <Grid Margin="6">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="24"/>
-            <RowDefinition Height="42"/>
-        </Grid.RowDefinitions>
-        <Menu Grid.Row="0"
-              Margin="0,0,0,2"
-              VerticalAlignment="Top">
-            <MenuItem x:Name="DiscoveryMenuItem"
-                      Header="Discovery">
-                <MenuItem x:Name="DiscoveryStartingGameMenuItem" Header="StartingGame" IsCheckable="True" IsChecked="True" Click="DiscoveryStartingGameMenuItem_Click" />
-                <MenuItem x:Name="DiscoveryLoginMenuItem" Header="Login" IsCheckable="True" Click="DiscoveryLoginMenuItem_Click" />
-                <MenuItem x:Name="DiscoveryDiscoverMenuItem" Header="Discover" IsCheckable="True" Click="DiscoveryDiscoverMenuItem_Click" />
-                <MenuItem x:Name="DiscoveryRecoveryMenuItem" Header="Recovery" IsCheckable="True" Click="DiscoveryRecoveryMenuItem_Click" />
-                <MenuItem x:Name="DiscoveryRecoverSlowDownPopupMenuItem" Header="RecoverSlowDownPopup" IsCheckable="True" Click="DiscoveryRecoverSlowDownPopupMenuItem_Click" />
-                <MenuItem x:Name="DiscoveryRecoverConnectionLostPopupMenuItem" Header="RecoverConnectionLostPopup" IsCheckable="True" Click="DiscoveryRecoverConnectionLostPopupMenuItem_Click" />
-                <MenuItem x:Name="DiscoveryRecoverMaxSubmissionsPopupMenuItem" Header="RecoverMaxSubmissionsPopup" IsCheckable="True" Click="DiscoveryRecoverMaxSubmissionsPopupMenuItem_Click" />
-                <Separator />
-                <MenuItem x:Name="Pilot1MenuItem"
-                          Header="Pilot 1"
-                          IsCheckable="True"
-                          IsChecked="True"
-                          Click="Pilot1MenuItem_Click" />
-                <MenuItem x:Name="Pilot2MenuItem"
-                          Header="Pilot 2"
-                          IsCheckable="True"
-                          Click="Pilot2MenuItem_Click" />
-                <MenuItem x:Name="Pilot3MenuItem"
-                          Header="Pilot 3"
-                          IsCheckable="True"
-                          Click="Pilot3MenuItem_Click" />
-                <Separator />
-                <MenuItem x:Name="SamplesMenuItem"
-                          Header="Samples"
-                          Click="Samples_Click" />
-            </MenuItem>
-        </Menu>
-        <Button Grid.Row="1"
-                x:Name="StartButton"
-                Click="Automate_Click"
-                Content="Start"
-                Background="#FF2CB43A"
-                FontWeight="Bold"
-                Margin="0,8,0,0" />
-    </Grid>
+        Title="Project Discovery Automation"
+        Topmost="True"
+        ResizeMode="NoResize"
+        Height="301"
+        Width="532"
+        WindowStyle="None"
+        Background="#061018">
+    <Window.Resources>
+        <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#07111A" Offset="0" />
+            <GradientStop Color="#102432" Offset="0.56" />
+            <GradientStop Color="#071019" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="TitleBarBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#09131D" Offset="0" />
+            <GradientStop Color="#112C3C" Offset="0.64" />
+            <GradientStop Color="#08111A" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="PanelBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#132837" Offset="0" />
+            <GradientStop Color="#0A1722" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="TextBrush" Color="#D9E8F0" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#91A7B4" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#31536A" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#41C9F3" />
+        <SolidColorBrush x:Key="MainPanelBackgroundBrush" Color="#0D1A25" />
+        <LinearGradientBrush x:Key="SelectedNavTabBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#1E6B8B" Offset="0" />
+            <GradientStop Color="#16465F" Offset="0.38" />
+            <GradientStop Color="#0D1A25" Offset="0.78" />
+            <GradientStop Color="#0D1A25" Offset="1" />
+        </LinearGradientBrush>
+        <Style x:Key="ChromeButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Foreground" Value="#A9BBC8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#203547" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#2C526C" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="NavTabItemStyle" TargetType="{x:Type TabItem}">
+            <Setter Property="Width" Value="132" />
+            <Setter Property="Height" Value="92" />
+            <Setter Property="Foreground" Value="#91A7B4" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabItem}">
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="#08151F"
+                                    BorderBrush="#163044"
+                                    BorderThickness="0,0,1,1" />
+                            <Border x:Name="Accent"
+                                    Width="4"
+                                    HorizontalAlignment="Left"
+                                    Background="Transparent" />
+                            <Grid x:Name="SelectionIndicator"
+                                  Width="28"
+                                  HorizontalAlignment="Right"
+                                  IsHitTestVisible="False"
+                                  Opacity="0">
+                                <Border Width="24"
+                                        HorizontalAlignment="Right">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="#002CAED0" Offset="0" />
+                                            <GradientStop Color="#102CAED0" Offset="0.45" />
+                                            <GradientStop Color="#000D1A25" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Path Width="16"
+                                      Height="34"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"
+                                      Data="M2,4 L15,17 L2,30"
+                                      Opacity="0.72"
+                                      Stretch="Fill"
+                                      Stroke="#3AA5C9"
+                                      StrokeEndLineCap="Square"
+                                      StrokeLineJoin="Miter"
+                                      StrokeStartLineCap="Square"
+                                      StrokeThickness="3" />
+                            </Grid>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True" />
+                            </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource SelectedNavTabBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource MainPanelBackgroundBrush}" />
+                                <Setter TargetName="Accent" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="SelectionIndicator" Property="Opacity" Value="0.74" />
+                                <Setter Property="Foreground" Value="#F0FBFF" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsSelected" Value="False" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Root" Property="Background" Value="#123044" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="NavHeaderTextStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type TabItem}}}" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="MainTabControlStyle" TargetType="{x:Type TabControl}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabControl}">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="132" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Background="#08131D"
+                                    BorderBrush="#183246"
+                                    BorderThickness="0,0,1,0" />
+                            <TabPanel Grid.Column="0"
+                                      IsItemsHost="True"
+                                      KeyboardNavigation.TabIndex="1" />
+                            <Border Grid.Column="1"
+                                    Padding="18"
+                                    Background="{StaticResource MainPanelBackgroundBrush}">
+                                <ContentPresenter ContentSource="SelectedContent" />
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PanelChromeStyle" TargetType="{x:Type Border}">
+            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="2" />
+        </Style>
+        <Style x:Key="SectionTitleStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="FontFamily" Value="Segoe UI Semilight" />
+            <Setter Property="FontSize" Value="24" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+        <Style x:Key="LabelStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="InputStyle" TargetType="{x:Type Control}">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Foreground" Value="#D9E8F0" />
+            <Setter Property="Background" Value="#0A1823" />
+            <Setter Property="BorderBrush" Value="#34566F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+        <Style x:Key="TextInputStyle" TargetType="{x:Type TextBox}" BasedOn="{StaticResource InputStyle}">
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="CaretBrush" Value="#9DF8FF" />
+            <Setter Property="SelectionBrush" Value="#2E8AA8" />
+        </Style>
+        <Style x:Key="ComboBoxItemStyle" TargetType="{x:Type ComboBoxItem}">
+            <Setter Property="Height" Value="31" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Foreground" Value="#CFE1EA" />
+            <Setter Property="Background" Value="#081722" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ComboBoxItem}">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="1,0"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#1D5B76" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#43C8F2" />
+                                <Setter Property="Foreground" Value="#F4FCFF" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#143F55" />
+                                <Setter Property="Foreground" Value="#9DF8FF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ComboInputStyle" TargetType="{x:Type ComboBox}" BasedOn="{StaticResource InputStyle}">
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource ComboBoxItemStyle}" />
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ComboBox}">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          ClickMode="Press"
+                                          Focusable="False"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                        <Border x:Name="Root"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="3">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="34" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Margin="{Binding Padding, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}"
+                                                           Foreground="{TemplateBinding Foreground}"
+                                                           HorizontalAlignment="Left"
+                                                           Text="{Binding SelectedItem.DisplayName, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center" />
+                                                <Border Grid.Column="1"
+                                                        BorderBrush="#254B62"
+                                                        BorderThickness="1,0,0,0"
+                                                        Background="#0D2230">
+                                                    <Path Width="12"
+                                                          Height="7"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Fill="#9ED8EA"
+                                                          Stretch="Uniform"
+                                                          Data="M0,0 L12,0 L6,7 Z" />
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Root" Property="BorderBrush" Value="#51B6DA" />
+                                                <Setter TargetName="Root" Property="Background" Value="#102838" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Root" Property="BorderBrush" Value="#67D7F5" />
+                                                <Setter TargetName="Root" Property="Background" Value="#123044" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   PopupAnimation="Fade">
+                                <Grid MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border x:Name="DropDownBorder"
+                                            Background="#07131D"
+                                            BorderBrush="#51B6DA"
+                                            BorderThickness="1"
+                                            CornerRadius="3">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="18"
+                                                              Color="#1FA7CF"
+                                                              Opacity="0.45"
+                                                              ShadowDepth="0" />
+                                        </Border.Effect>
+                                    </Border>
+                                    <ScrollViewer Margin="1"
+                                                  Padding="0"
+                                                  Background="Transparent"
+                                                  CanContentScroll="True"
+                                                  MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RadioStyle" TargetType="{x:Type RadioButton}">
+            <Setter Property="Foreground" Value="#C8D7E0" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Margin" Value="0,0,16,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="SecondaryButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinWidth" Value="96" />
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="Foreground" Value="#D9E8F0" />
+            <Setter Property="Background" Value="#122D40" />
+            <Setter Property="BorderBrush" Value="#3D718E" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontFamily" Value="Segoe UI Semibold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#17435B" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#51B6DA" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#0E2433" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PrimaryAutomationButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="420" />
+            <Setter Property="Height" Value="78" />
+            <Setter Property="Foreground" Value="#F7FFF9" />
+            <Setter Property="Background" Value="#2D8853" />
+            <Setter Property="BorderBrush" Value="#9BFFC0" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontFamily" Value="Segoe UI Semibold" />
+            <Setter Property="FontSize" Value="30" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
+                            <Grid>
+                                <Border CornerRadius="5">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#4AFFFFFF" Offset="0" />
+                                            <GradientStop Color="#10FFFFFF" Offset="0.48" />
+                                            <GradientStop Color="#26000000" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.92" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.76" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Viewbox Stretch="Uniform">
+        <Border Width="760"
+            Height="430"
+            BorderBrush="#31536A"
+            BorderThickness="1"
+            Background="{StaticResource WindowBackgroundBrush}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="52" />
+                    <RowDefinition Height="75*" />
+                    <RowDefinition Height="301*"/>
+                </Grid.RowDefinitions>
+                <Border x:Name="TitleBar"
+                    Grid.Row="0"
+                    Background="{StaticResource TitleBarBrush}"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="18,0,0,0">
+                            <Viewbox Width="24"
+                                 Height="30"
+                                 Margin="0,0,12,0">
+                                <Canvas Width="24" Height="30">
+                                    <Path Stroke="#2BC3DE"
+                                      StrokeThickness="2"
+                                      Data="M7,2 C18,8 18,22 7,28" />
+                                    <Path Stroke="#2BC3DE"
+                                      StrokeThickness="2"
+                                      Data="M17,2 C6,8 6,22 17,28" />
+                                    <Line X1="8" Y1="8" X2="16" Y2="8" Stroke="#2BC3DE" StrokeThickness="2" />
+                                    <Line X1="6" Y1="15" X2="18" Y2="15" Stroke="#2BC3DE" StrokeThickness="2" />
+                                    <Line X1="8" Y1="22" X2="16" Y2="22" Stroke="#2BC3DE" StrokeThickness="2" />
+                                </Canvas>
+                            </Viewbox>
+                            <TextBlock Text="PROJECT DISCOVERY AUTOMATION"
+                                   Foreground="#AFC5D2"
+                                   FontFamily="Segoe UI Light"
+                                   FontSize="25"
+                                   VerticalAlignment="Center" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                            <Button x:Name="PinButton"
+                                Style="{StaticResource ChromeButtonStyle}"
+                                ToolTip="Toggle always on top"
+                                Click="PinButton_Click">
+                                <Viewbox Width="16" Height="16">
+                                    <Canvas Width="20" Height="20">
+                                        <Path Stroke="#A9BBC8"
+                                          StrokeThickness="2"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          Data="M6,3 L15,12 M12,4 L16,8 L13,11 L16,15 L14,17 L10,13 L5,18 L7,13 L4,10 L8,6" />
+                                    </Canvas>
+                                </Viewbox>
+                            </Button>
+                            <Button Style="{StaticResource ChromeButtonStyle}"
+                                ToolTip="Minimize"
+                                Click="MinimizeButton_Click">
+                                <Viewbox Width="15" Height="15">
+                                    <Path Stroke="#A9BBC8"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Data="M2,11 L14,11" />
+                                </Viewbox>
+                            </Button>
+                            <Button Style="{StaticResource ChromeButtonStyle}"
+                                Background="#652431"
+                                ToolTip="Close"
+                                Click="CloseButton_Click">
+                                <Viewbox Width="15" Height="15">
+                                    <Path Stroke="#F2DDE2"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Data="M3,3 L13,13 M13,3 L3,13" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <TabControl Grid.Row="1"
+                        TabStripPlacement="Left"
+                        Style="{StaticResource MainTabControlStyle}" Grid.RowSpan="2">
+                    <TabItem x:Name="HomeTabItem"
+                         Style="{StaticResource NavTabItemStyle}" Margin="0,19,0,-19">
+                        <TabItem.Header>
+                            <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                <Viewbox Width="31"
+                                     Height="31"
+                                     Margin="0,0,0,6">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type TabItem}}}"
+                                      Data="M16,3 L30,15 H26 V30 H19 V21 H13 V30 H6 V15 H2 Z" />
+                                </Viewbox>
+                                <TextBlock Style="{StaticResource NavHeaderTextStyle}"
+                                       Text="HOME" />
+                            </StackPanel>
+                        </TabItem.Header>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="54" />
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0"
+                                Style="{StaticResource PanelChromeStyle}"
+                                Padding="18">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="98" />
+                                        <RowDefinition Height="40" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Viewbox Grid.Row="0"
+                                         Width="430"
+                                         Height="88"
+                                         HorizontalAlignment="Center" Margin="0,1,0,9">
+                                        <Canvas Width="560" Height="96">
+                                            <Canvas Width="462" Height="96">
+                                                <Canvas.OpacityMask>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                        <GradientStop Color="#00FFFFFF" Offset="0" />
+                                                        <GradientStop Color="#55FFFFFF" Offset="0.08" />
+                                                        <GradientStop Color="#FFFFFFFF" Offset="0.18" />
+                                                        <GradientStop Color="#FFFFFFFF" Offset="0.68" />
+                                                        <GradientStop Color="#55FFFFFF" Offset="0.84" />
+                                                        <GradientStop Color="#00FFFFFF" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Canvas.OpacityMask>
+                                                <Ellipse Width="96"
+                                                         Height="90"
+                                                         Canvas.Left="225"
+                                                         Canvas.Top="3"
+                                                         Stroke="#2D647A"
+                                                         StrokeThickness="6"
+                                                         Opacity="0.45" />
+                                                <Path Stroke="#254D64"
+                                                      StrokeThickness="5.5"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      Data="M-52,48 C-8,12 38,12 82,48 S168,84 212,48 298,12 342,48 428,84 472,48" />
+                                                <Path Stroke="#254D64"
+                                                      StrokeThickness="5.5"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      Data="M-52,48 C-8,84 38,84 82,48 S168,12 212,48 298,84 342,48 428,12 472,48" />
+                                                <Line X1="26" Y1="37" X2="26" Y2="59" Stroke="#315D75" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.58" />
+                                                <Line X1="58" Y1="33" X2="58" Y2="63" Stroke="#416D86" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="90" Y1="36" X2="90" Y2="60" Stroke="#416D86" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="128" Y1="42" X2="128" Y2="54" Stroke="#315D75" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.7" />
+                                                <Line X1="164" Y1="35" X2="164" Y2="61" Stroke="#416D86" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="199" Y1="33" X2="199" Y2="63" Stroke="#416D86" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="236" Y1="41" X2="236" Y2="55" Stroke="#416D86" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="270" Y1="31" X2="270" Y2="65" Stroke="#6DFFE0" StrokeThickness="4.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="306" Y1="36" X2="306" Y2="60" Stroke="#416D86" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="344" Y1="42" X2="344" Y2="54" Stroke="#315D75" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.7" />
+                                                <Line X1="379" Y1="33" X2="379" Y2="63" Stroke="#416D86" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                <Line X1="414" Y1="38" X2="414" Y2="58" Stroke="#315D75" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.58" />
+                                                <Path Stroke="#6DFFE0"
+                                                      StrokeThickness="10"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      Opacity="0.16"
+                                                      Data="M285,4 A44,44 0 1 1 285,92">
+                                                    <Path.Effect>
+                                                        <DropShadowEffect BlurRadius="18"
+                                                                          Color="#6DFFE0"
+                                                                          Opacity="0.9"
+                                                                          ShadowDepth="0" />
+                                                    </Path.Effect>
+                                                </Path>
+                                                <Path Stroke="#6DFFE0"
+                                                      StrokeThickness="5.5"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      Data="M285,4 A44,44 0 1 1 285,92" />
+                                            </Canvas>
+                                            <Path Stroke="#5DF7BD"
+                                                  StrokeThickness="14"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  Opacity="0.13"
+                                                  Data="M455,50 H474 L482,29 L491,70 L502,50 H540">
+                                                <Path.Effect>
+                                                    <DropShadowEffect BlurRadius="16"
+                                                                      Color="#5DF7BD"
+                                                                      Opacity="0.85"
+                                                                      ShadowDepth="0" />
+                                                </Path.Effect>
+                                            </Path>
+                                            <Path Stroke="#5DF7BD"
+                                                  StrokeThickness="5"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  Data="M455,50 H474 L482,29 L491,70 L502,50 H540" />
+                                        </Canvas>
+                                    </Viewbox>
+                                    <Grid Grid.Row="2"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center">
+                                        <Border x:Name="StartButtonGlow"
+                                            Width="436"
+                                            Height="94"
+                                            CornerRadius="9"
+                                            Background="#2D8853"
+                                            Opacity="0.58" Margin="0,-21,0,34">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="30"
+                                                              Color="#86F6A4"
+                                                              Opacity="0.86"
+                                                              ShadowDepth="0" />
+                                            </Border.Effect>
+                                        </Border>
+                                        <StackPanel HorizontalAlignment="Center"
+                                                VerticalAlignment="Top" Margin="0,-12,0,0">
+                                            <Button x:Name="StartButton"
+                                                Style="{StaticResource PrimaryAutomationButtonStyle}"
+                                                Click="Automate_Click"
+                                                Content="START AUTOMATION" />
+                                            <TextBlock x:Name="HotkeyTextBlock"
+                                                   Text="Hotkey: Shift+Alt+F11"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontFamily="Segoe UI"
+                                                   FontSize="16"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,8,0,0" Height="27" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Row="1"
+                                Style="{StaticResource PanelChromeStyle}"
+                                Margin="0,12,0,0">
+                                <TextBlock x:Name="StatusTextBlock"
+                                       Text="Paused"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontFamily="Segoe UI"
+                                       FontSize="18"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </TabItem>
+                    <TabItem x:Name="SetupTabItem"
+                         Style="{StaticResource NavTabItemStyle}" Margin="0,19,0,-19">
+                        <TabItem.Header>
+                            <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                <Viewbox Width="34"
+                                     Height="34"
+                                     Margin="0,0,0,5">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type TabItem}}}"
+                                          Data="M19.43,12.98 C19.47,12.66 19.5,12.33 19.5,12 C19.5,11.67 19.47,11.34 19.43,11.02 L21.54,9.37 C21.73,9.22 21.78,8.95 21.66,8.73 L19.66,5.27 C19.54,5.05 19.29,4.96 19.06,5.05 L16.57,6.05 C16.05,5.65 15.49,5.32 14.88,5.07 L14.5,2.42 C14.46,2.18 14.25,2 14,2 L10,2 C9.75,2 9.54,2.18 9.5,2.42 L9.12,5.07 C8.51,5.32 7.95,5.66 7.43,6.05 L4.94,5.05 C4.71,4.97 4.46,5.05 4.34,5.27 L2.34,8.73 C2.21,8.95 2.27,9.22 2.46,9.37 L4.57,11.02 C4.53,11.34 4.5,11.67 4.5,12 C4.5,12.33 4.53,12.66 4.57,12.98 L2.46,14.63 C2.27,14.78 2.22,15.05 2.34,15.27 L4.34,18.73 C4.46,18.95 4.71,19.04 4.94,18.95 L7.43,17.95 C7.95,18.35 8.51,18.68 9.12,18.93 L9.5,21.58 C9.54,21.82 9.75,22 10,22 L14,22 C14.25,22 14.46,21.82 14.5,21.58 L14.88,18.93 C15.49,18.68 16.05,18.34 16.57,17.95 L19.06,18.95 C19.29,19.03 19.54,18.95 19.66,18.73 L21.66,15.27 C21.78,15.05 21.73,14.78 21.54,14.63 L19.43,12.98 Z M12,15.5 C10.07,15.5 8.5,13.93 8.5,12 C8.5,10.07 10.07,8.5 12,8.5 C13.93,8.5 15.5,10.07 15.5,12 C15.5,13.93 13.93,15.5 12,15.5 Z" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Style="{StaticResource NavHeaderTextStyle}"
+                                       Text="SETUP" />
+                            </StackPanel>
+                        </TabItem.Header>
+                        <Border Style="{StaticResource PanelChromeStyle}"
+                            Padding="18">
+                            <Grid x:Name="SetupControlsPanel">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="52" />
+                                    <RowDefinition Height="52" />
+                                    <RowDefinition Height="54" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0"
+                                       Style="{StaticResource SectionTitleStyle}"
+                                       Text="AUTOMATION SETUP" />
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource LabelStyle}"
+                                           Text="Start state" />
+                                    <ComboBox x:Name="DiscoveryStartStateComboBox"
+                                          Grid.Column="1"
+                                          Style="{StaticResource ComboInputStyle}"
+                                          SelectionChanged="DiscoveryStartStateComboBox_SelectionChanged" />
+                                </Grid>
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource LabelStyle}"
+                                           Text="Pilot index" />
+                                    <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                        <RadioButton x:Name="Pilot1RadioButton"
+                                                 Style="{StaticResource RadioStyle}"
+                                                 Content="Pilot 1"
+                                                 IsChecked="True"
+                                                 Click="Pilot1RadioButton_Click" />
+                                        <RadioButton x:Name="Pilot2RadioButton"
+                                                 Style="{StaticResource RadioStyle}"
+                                                 Content="Pilot 2"
+                                                 Click="Pilot2RadioButton_Click" />
+                                        <RadioButton x:Name="Pilot3RadioButton"
+                                                 Style="{StaticResource RadioStyle}"
+                                                 Content="Pilot 3"
+                                                 Click="Pilot3RadioButton_Click" />
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Grid.Row="3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource LabelStyle}"
+                                           Text="Samples" />
+                                    <Button x:Name="ProcessSamplesButton"
+                                        Grid.Column="1"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        HorizontalAlignment="Left"
+                                        Content="PROCESS SAMPLES"
+                                        Click="Samples_Click" Margin="0,9,0,9" Width="159" />
+                                </Grid>
+                                <Border Grid.Row="4"
+                                    BorderBrush="#254A60"
+                                    BorderThickness="1"
+                                    Background="#081722"
+                                    Margin="0,12,0,0"
+                                    Padding="14">
+                                    <TextBlock x:Name="SetupStatusTextBlock"
+                                           Text="Choose the starting workflow and pilot before launching automation."
+                                           Foreground="{StaticResource MutedTextBrush}"
+                                           FontFamily="Segoe UI"
+                                           FontSize="15"
+                                           TextWrapping="Wrap" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </TabItem>
+                    <TabItem x:Name="SettingsTabItem"
+                         Style="{StaticResource NavTabItemStyle}" Margin="0,19,0,-19">
+                        <TabItem.Header>
+                            <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                <Viewbox Width="31"
+                                     Height="31"
+                                     Margin="0,0,0,6">
+                                    <Canvas Width="32" Height="32">
+                                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type TabItem}}}"
+                                          StrokeThickness="2.4"
+                                          StrokeStartLineCap="Round"
+                                          Data="M5,9 H27 M5,16 H27 M5,23 H27" />
+                                        <Ellipse Width="7"
+                                             Height="7"
+                                             Canvas.Left="10"
+                                             Canvas.Top="5.5"
+                                             Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type TabItem}}}" />
+                                        <Ellipse Width="7"
+                                             Height="7"
+                                             Canvas.Left="20"
+                                             Canvas.Top="12.5"
+                                             Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type TabItem}}}" />
+                                        <Ellipse Width="7"
+                                             Height="7"
+                                             Canvas.Left="8"
+                                             Canvas.Top="19.5"
+                                             Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type TabItem}}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Style="{StaticResource NavHeaderTextStyle}"
+                                       Text="SETTINGS" />
+                            </StackPanel>
+                        </TabItem.Header>
+                        <Border Style="{StaticResource PanelChromeStyle}"
+                            Padding="18">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="44" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0"
+                                       Style="{StaticResource SectionTitleStyle}"
+                                       Text="APPLICATION SETTINGS" />
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="155" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="44" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="42" />
+                                        <RowDefinition Height="42" />
+                                        <RowDefinition Height="42" />
+                                        <RowDefinition Height="42" />
+                                        <RowDefinition Height="42" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0"
+                                           Style="{StaticResource LabelStyle}"
+                                           Text="Settings file" />
+                                    <TextBox x:Name="SettingsFilePathTextBox"
+                                         Grid.Row="0"
+                                         Grid.Column="1"
+                                         Style="{StaticResource TextInputStyle}" />
+                                    <Button Grid.Row="0"
+                                        Grid.Column="2"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        MinWidth="34"
+                                        Width="34"
+                                        Content="..."
+                                        Click="BrowseSettingsFileButton_Click" />
+                                    <TextBlock Grid.Row="1"
+                                           Style="{StaticResource LabelStyle}"
+                                           Text="User name" />
+                                    <TextBox x:Name="UserNameTextBox"
+                                         Grid.Row="1"
+                                         Grid.Column="1"
+                                         Grid.ColumnSpan="2"
+                                         Style="{StaticResource TextInputStyle}" />
+                                    <TextBlock Grid.Row="2"
+                                           Style="{StaticResource LabelStyle}"
+                                           Text="Telemetry root" />
+                                    <TextBox x:Name="TelemetryRootTextBox"
+                                         Grid.Row="2"
+                                         Grid.Column="1"
+                                         Style="{StaticResource TextInputStyle}" />
+                                    <Button Grid.Row="2"
+                                        Grid.Column="2"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        MinWidth="34"
+                                        Width="34"
+                                        Content="..."
+                                        Click="BrowseTelemetryRootButton_Click" />
+                                    <TextBlock Grid.Row="3"
+                                           Style="{StaticResource LabelStyle}"
+                                           Text="Avatars" />
+                                    <TextBox x:Name="AvatarsDirectoryTextBox"
+                                         Grid.Row="3"
+                                         Grid.Column="1"
+                                         Style="{StaticResource TextInputStyle}" />
+                                    <Button Grid.Row="3"
+                                        Grid.Column="2"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        MinWidth="34"
+                                        Width="34"
+                                        Content="..."
+                                        Click="BrowseAvatarsButton_Click" />
+                                    <TextBlock Grid.Row="4"
+                                           Style="{StaticResource LabelStyle}"
+                                           Text="Templates" />
+                                    <TextBox x:Name="TemplatesDirectoryTextBox"
+                                         Grid.Row="4"
+                                         Grid.Column="1"
+                                         Style="{StaticResource TextInputStyle}" />
+                                    <Button Grid.Row="4"
+                                        Grid.Column="2"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        MinWidth="34"
+                                        Width="34"
+                                        Content="..."
+                                        Click="BrowseTemplatesButton_Click" />
+                                </Grid>
+                                <TextBlock x:Name="SettingsStatusTextBlock"
+                                       Grid.Row="2"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontFamily="Segoe UI"
+                                       FontSize="15"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Bottom"
+                                       Margin="0,16,0,0" />
+                                <Button Grid.Row="3"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    HorizontalAlignment="Right"
+                                    Width="132"
+                                    Content="SAVE SETTINGS"
+                                    Click="SaveSettingsButton_Click" />
+                            </Grid>
+                        </Border>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
+    </Viewbox>
 </Window>

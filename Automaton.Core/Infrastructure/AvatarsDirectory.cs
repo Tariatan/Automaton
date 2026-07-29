@@ -7,6 +7,10 @@ internal static class AvatarsDirectory
     public static string GetDirectory()
     {
         var configured = UserSettings.Default.PilotAvatarDirectory;
-        return string.IsNullOrWhiteSpace(configured) ? DefaultFolderName : configured;
+        if (string.IsNullOrWhiteSpace(configured))
+            return DefaultFolderName;
+
+        var userName = PrivateSettings.UserName;
+        return string.IsNullOrWhiteSpace(userName) ? configured : Path.Combine(configured, userName);
     }
 }

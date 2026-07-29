@@ -1,11 +1,16 @@
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using Automaton.Core.Helpers;
 using Automaton.Core.Infrastructure;
 using Automaton.Infrastructure;
 using Automaton.ProjectDiscoveryStates;
+using Microsoft.Win32;
 using Serilog;
 
 namespace Automaton;
@@ -17,15 +22,33 @@ internal partial class MainWindow
     private const uint ModifierAlt = 0x0001;
     private const uint ModifierShift = 0x0004;
     private const uint VirtualKeyF11 = 0x7A;
-    private static readonly Brush StartBrush = new SolidColorBrush(Color.FromRgb(0x2C, 0xB4, 0x3A));
-    private static readonly Brush StopBrush = new SolidColorBrush(Color.FromRgb(0xD1, 0x34, 0x34));
+    private const string HotKeyDisplayText = "Hotkey: Shift+Alt+F11";
+    private static readonly Brush StartBrush = new SolidColorBrush(Color.FromRgb(0x2D, 0x88, 0x53));
+    private static readonly Brush StartBorderBrush = new SolidColorBrush(Color.FromRgb(0x9B, 0xFF, 0xC0));
+    private static readonly Brush StopBrush = new SolidColorBrush(Color.FromRgb(0x91, 0x2D, 0x3D));
+    private static readonly Brush StopBorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0x5E, 0x6B));
+    private static readonly Brush StatusPausedBrush = new SolidColorBrush(Color.FromRgb(0x91, 0xA7, 0xB4));
+    private static readonly Brush StatusRunningBrush = new SolidColorBrush(Color.FromRgb(0x8B, 0xD1, 0xA3));
+    private static readonly Color StartGlowColor = Color.FromRgb(0x86, 0xF6, 0xA4);
+    private static readonly Color StopGlowColor = Color.FromRgb(0xFF, 0x5E, 0x6B);
     private static readonly ILogger Logger = Log.ForContext<MainWindow>();
 
     private readonly ProjectDiscoveryAutomationService m_ProjectDiscoveryAutomationService;
     private readonly IGameActionService m_GameActionService;
+    private readonly DiscoveryStartStateOption[] m_DiscoveryStartStateOptions =
+    {
+        new(DiscoveryAutomationStateKind.StartingGame, "Starting game"),
+        new(DiscoveryAutomationStateKind.Login, "Login"),
+        new(DiscoveryAutomationStateKind.Discover, "Discover"),
+        new(DiscoveryAutomationStateKind.Recovery, "Recovery"),
+        new(DiscoveryAutomationStateKind.RecoverSlowDownPopup, "Recover slow-down popup"),
+        new(DiscoveryAutomationStateKind.RecoverConnectionLostPopup, "Recover connection-lost popup"),
+        new(DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup, "Recover max-submissions popup")
+    };
     private HwndSource? m_WindowSource;
     private CancellationTokenSource? m_AutomationCancellationSource;
     private bool m_IsAutomationRunning;
+    private bool m_IsUpdatingControls;
     private long m_CurrentAutomationSessionId;
     private readonly bool m_AutoStartAutomation;
     private int m_DefaultPilotIndex = 1;
@@ -40,7 +63,7 @@ internal partial class MainWindow
         m_GameActionService = gameActionService;
         m_AutoStartAutomation = startupOptions.AutoStartAutomation;
         InitializeComponent();
-        SetDiscoveryStartState(m_SelectedDiscoveryStartState);
+        InitializeControls();
         SetPilotIndexControlsEnabled(isEnabled: true);
         RestoreWindowPosition();
         SourceInitialized += MainWindow_SourceInitialized;
@@ -49,6 +72,18 @@ internal partial class MainWindow
         Logger.Information(
             "Main window initialized. AutoStartAutomation={AutoStartAutomation}",
             m_AutoStartAutomation);
+    }
+
+    private void InitializeControls()
+    {
+        DiscoveryStartStateComboBox.ItemsSource = m_DiscoveryStartStateOptions;
+        DiscoveryStartStateComboBox.DisplayMemberPath = nameof(DiscoveryStartStateOption.DisplayName);
+        HotkeyTextBlock.Text = HotKeyDisplayText;
+        SetDiscoveryStartState(m_SelectedDiscoveryStartState);
+        SetPilotIndex(m_DefaultPilotIndex);
+        SetStartButtonState(isRunning: false);
+        LoadSettingsFields();
+        UpdatePinButtonState();
     }
 
     private async void Automate_Click(object sender, RoutedEventArgs e)
@@ -257,8 +292,22 @@ internal partial class MainWindow
 
     private void SetStartButtonState(bool isRunning)
     {
-        StartButton.Content = isRunning ? "Stop" : "Start";
+        StartButton.Content = isRunning ? "STOP AUTOMATION" : "START AUTOMATION";
         StartButton.Background = isRunning ? StopBrush : StartBrush;
+        StartButton.BorderBrush = isRunning ? StopBorderBrush : StartBorderBrush;
+        StartButtonGlow.Background = isRunning ? StopBrush : StartBrush;
+        StatusTextBlock.Text = isRunning
+            ? "Running: Project Discovery automation"
+            : "Paused";
+        StatusTextBlock.Foreground = isRunning ? StatusRunningBrush : StatusPausedBrush;
+        SetupStatusTextBlock.Text = isRunning
+            ? "Automation is running. Stop it before changing setup."
+            : "Choose the starting workflow and pilot before launching automation.";
+
+        if (StartButtonGlow.Effect is DropShadowEffect glowEffect)
+        {
+            glowEffect.Color = isRunning ? StopGlowColor : StartGlowColor;
+        }
     }
 
     private long BeginAutomationSession(CancellationTokenSource cancellationSource)
@@ -295,22 +344,24 @@ internal partial class MainWindow
 
     private void SetPilotIndexControlsEnabled(bool isEnabled)
     {
-        DiscoveryMenuItem.IsEnabled = isEnabled;
-        SamplesMenuItem.IsEnabled = isEnabled;
+        DiscoveryStartStateComboBox.IsEnabled = isEnabled;
+        Pilot1RadioButton.IsEnabled = isEnabled;
+        Pilot2RadioButton.IsEnabled = isEnabled;
+        Pilot3RadioButton.IsEnabled = isEnabled;
+        ProcessSamplesButton.IsEnabled = isEnabled;
     }
 
-
-    private void Pilot1MenuItem_Click(object sender, RoutedEventArgs e)
+    private void Pilot1RadioButton_Click(object sender, RoutedEventArgs e)
     {
         SetPilotIndex(1);
     }
 
-    private void Pilot2MenuItem_Click(object sender, RoutedEventArgs e)
+    private void Pilot2RadioButton_Click(object sender, RoutedEventArgs e)
     {
         SetPilotIndex(2);
     }
 
-    private void Pilot3MenuItem_Click(object sender, RoutedEventArgs e)
+    private void Pilot3RadioButton_Click(object sender, RoutedEventArgs e)
     {
         SetPilotIndex(3);
     }
@@ -323,9 +374,20 @@ internal partial class MainWindow
     private void SetPilotIndex(int pilotIndex)
     {
         m_DefaultPilotIndex = pilotIndex;
-        Pilot1MenuItem.IsChecked = pilotIndex == 1;
-        Pilot2MenuItem.IsChecked = pilotIndex == 2;
-        Pilot3MenuItem.IsChecked = pilotIndex == 3;
+        var wasUpdatingControls = m_IsUpdatingControls;
+        m_IsUpdatingControls = true;
+        try
+        {
+            Pilot1RadioButton.IsChecked = pilotIndex == 1;
+            Pilot2RadioButton.IsChecked = pilotIndex == 2;
+            Pilot3RadioButton.IsChecked = pilotIndex == 3;
+        }
+        finally
+        {
+            m_IsUpdatingControls = wasUpdatingControls;
+        }
+
+        SetupStatusTextBlock.Text = $"Pilot {pilotIndex} selected.";
         Logger.Information("Default pilot index changed. DefaultPilotIndex={DefaultPilotIndex}", m_DefaultPilotIndex);
     }
 
@@ -333,53 +395,199 @@ internal partial class MainWindow
     {
         Logger.Information("Sample processing requested from main window.");
         m_ProjectDiscoveryAutomationService.ProcessSamples();
+        SetupStatusTextBlock.Text = "Sample processing completed.";
     }
 
-    private void DiscoveryStartingGameMenuItem_Click(object sender, RoutedEventArgs e)
+    private void DiscoveryStartStateComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        SetDiscoveryStartState(DiscoveryAutomationStateKind.StartingGame);
-    }
+        if (m_IsUpdatingControls || DiscoveryStartStateComboBox.SelectedItem is not DiscoveryStartStateOption option)
+        {
+            return;
+        }
 
-    private void DiscoveryLoginMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetDiscoveryStartState(DiscoveryAutomationStateKind.Login);
-    }
-
-    private void DiscoveryDiscoverMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetDiscoveryStartState(DiscoveryAutomationStateKind.Discover);
-    }
-
-    private void DiscoveryRecoveryMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetDiscoveryStartState(DiscoveryAutomationStateKind.Recovery);
-    }
-
-    private void DiscoveryRecoverSlowDownPopupMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetDiscoveryStartState(DiscoveryAutomationStateKind.RecoverSlowDownPopup);
-    }
-
-    private void DiscoveryRecoverConnectionLostPopupMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetDiscoveryStartState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
-    }
-
-    private void DiscoveryRecoverMaxSubmissionsPopupMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        SetDiscoveryStartState(DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup);
+        SetDiscoveryStartState(option.StateKind);
     }
 
     private void SetDiscoveryStartState(DiscoveryAutomationStateKind stateKind)
     {
         m_SelectedDiscoveryStartState = stateKind;
-        DiscoveryStartingGameMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.StartingGame;
-        DiscoveryLoginMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.Login;
-        DiscoveryDiscoverMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.Discover;
-        DiscoveryRecoveryMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.Recovery;
-        DiscoveryRecoverSlowDownPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverSlowDownPopup;
-        DiscoveryRecoverConnectionLostPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverConnectionLostPopup;
-        DiscoveryRecoverMaxSubmissionsPopupMenuItem.IsChecked = stateKind == DiscoveryAutomationStateKind.RecoverMaxSubmissionsPopup;
+        var wasUpdatingControls = m_IsUpdatingControls;
+        m_IsUpdatingControls = true;
+        try
+        {
+            DiscoveryStartStateComboBox.SelectedItem = m_DiscoveryStartStateOptions.FirstOrDefault(option => option.StateKind == stateKind);
+        }
+        finally
+        {
+            m_IsUpdatingControls = wasUpdatingControls;
+        }
+
+        SetupStatusTextBlock.Text = $"Start state set to {GetDiscoveryStartStateDisplayName(stateKind)}.";
         Logger.Information("Discovery start state changed. DiscoveryStartState={DiscoveryStartState}", m_SelectedDiscoveryStartState);
     }
+
+    private string GetDiscoveryStartStateDisplayName(DiscoveryAutomationStateKind stateKind)
+    {
+        return m_DiscoveryStartStateOptions.First(option => option.StateKind == stateKind).DisplayName;
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+
+    private void PinButton_Click(object sender, RoutedEventArgs e)
+    {
+        Topmost = !Topmost;
+        UpdatePinButtonState();
+        Logger.Information("Main window topmost changed. Topmost={Topmost}", Topmost);
+    }
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void UpdatePinButtonState()
+    {
+        PinButton.Opacity = Topmost ? 1 : 0.45;
+    }
+
+    private void LoadSettingsFields()
+    {
+        SettingsFilePathTextBox.Text = UserSettings.Default.FilePath;
+        UserNameTextBox.Text = PrivateSettings.UserName;
+        TelemetryRootTextBox.Text = UserSettings.Default.TelemetryRootBase;
+        AvatarsDirectoryTextBox.Text = UserSettings.Default.PilotAvatarDirectory;
+        TemplatesDirectoryTextBox.Text = UserSettings.Default.TemplatesDirectory;
+        SettingsStatusTextBlock.Text = "Settings are loaded from the active settings file.";
+    }
+
+    private void BrowseSettingsFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        var currentPath = SettingsFilePathTextBox.Text.Trim();
+        var dialog = new SaveFileDialog
+        {
+            Title = "Select Automaton settings file",
+            Filter = "JSON settings (*.json)|*.json|All files (*.*)|*.*",
+            FileName = string.IsNullOrWhiteSpace(currentPath) ? "automaton.json" : Path.GetFileName(currentPath),
+            OverwritePrompt = false
+        };
+
+        var initialDirectory = TryGetDirectoryName(currentPath);
+        if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
+        {
+            dialog.InitialDirectory = initialDirectory;
+        }
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            SettingsFilePathTextBox.Text = dialog.FileName;
+        }
+    }
+
+    private void BrowseTelemetryRootButton_Click(object sender, RoutedEventArgs e)
+    {
+        BrowseForFolder(TelemetryRootTextBox, "Select telemetry root directory");
+    }
+
+    private void BrowseAvatarsButton_Click(object sender, RoutedEventArgs e)
+    {
+        BrowseForFolder(AvatarsDirectoryTextBox, "Select avatar directory");
+    }
+
+    private void BrowseTemplatesButton_Click(object sender, RoutedEventArgs e)
+    {
+        BrowseForFolder(TemplatesDirectoryTextBox, "Select templates directory");
+    }
+
+    private void BrowseForFolder(TextBox textBox, string title)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = title
+        };
+
+        var path = textBox.Text.Trim();
+        if (Directory.Exists(path))
+        {
+            dialog.InitialDirectory = path;
+        }
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            textBox.Text = dialog.FolderName;
+        }
+    }
+
+    private void SaveSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var previousFormLocation = UserSettings.Default.FormLocation;
+            var requestedSettingsFilePath = SettingsFilePathTextBox.Text.Trim();
+            var resolvedSettingsFilePath = UserSettings.ResolveFilePath(requestedSettingsFilePath);
+            PrivateSettings.SetSettingsFilePath(string.IsNullOrWhiteSpace(requestedSettingsFilePath) ? "" : resolvedSettingsFilePath);
+            PrivateSettings.SetUserName(UserNameTextBox.Text.Trim());
+
+            if (!AreSamePath(UserSettings.Default.FilePath, resolvedSettingsFilePath))
+            {
+                UserSettings.Initialize(resolvedSettingsFilePath);
+                UserSettings.Default.FormLocation = previousFormLocation;
+            }
+
+            UserSettings.Default.TelemetryRootBase = TelemetryRootTextBox.Text.Trim();
+            UserSettings.Default.PilotAvatarDirectory = AvatarsDirectoryTextBox.Text.Trim();
+            UserSettings.Default.TemplatesDirectory = TemplatesDirectoryTextBox.Text.Trim();
+            UserSettings.Default.Save();
+            SettingsFilePathTextBox.Text = UserSettings.Default.FilePath;
+            SettingsStatusTextBlock.Text = "Settings saved.";
+            Logger.Information(
+                "Settings saved from main window. SettingsFilePath={SettingsFilePath}, UserName={UserName}, TelemetryRootBase={TelemetryRootBase}, PilotAvatarDirectory={PilotAvatarDirectory}, TemplatesDirectory={TemplatesDirectory}",
+                UserSettings.Default.FilePath,
+                PrivateSettings.UserName,
+                UserSettings.Default.TelemetryRootBase,
+                UserSettings.Default.PilotAvatarDirectory,
+                UserSettings.Default.TemplatesDirectory);
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "Settings save failed.");
+            SettingsStatusTextBlock.Text = $"Settings save failed: {exception.Message}";
+        }
+    }
+
+    private static string? TryGetDirectoryName(string path)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(path) ? null : Path.GetDirectoryName(Path.GetFullPath(path));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool AreSamePath(string first, string second)
+    {
+        try
+        {
+            return string.Equals(Path.GetFullPath(first), Path.GetFullPath(second), StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return string.Equals(first, second, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private sealed record DiscoveryStartStateOption(DiscoveryAutomationStateKind StateKind, string DisplayName);
 }

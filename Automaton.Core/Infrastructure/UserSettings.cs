@@ -37,11 +37,18 @@ internal sealed class UserSettings
 
     public static void Initialize(string? filePath)
     {
-        var resolvedPath = string.IsNullOrWhiteSpace(filePath)
-            ? Path.Combine(Directory.GetCurrentDirectory(), SettingsFileName)
-            : Path.GetFullPath(filePath);
+        var resolvedPath = ResolveFilePath(filePath);
         Default = new UserSettings(resolvedPath, TryLoad(resolvedPath));
     }
+
+    public static string ResolveFilePath(string? filePath)
+    {
+        return string.IsNullOrWhiteSpace(filePath)
+            ? Path.Combine(Directory.GetCurrentDirectory(), SettingsFileName)
+            : Path.GetFullPath(filePath);
+    }
+
+    public string FilePath => m_FilePath;
 
     public string TelemetryRootBase
     {
@@ -69,6 +76,12 @@ internal sealed class UserSettings
 
     public void Save()
     {
+        var directory = Path.GetDirectoryName(m_FilePath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
         File.WriteAllText(m_FilePath, JsonSerializer.Serialize(m_Data, JsonOptions));
     }
 
