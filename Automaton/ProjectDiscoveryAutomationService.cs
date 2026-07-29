@@ -144,10 +144,10 @@ internal sealed class ProjectDiscoveryAutomationService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         DiscoveryAutomationStateTransition transition = null!;
-        for (var attempt = 1; attempt <= Settings.DetectionRetryAttempts; attempt++)
+        for (var attempt = 1; attempt <= Config.DetectionRetryAttempts; attempt++)
         {
             transition = m_CurrentState.Execute(m_Context, cancellationToken);
-            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= Settings.DetectionRetryAttempts)
+            if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= Config.DetectionRetryAttempts)
             {
                 break;
             }
@@ -156,9 +156,9 @@ internal sealed class ProjectDiscoveryAutomationService(
                 "Detection miss in {State}. Retrying once before recovery. Attempt={Attempt}/{MaxAttempts}, CapturePath={CapturePath}",
                 transition.State,
                 attempt,
-                Settings.DetectionRetryAttempts,
+                Config.DetectionRetryAttempts,
                 transition.CapturePath);
-            automationInputController.Delay(Settings.DetectionRetryDelayMs, cancellationToken);
+            automationInputController.Delay(Config.DetectionRetryDelayMs, cancellationToken);
         }
 
         Logger.Information(

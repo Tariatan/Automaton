@@ -204,13 +204,13 @@ internal sealed class GameActionService : IGameActionService
             return;
         }
 
-        if (captureBuffer.LongLength <= Settings.HideUiFileSizeThreshold)
+        if (captureBuffer.LongLength <= Config.HideUiFileSizeThreshold)
         {
             return;
         }
 
         m_Logger.Information("Hiding UI because capture size exceeded {Threshold} MB ({CaptureSizeMb} MB).",
-            Settings.HideUiFileSizeThreshold / 1024 / 1024,
+            Config.HideUiFileSizeThreshold / 1024 / 1024,
             captureBuffer.LongLength / 1024 / 1024);
         ToggleUiVisibility(cancellationToken);
         m_InputController.Delay(Delays.HideUiMs, cancellationToken);

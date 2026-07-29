@@ -15,17 +15,6 @@
         <Menu Grid.Row="0"
               Margin="0,0,0,2"
               VerticalAlignment="Top">
-            <MenuItem Header="Settings">
-                <MenuItem x:Name="TelemetryMenuItem"
-                          Header="Telemetry"
-                          Click="TelemetryMenuItem_Click" />
-                <MenuItem x:Name="HallmarkMenuItem"
-                          Header="Hallmark"
-                          Click="HallmarkMenuItem_Click" />
-                <MenuItem x:Name="PilotAvatarsMenuItem"
-                          Header="Pilot Avatars"
-                          Click="PilotAvatarsMenuItem_Click" />
-            </MenuItem>
             <MenuItem x:Name="DiscoveryMenuItem"
                       Header="Discovery">
                 <MenuItem x:Name="DiscoveryStartingGameMenuItem" Header="StartingGame" IsCheckable="True" IsChecked="True" Click="DiscoveryStartingGameMenuItem_Click" />

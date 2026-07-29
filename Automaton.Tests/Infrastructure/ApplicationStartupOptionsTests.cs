@@ -16,6 +16,7 @@ public sealed class ApplicationStartupOptionsTests
         // Assert
         Assert.False(options.ProcessSamples);
         Assert.False(options.AutoStartAutomation);
+        Assert.Null(options.SettingsFilePath);
     }
 
     [Fact]
@@ -44,5 +45,31 @@ public sealed class ApplicationStartupOptionsTests
         // Assert
         Assert.False(options.ProcessSamples);
         Assert.True(options.AutoStartAutomation);
+    }
+
+    [Fact]
+    public void Parse_SettingsFileArgument_CapturesPath()
+    {
+        // Arrange
+        var arguments = new[] { "--settings-file", @"C:\users\alice\automaton.json" };
+
+        // Act
+        var options = ApplicationStartupOptions.Parse(arguments);
+
+        // Assert
+        Assert.Equal(@"C:\users\alice\automaton.json", options.SettingsFilePath);
+    }
+
+    [Fact]
+    public void Parse_SettingsFileWithoutValue_ReturnsNull()
+    {
+        // Arrange
+        var arguments = new[] { "--settings-file" };
+
+        // Act
+        var options = ApplicationStartupOptions.Parse(arguments);
+
+        // Assert
+        Assert.Null(options.SettingsFilePath);
     }
 }

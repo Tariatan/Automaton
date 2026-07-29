@@ -19,16 +19,17 @@ public partial class App
     protected override void OnStartup(StartupEventArgs e)
     {
         m_LogFiles = ApplicationLogging.Configure();
+
+        var startupOptions = ApplicationStartupOptions.Parse(e.Args);
+        UserSettings.Initialize(startupOptions.SettingsFilePath ?? PrivateSettings.SettingsFilePath);
+
         Log.ForContext<App>().Information(
             "Automaton started. ActiveLogFilePath={ActiveLogFilePath}, TelemetryLogFilePath={TelemetryLogFilePath}, Arguments={Arguments}",
             m_LogFiles.ActiveLogFilePath,
             m_LogFiles.TelemetryLogFilePath,
             e.Args);
         Log.ForContext<App>().Information(
-            "Storage roots. ConfiguredTelemetryRoot={ConfiguredTelemetryRoot}, ConfiguredHallmarkRoot={ConfiguredHallmarkRoot}, ConfiguredPilotAvatarDirectory={ConfiguredPilotAvatarDirectory}, EffectiveCapturesDirectory={EffectiveCapturesDirectory}, EffectiveLogsDirectory={EffectiveLogsDirectory}, EffectiveExpectedDirectory={EffectiveExpectedDirectory}, EffectivePilotAvatarDirectory={EffectivePilotAvatarDirectory}",
-            TelemetryRootDirectory.GetConfiguredRootDirectory(),
-            TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory(),
-            PilotAvatarDirectory.GetConfiguredDirectory(),
+            "Storage roots. CapturesDirectory={CapturesDirectory}, LogsDirectory={LogsDirectory}, ExpectedDirectory={ExpectedDirectory}, PilotAvatarDirectory={PilotAvatarDirectory}",
             TelemetryRootDirectory.GetCapturesDirectory(),
             TelemetryRootDirectory.GetLogsDirectory(),
             TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName),
@@ -36,7 +37,6 @@ public partial class App
 
         try
         {
-            var startupOptions = ApplicationStartupOptions.Parse(e.Args);
             if (startupOptions.ProcessSamples)
             {
                 RunSampleProcessing();

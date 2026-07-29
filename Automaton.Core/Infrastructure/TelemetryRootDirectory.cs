@@ -4,68 +4,25 @@ namespace Automaton.Core.Infrastructure;
 
 internal static class TelemetryRootDirectory
 {
+    public static string GetCapturesDirectory() => Path.Combine(GetTelemetryRoot(), Config.CapturesFolderName);
 
-    public static string GetCapturesDirectory()
+    public static string GetLogsDirectory() => Path.Combine(GetTelemetryRoot(), Config.LogsFolderName);
+
+    public static string GetExpectedDirectory(string folderName) => Path.Combine(GetTemplatesRoot(), folderName);
+
+    private static string GetTelemetryRoot()
     {
-        return BuildDirectoryPath(Settings.CapturesFolderName);
+        var rootBase = UserSettings.Default.TelemetryRootBase;
+        if (string.IsNullOrWhiteSpace(rootBase))
+            return Directory.GetCurrentDirectory();
+
+        var userName = PrivateSettings.UserName;
+        return string.IsNullOrWhiteSpace(userName) ? rootBase : Path.Combine(rootBase, userName);
     }
 
-    public static string GetLogsDirectory()
+    private static string GetTemplatesRoot()
     {
-        return BuildDirectoryPath(Settings.LogsFolderName);
-    }
-
-    public static string GetExpectedDirectory(string folderName)
-    {
-        var hallmarkRootDirectory = GetConfiguredHallmarkRootDirectory();
-        return !string.IsNullOrWhiteSpace(hallmarkRootDirectory)
-            ? Path.Combine(hallmarkRootDirectory, folderName)
-            : BuildDirectoryPath(folderName);
-    }
-
-    public static string? GetConfiguredRootDirectory()
-    {
-        try
-        {
-            var configuredRootDirectory = UserSettings.Default.TelemetryRootDirectory;
-            return string.IsNullOrWhiteSpace(configuredRootDirectory) ? null : configuredRootDirectory;
-        }
-        catch (Exception) when (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-    }
-
-    public static void SetConfiguredRootDirectory(string rootDirectory)
-    {
-        var fullRootDirectory = Path.GetFullPath(rootDirectory);
-        UserSettings.Default.TelemetryRootDirectory = fullRootDirectory;
-        UserSettings.Default.Save();
-    }
-
-    public static string? GetConfiguredHallmarkRootDirectory()
-    {
-        try
-        {
-            var configuredRootDirectory = UserSettings.Default.HallmarkRootDirectory;
-            return string.IsNullOrWhiteSpace(configuredRootDirectory) ? null : configuredRootDirectory;
-        }
-        catch (Exception) when (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-    }
-
-    public static void SetConfiguredHallmarkRootDirectory(string rootDirectory)
-    {
-        var fullRootDirectory = Path.GetFullPath(rootDirectory);
-        UserSettings.Default.HallmarkRootDirectory = fullRootDirectory;
-        UserSettings.Default.Save();
-    }
-
-    private static string BuildDirectoryPath(string folderName)
-    {
-        var rootDirectory = GetConfiguredRootDirectory();
-        return string.IsNullOrWhiteSpace(rootDirectory) ? folderName : Path.Combine(rootDirectory, folderName);
+        var configured = UserSettings.Default.TemplatesDirectory;
+        return string.IsNullOrWhiteSpace(configured) ? Directory.GetCurrentDirectory() : configured;
     }
 }

@@ -1,4 +1,3 @@
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -7,8 +6,6 @@ using Automaton.Core.Helpers;
 using Automaton.Core.Infrastructure;
 using Automaton.Infrastructure;
 using Automaton.ProjectDiscoveryStates;
-using Automaton.Properties;
-using Microsoft.Win32;
 using Serilog;
 
 namespace Automaton;
@@ -43,9 +40,6 @@ internal partial class MainWindow
         m_GameActionService = gameActionService;
         m_AutoStartAutomation = startupOptions.AutoStartAutomation;
         InitializeComponent();
-        UpdateTelemetryMenuItemHeader();
-        UpdateHallmarkMenuItemHeader();
-        UpdatePilotAvatarsMenuItemHeader();
         SetDiscoveryStartState(m_SelectedDiscoveryStartState);
         SetPilotIndexControlsEnabled(isEnabled: true);
         RestoreWindowPosition();
@@ -171,8 +165,8 @@ internal partial class MainWindow
     {
         Logger.Information("Main window closing.");
         StopAutomation();
-        Settings.Default.FormLocation = new Point(Left, Top);
-        Settings.Default.Save();
+        UserSettings.Default.FormLocation = $"{Left},{Top}";
+        UserSettings.Default.Save();
         var windowInteropHelper = new WindowInteropHelper(this);
         _ = UnregisterHotKey(windowInteropHelper.Handle, HotKeyId);
         m_WindowSource?.RemoveHook(WindowMessageHook);
@@ -181,7 +175,11 @@ internal partial class MainWindow
 
     private void RestoreWindowPosition()
     {
-        var savedPosition = Settings.Default.FormLocation;
+        if (!TryParseFormLocation(UserSettings.Default.FormLocation, out var savedPosition))
+        {
+            return;
+        }
+
         if (!IsWindowPositionVisible(savedPosition))
         {
             return;
@@ -189,6 +187,27 @@ internal partial class MainWindow
 
         Left = savedPosition.X;
         Top = savedPosition.Y;
+    }
+
+    private static bool TryParseFormLocation(string? raw, out Point point)
+    {
+        point = default;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return false;
+        }
+        var parts = raw.Split(',');
+        if (parts.Length != 2)
+        {
+            return false;
+        }
+        if (!double.TryParse(parts[0], out var x) || !double.TryParse(parts[1], out var y))
+        {
+            return false;
+        }
+
+        point = new Point(x, y);
+        return true;
     }
 
     private IntPtr WindowMessageHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -280,122 +299,6 @@ internal partial class MainWindow
         SamplesMenuItem.IsEnabled = isEnabled;
     }
 
-    private void TelemetryMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var folderDialog = new OpenFolderDialog
-        {
-            Title = "Select the root folder to store logs and captures"
-        };
-
-        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredRootDirectory();
-        if (!string.IsNullOrWhiteSpace(configuredRootDirectory) && Directory.Exists(configuredRootDirectory))
-        {
-            folderDialog.InitialDirectory = configuredRootDirectory;
-        }
-
-        if (folderDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(folderDialog.FolderName))
-        {
-            return;
-        }
-
-        TelemetryRootDirectory.SetConfiguredRootDirectory(folderDialog.FolderName);
-        UpdateTelemetryMenuItemHeader();
-        Logger.Information("Telemetry root directory selected. TelemetryRootDirectory={TelemetryRootDirectory}", folderDialog.FolderName);
-    }
-
-    private void UpdateTelemetryMenuItemHeader()
-    {
-        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredRootDirectory();
-        if (string.IsNullOrWhiteSpace(configuredRootDirectory))
-        {
-            TelemetryMenuItem.Header = "Telemetry";
-            return;
-        }
-
-        var folderName = Path.GetFileName(configuredRootDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        TelemetryMenuItem.Header = string.IsNullOrWhiteSpace(folderName)
-            ? configuredRootDirectory
-            : folderName;
-    }
-
-    private void HallmarkMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var folderDialog = new OpenFolderDialog
-        {
-            Title = "Select the root folder containing expected examples"
-        };
-
-        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory();
-        if (!string.IsNullOrWhiteSpace(configuredRootDirectory) && Directory.Exists(configuredRootDirectory))
-        {
-            folderDialog.InitialDirectory = configuredRootDirectory;
-        }
-
-        if (folderDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(folderDialog.FolderName))
-        {
-            return;
-        }
-
-        TelemetryRootDirectory.SetConfiguredHallmarkRootDirectory(folderDialog.FolderName);
-        UpdateHallmarkMenuItemHeader();
-        Logger.Information("Hallmark root directory selected. HallmarkRootDirectory={HallmarkRootDirectory}", folderDialog.FolderName);
-    }
-
-    private void UpdateHallmarkMenuItemHeader()
-    {
-        var configuredRootDirectory = TelemetryRootDirectory.GetConfiguredHallmarkRootDirectory();
-        if (string.IsNullOrWhiteSpace(configuredRootDirectory))
-        {
-            HallmarkMenuItem.Header = "Hallmark";
-            return;
-        }
-
-        var folderName = Path.GetFileName(configuredRootDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        HallmarkMenuItem.Header = string.IsNullOrWhiteSpace(folderName)
-            ? configuredRootDirectory
-            : folderName;
-    }
-
-    private void PilotAvatarsMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var folderDialog = new OpenFolderDialog
-        {
-            Title = "Select pilots avatars folder"
-        };
-
-        var configuredDirectory = PilotAvatarDirectory.GetConfiguredDirectory();
-        var initialDirectory = string.IsNullOrWhiteSpace(configuredDirectory)
-            ? PilotAvatarDirectory.GetDirectory()
-            : configuredDirectory;
-        if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
-        {
-            folderDialog.InitialDirectory = initialDirectory;
-        }
-
-        if (folderDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(folderDialog.FolderName))
-        {
-            return;
-        }
-
-        PilotAvatarDirectory.SetConfiguredDirectory(folderDialog.FolderName);
-        UpdatePilotAvatarsMenuItemHeader();
-        Logger.Information("Pilots avatars directory selected. PilotAvatarDirectory={PilotAvatarDirectory}", folderDialog.FolderName);
-    }
-
-    private void UpdatePilotAvatarsMenuItemHeader()
-    {
-        var configuredDirectory = PilotAvatarDirectory.GetConfiguredDirectory();
-        if (string.IsNullOrWhiteSpace(configuredDirectory))
-        {
-            PilotAvatarsMenuItem.Header = "Pilot Avatars";
-            return;
-        }
-
-        var folderName = Path.GetFileName(configuredDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        PilotAvatarsMenuItem.Header = string.IsNullOrWhiteSpace(folderName)
-            ? configuredDirectory
-            : folderName;
-    }
 
     private void Pilot1MenuItem_Click(object sender, RoutedEventArgs e)
     {

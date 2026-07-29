@@ -19,7 +19,7 @@ public sealed class PilotRegistryTests
 
         try
         {
-            PilotAvatarDirectory.SetConfiguredDirectory(pilotDirectory);
+            UserSettings.Default.PilotAvatarDirectory = pilotDirectory;
 
             // Act
             var hasNextPilot = PilotRegistry.TryGetNextPilotIndex(1, out var nextPilotIndex);
@@ -31,7 +31,6 @@ public sealed class PilotRegistryTests
         finally
         {
             UserSettings.Default.PilotAvatarDirectory = originalDirectory;
-            UserSettings.Default.Save();
         }
     }
 }

@@ -24,7 +24,7 @@ internal sealed class CommonLoginState(
     {
         capturePath = string.Empty;
         var loginAttempt = 0;
-        while (loginAttempt++ < Settings.MaxLoginAttempts)
+        while (loginAttempt++ < Config.MaxLoginAttempts)
         {
             // Detect requested Pilot on Login screen
             var pilotLocation = DetectPilotLocation(screenCaptureService, requestedPilotIndex, captureSuffix, cancellationToken, out capturePath);

@@ -6,26 +6,7 @@ internal static class PilotAvatarDirectory
 
     public static string GetDirectory()
     {
-        return GetConfiguredDirectory() ?? DefaultFolderName;
-    }
-
-    public static string? GetConfiguredDirectory()
-    {
-        try
-        {
-            var configuredDirectory = UserSettings.Default.PilotAvatarDirectory;
-            return string.IsNullOrWhiteSpace(configuredDirectory) ? null : configuredDirectory;
-        }
-        catch (Exception) when (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-    }
-
-    public static void SetConfiguredDirectory(string directory)
-    {
-        var fullDirectory = Path.GetFullPath(directory);
-        UserSettings.Default.PilotAvatarDirectory = fullDirectory;
-        UserSettings.Default.Save();
+        var configured = UserSettings.Default.PilotAvatarDirectory;
+        return string.IsNullOrWhiteSpace(configured) ? DefaultFolderName : configured;
     }
 }

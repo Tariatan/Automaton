@@ -58,14 +58,14 @@ internal sealed class RecoveryState(
         CancellationToken cancellationToken)
     {
         sStartingGameTransitionsCount++;
-        if (sStartingGameTransitionsCount <= Settings.MaximumStartingGameTransitionsBeforeReboot)
+        if (sStartingGameTransitionsCount <= Config.MaximumStartingGameTransitionsBeforeReboot)
         {
             return new DiscoveryAutomationStateTransition(state, nextState, action, capturePath);
         }
 
         m_Logger.Error(
             "StartingGame transition count exceeded threshold ({Threshold}). Triggering operating system reboot.",
-            Settings.MaximumStartingGameTransitionsBeforeReboot);
+            Config.MaximumStartingGameTransitionsBeforeReboot);
         gameActionService.RebootOperatingSystem(cancellationToken);
         return new DiscoveryAutomationStateTransition(state, nextState, DiscoveryAutomationActionKind.Reboot, capturePath);
     }
