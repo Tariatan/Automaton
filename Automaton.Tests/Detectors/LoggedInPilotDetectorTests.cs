@@ -11,7 +11,7 @@ public sealed class LoggedInPilotDetectorTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        WriteFocusedPilotAvatarTemplates(Path.Combine(workspace.Path, "pilot"), 1, 2, 3);
+        WriteFocusedPilotAvatarTemplates(Path.Combine(workspace.Path, "avatars"), 1, 2, 3);
         using var image = SyntheticCommonImageFactory.LoadLoggedInPilotScreenImage();
         using var detector = new LoggedInPilotDetector();
 

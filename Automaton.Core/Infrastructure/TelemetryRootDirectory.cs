@@ -8,7 +8,7 @@ internal static class TelemetryRootDirectory
 
     public static string GetLogsDirectory() => Path.Combine(GetTelemetryRoot(), Config.LogsFolderName);
 
-    public static string GetExpectedDirectory(string folderName) => Path.Combine(GetTemplatesRoot(), folderName);
+    public static string GetTemplatesDirectory(string folderName) => Path.Combine(GetTemplatesRoot(), folderName);
 
     private static string GetTelemetryRoot()
     {

@@ -22,7 +22,7 @@ internal static class PilotRegistry
 
     private static int[] ScanPilotIndices()
     {
-        var pilotDirectory = Path.GetFullPath(PilotAvatarDirectory.GetDirectory());
+        var pilotDirectory = Path.GetFullPath(AvatarsDirectory.GetDirectory());
         if (!Directory.Exists(pilotDirectory))
         {
             return [];

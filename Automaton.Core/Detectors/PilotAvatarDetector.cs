@@ -41,7 +41,7 @@ internal sealed class PilotAvatarDetector : IDisposable
 
     private PilotAvatarLocation? TryLocateBest(Mat screen, int pilotIndex)
     {
-        var pilotDirectory = Path.GetFullPath(PilotAvatarDirectory.GetDirectory());
+        var pilotDirectory = Path.GetFullPath(AvatarsDirectory.GetDirectory());
         if (screen.Empty() || !Directory.Exists(pilotDirectory))
         {
             return null;

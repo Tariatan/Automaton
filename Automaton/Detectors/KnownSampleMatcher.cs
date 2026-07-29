@@ -10,8 +10,8 @@ namespace Automaton.Detectors;
 
 internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 {
-    private const string DefaultFallbackExampleName = "25.sample";
-    private const string MaskedExpectedSuffix = ".expected.masked.png";
+    private const string DefaultFallbackSampleName = "25.sample";
+    private const string MaskedTemplateSuffix = ".template.masked.png";
     private const int SignatureWidth = 96;
     private const int SignatureHeight = 96;
     private const double MaximumMatchScore = 4.0;
@@ -75,9 +75,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         }
 
         matchedSampleFileName = bestTemplate.FileName;
-        polygons = bestTemplate.Polygons
-            .Select(points => points.ToArray())
-            .ToArray();
+        polygons = [.. bestTemplate.Polygons.Select(points => points.ToArray())];
         return polygons.Count > 0;
     }
 
@@ -89,7 +87,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         polygons = [];
         matchedSampleFileName = null;
 
-        if (!TryGetAdjacentMaskedPath(sourceImagePath, out var samplePath, out var maskedExpectedPath))
+        if (!TryGetAdjacentMaskedPath(sourceImagePath, out var samplePath, out var maskedTemplatePath))
         {
             return false;
         }
@@ -106,7 +104,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             return false;
         }
 
-        polygons = LoadMaskedPolygons(maskedExpectedPath, playfieldDetection.Bounds);
+        polygons = LoadMaskedPolygons(maskedTemplatePath, playfieldDetection.Bounds);
         matchedSampleFileName = Path.GetFileName(samplePath);
         return polygons.Count > 0;
     }
@@ -119,7 +117,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             AddTemplateDirectory(directories, adjacentSamplesDirectory);
         }
 
-        AddTemplateDirectory(directories, TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName));
+        AddTemplateDirectory(directories, TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName));
         return directories;
     }
 
@@ -138,10 +136,10 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     private static bool TryGetAdjacentMaskedPath(
         string? sourceImagePath,
         out string samplePath,
-        out string maskedExpectedPath)
+        out string maskedTemplatePath)
     {
         samplePath = string.Empty;
-        maskedExpectedPath = string.Empty;
+        maskedTemplatePath = string.Empty;
 
         if (string.IsNullOrWhiteSpace(sourceImagePath) ||
             !Path.GetFileName(sourceImagePath).EndsWith(".sample.png", StringComparison.OrdinalIgnoreCase))
@@ -156,21 +154,21 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         }
 
         samplePath = sourceImagePath;
-        maskedExpectedPath = Path.Combine(
+        maskedTemplatePath = Path.Combine(
             directory,
-            Path.GetFileNameWithoutExtension(sourceImagePath) + MaskedExpectedSuffix);
+            Path.GetFileNameWithoutExtension(sourceImagePath) + MaskedTemplateSuffix);
 
-        if (File.Exists(maskedExpectedPath))
+        if (File.Exists(maskedTemplatePath))
         {
             return true;
         }
 
         samplePath = string.Empty;
-        maskedExpectedPath = string.Empty;
+        maskedTemplatePath = string.Empty;
         return false;
     }
 
-    private static void AddTemplateDirectory(ICollection<string> directories, string samplesDirectory)
+    private static void AddTemplateDirectory(List<string> directories, string samplesDirectory)
     {
         if (!Directory.Exists(samplesDirectory))
         {
@@ -191,9 +189,9 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         polygons = [];
         playfieldSize = default;
 
-        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName);
         if (!Directory.Exists(samplesDirectory) ||
-            !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedExpectedPath))
+            !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedTemplatePath))
         {
             return false;
         }
@@ -210,7 +208,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             return false;
         }
 
-        polygons = LoadMaskedPolygons(maskedExpectedPath, playfieldDetection.Bounds);
+        polygons = LoadMaskedPolygons(maskedTemplatePath, playfieldDetection.Bounds);
         playfieldSize = playfieldDetection.Bounds.Size;
         return polygons.Count > 0;
     }
@@ -219,9 +217,9 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     {
         polygons = [];
 
-        var samplesDirectory = TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName);
         if (!Directory.Exists(samplesDirectory) ||
-            !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedExpectedPath))
+            !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedTemplatePath))
         {
             return false;
         }
@@ -238,9 +236,11 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             return false;
         }
 
-        polygons = LoadMaskedPolygons(maskedExpectedPath, playfieldDetection.Bounds)
-            .Select(points => TranslatePolygon(points, playfieldDetection.Bounds.Location))
-            .ToArray();
+        polygons =
+        [
+            .. LoadMaskedPolygons(maskedTemplatePath, playfieldDetection.Bounds)
+                .Select(points => TranslatePolygon(points, playfieldDetection.Bounds.Location))
+        ];
         return polygons.Count > 0;
     }
 
@@ -261,15 +261,15 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 
         foreach (var sampleFile in sampleFiles)
         {
-            var maskedExpectedPath = Path.Combine(
+            var maskedTemplatePath = Path.Combine(
                 samplesDirectory,
-                Path.GetFileNameWithoutExtension(sampleFile) + MaskedExpectedSuffix);
-            if (!File.Exists(maskedExpectedPath))
+                Path.GetFileNameWithoutExtension(sampleFile) + MaskedTemplateSuffix);
+            if (!File.Exists(maskedTemplatePath))
             {
                 Logger.Error(
-                    "Known sample is missing masked counterpart. SamplePath={SamplePath}, MaskedExpectedPath={MaskedExpectedPath}",
+                    "Known sample is missing masked counterpart. SamplePath={SamplePath}, MaskedTemplatePath={MaskedTemplatePath}",
                     sampleFile,
-                    maskedExpectedPath);
+                    maskedTemplatePath);
                 continue;
             }
 
@@ -287,7 +287,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 
             using var playfieldImage = new Mat(sampleImage, playfieldDetection.Bounds);
             using var signature = BuildSignature(playfieldImage);
-            var polygons = LoadMaskedPolygons(maskedExpectedPath, playfieldDetection.Bounds);
+            var polygons = LoadMaskedPolygons(maskedTemplatePath, playfieldDetection.Bounds);
             if (polygons.Length == 0)
             {
                 continue;
@@ -302,39 +302,37 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     private static bool TryFindDefaultFallbackSample(
         string samplesDirectory,
         out string samplePath,
-        out string maskedExpectedPath)
+        out string maskedTemplatePath)
     {
-        samplePath = Path.Combine(samplesDirectory, $"{DefaultFallbackExampleName}.png");
-        maskedExpectedPath = Path.Combine(
+        samplePath = Path.Combine(samplesDirectory, $"{DefaultFallbackSampleName}.png");
+        maskedTemplatePath = Path.Combine(
             samplesDirectory,
-            Path.GetFileNameWithoutExtension(samplePath) + MaskedExpectedSuffix);
+            Path.GetFileNameWithoutExtension(samplePath) + MaskedTemplateSuffix);
 
-        if (File.Exists(samplePath) && File.Exists(maskedExpectedPath))
+        if (File.Exists(samplePath) && File.Exists(maskedTemplatePath))
         {
             return true;
         }
 
         samplePath = string.Empty;
-        maskedExpectedPath = string.Empty;
+        maskedTemplatePath = string.Empty;
         return false;
     }
 
     private static Point[] TranslatePolygon(Point[] polygon, Point offset)
     {
-        return polygon
-            .Select(point => new Point(point.X + offset.X, point.Y + offset.Y))
-            .ToArray();
+        return [.. polygon.Select(point => new Point(point.X + offset.X, point.Y + offset.Y))];
     }
 
-    private static Point[][] LoadMaskedPolygons(string maskedExpectedPath, Rect playfieldBounds)
+    private static Point[][] LoadMaskedPolygons(string maskedTemplatePath, Rect playfieldBounds)
     {
-        if (!File.Exists(maskedExpectedPath))
+        if (!File.Exists(maskedTemplatePath))
         {
             return [];
         }
 
-        using var maskedExpectedImage = Cv2.ImRead(maskedExpectedPath);
-        return maskedExpectedImage.Empty() ? [] : ExtractMaskedExpectedPolygons(maskedExpectedImage, playfieldBounds);
+        using var maskedTemplateImage = Cv2.ImRead(maskedTemplatePath);
+        return maskedTemplateImage.Empty() ? [] : ExtractMaskedTemplatePolygons(maskedTemplateImage, playfieldBounds);
     }
 
     private static Mat BuildSignature(Mat playfieldImage)
@@ -348,9 +346,9 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         return blurred.Clone();
     }
 
-    private static Point[][] ExtractMaskedExpectedPolygons(Mat maskedExpectedImage, Rect playfieldBounds)
+    private static Point[][] ExtractMaskedTemplatePolygons(Mat maskedTemplateImage, Rect playfieldBounds)
     {
-        using var maskedPlayfield = new Mat(maskedExpectedImage, playfieldBounds);
+        using var maskedPlayfield = new Mat(maskedTemplateImage, playfieldBounds);
         using var overlayMask = BuildMaskedOverlayMask(maskedPlayfield);
         Cv2.FindContours(
             overlayMask,
@@ -359,12 +357,14 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             RetrievalModes.External,
             ContourApproximationModes.ApproxSimple);
 
-        return contours
-            .Where(contour => Cv2.ContourArea(contour) >= MinimumContourArea)
-            .OrderByDescending(contour => Cv2.ContourArea(contour))
-            .Select(contour => GeometryHelper.SimplifyContour(contour))
-            .Where(points => points.Length >= 3)
-            .ToArray();
+        return
+        [
+            .. contours
+                .Where(contour => Cv2.ContourArea(contour) >= MinimumContourArea)
+                .OrderByDescending(contour => Cv2.ContourArea(contour))
+                .Select(contour => GeometryHelper.SimplifyContour(contour))
+                .Where(points => points.Length >= 3)
+        ];
     }
 
     private static Mat BuildMaskedOverlayMask(Mat maskedPlayfield)

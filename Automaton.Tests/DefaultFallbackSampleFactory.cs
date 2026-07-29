@@ -3,19 +3,19 @@ using OpenCvSharp;
 
 namespace Automaton.Tests;
 
-internal static class DefaultFallbackExampleFactory
+internal static class DefaultFallbackSampleFactory
 {
     public static void Create(string workspacePath)
     {
-        var expectedDirectory = Path.Combine(workspacePath, "expected");
-        Directory.CreateDirectory(expectedDirectory);
+        var templatesDirectory = Path.Combine(workspacePath, "templates");
+        Directory.CreateDirectory(templatesDirectory);
 
-        var samplePath = Path.Combine(expectedDirectory, "25.sample.png");
-        var maskedExpectedPath = Path.Combine(expectedDirectory, "25.sample.expected.masked.png");
+        var samplePath = Path.Combine(templatesDirectory, "25.sample.png");
+        var maskedSampleTemplatedPath = Path.Combine(templatesDirectory, "25.sample.template.masked.png");
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
-        WriteMaskedExpectedOverlay(
+        WriteMaskedTemplateOverlay(
             samplePath,
-            maskedExpectedPath,
+            maskedSampleTemplatedPath,
             [
                 [
                     new Point(30, 70),
@@ -38,7 +38,7 @@ internal static class DefaultFallbackExampleFactory
             ]);
     }
 
-    private static void WriteMaskedExpectedOverlay(string samplePath, string maskedExpectedPath, IReadOnlyList<Point[]> localPolygons)
+    private static void WriteMaskedTemplateOverlay(string samplePath, string maskedTemplatePath, IReadOnlyList<Point[]> localPolygons)
     {
         using var sampleImage = Cv2.ImRead(samplePath);
         var detector = new PlayfieldDetector();
@@ -60,6 +60,6 @@ internal static class DefaultFallbackExampleFactory
             Cv2.Polylines(playfield, [polygon], true, Scalar.White, 2, LineTypes.AntiAlias);
         }
 
-        Cv2.ImWrite(maskedExpectedPath, maskedImage);
+        Cv2.ImWrite(maskedTemplatePath, maskedImage);
     }
 }

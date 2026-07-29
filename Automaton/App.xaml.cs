@@ -29,11 +29,11 @@ public partial class App
             m_LogFiles.TelemetryLogFilePath,
             e.Args);
         Log.ForContext<App>().Information(
-            "Storage roots. CapturesDirectory={CapturesDirectory}, LogsDirectory={LogsDirectory}, ExpectedDirectory={ExpectedDirectory}, PilotAvatarDirectory={PilotAvatarDirectory}",
+            "Storage roots. CapturesDirectory={CapturesDirectory}, LogsDirectory={LogsDirectory}, TemplatesDirectory={TemplatesDirectory}, PilotAvatarDirectory={PilotAvatarDirectory}",
             TelemetryRootDirectory.GetCapturesDirectory(),
             TelemetryRootDirectory.GetLogsDirectory(),
-            TelemetryRootDirectory.GetExpectedDirectory(DiscoverySettings.ExpectedFolderName),
-            PilotAvatarDirectory.GetDirectory());
+            TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName),
+            AvatarsDirectory.GetDirectory());
 
         try
         {

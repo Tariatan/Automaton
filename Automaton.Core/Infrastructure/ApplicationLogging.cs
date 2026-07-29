@@ -67,7 +67,7 @@ internal static class ApplicationLogging
         var rootDirectory = string.IsNullOrWhiteSpace(localApplicationData)
             ? Path.GetTempPath()
             : localApplicationData;
-        return Path.Combine(rootDirectory, "Automaton", "Logs");
+        return Path.Combine(rootDirectory, "Automaton", "logs");
     }
 
     private static void Publish(ApplicationLogFiles logFiles)

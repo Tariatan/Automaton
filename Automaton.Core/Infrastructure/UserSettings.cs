@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Automaton.Core.Infrastructure;
 
@@ -6,11 +7,20 @@ internal sealed class UserSettings
 {
     internal sealed class SettingsData
     {
-        public string TelemetryRootBase { get; set; } = "";
-        public string TemplatesDirectory { get; set; } = "";
-        public string PilotAvatarDirectory { get; set; } = "";
-        public string FormLocation { get; set; } = "";
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TelemetryRootBase { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TemplatesDirectory { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? AvatarsDirectory { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? FormLocation { get; set; }
     }
+
+    private const string SettingsFileName = "automaton.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -27,51 +37,45 @@ internal sealed class UserSettings
 
     public static void Initialize(string? filePath)
     {
-        var resolvedPath = string.IsNullOrWhiteSpace(filePath) ? "" : Path.GetFullPath(filePath);
+        var resolvedPath = string.IsNullOrWhiteSpace(filePath)
+            ? Path.Combine(Directory.GetCurrentDirectory(), SettingsFileName)
+            : Path.GetFullPath(filePath);
         Default = new UserSettings(resolvedPath, TryLoad(resolvedPath));
     }
 
     public string TelemetryRootBase
     {
-        get => m_Data.TelemetryRootBase;
-        set => m_Data.TelemetryRootBase = value;
+        get => m_Data.TelemetryRootBase ?? "";
+        set => m_Data.TelemetryRootBase = string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     public string TemplatesDirectory
     {
-        get => m_Data.TemplatesDirectory;
-        set => m_Data.TemplatesDirectory = value;
+        get => m_Data.TemplatesDirectory ?? "";
+        set => m_Data.TemplatesDirectory = string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     public string PilotAvatarDirectory
     {
-        get => m_Data.PilotAvatarDirectory;
-        set => m_Data.PilotAvatarDirectory = value;
+        get => m_Data.AvatarsDirectory ?? "";
+        set => m_Data.AvatarsDirectory = string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     public string FormLocation
     {
-        get => m_Data.FormLocation;
-        set => m_Data.FormLocation = value;
+        get => m_Data.FormLocation ?? "";
+        set => m_Data.FormLocation = string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     public void Save()
     {
-        if (string.IsNullOrEmpty(m_FilePath))
-        {
-            return;
-        }
-
         File.WriteAllText(m_FilePath, JsonSerializer.Serialize(m_Data, JsonOptions));
     }
 
     private static SettingsData TryLoad(string filePath)
     {
         if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-        {
             return new SettingsData();
-        }
-
         try
         {
             var json = File.ReadAllText(filePath);

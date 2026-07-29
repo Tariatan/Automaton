@@ -13,7 +13,7 @@ internal static class ImageAnnotator
         DrawPlayfieldOverlay(annotated, analysis.PlayfieldDetection, analysis.Polygons);
 
         var outputSuffix = analysis.UsedKnownSampleTemplate
-            ? $".annotated.byexample{BuildMatchedExampleSuffix(analysis.MatchedSampleFileName)}.png"
+            ? $".annotated.by.template{BuildMatchedTemplateSuffix(analysis.MatchedSampleFileName)}.png"
             : ".annotated.png";
         var outputPath = Path.Combine(
             Path.GetDirectoryName(sourceImagePath)!,
@@ -78,7 +78,7 @@ internal static class ImageAnnotator
             LineTypes.AntiAlias);
     }
 
-    private static string BuildMatchedExampleSuffix(string? matchedSampleFileName)
+    private static string BuildMatchedTemplateSuffix(string? matchedSampleFileName)
     {
         if (string.IsNullOrWhiteSpace(matchedSampleFileName))
         {

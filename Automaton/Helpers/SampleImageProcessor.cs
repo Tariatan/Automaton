@@ -117,13 +117,11 @@ internal sealed class SampleImageProcessor(
         else
         {
             using var playfieldImage = new Mat(analysisRegion, playfieldDetection.Bounds);
-            // Try looking for existing example first
+            // Try looking for existing template first
             if (m_KnownSampleMatcher.TryMatch(playfieldImage, imagePath, out var matchedPolygons, out matchedSampleFileName))
             {
                 usedKnownSampleTemplate = true;
-                polygons = matchedPolygons
-                    .Select(points => TranslatePolygon(points, playfieldDetection.Bounds))
-                    .ToArray();
+                polygons = [.. matchedPolygons.Select(points => TranslatePolygon(points, playfieldDetection.Bounds))];
             }
             else
             {
@@ -144,7 +142,7 @@ internal sealed class SampleImageProcessor(
             var mutablePolygons = polygons.ToList();
             RandomizePolygons(mutablePolygons);
             FinalizeDetectedPolygons(mutablePolygons, playfieldDetection.MarkerBounds);
-            polygons = mutablePolygons.ToArray();
+            polygons = [.. mutablePolygons];
         }
 
         var result = new SampleProcessingResult(
@@ -296,15 +294,15 @@ internal sealed class SampleImageProcessor(
             polygons.AddRange(localPolygons);
         }
 
-        polygons = polygons
-            .OrderByDescending(points => Math.Abs(Cv2.ContourArea(points)))
-            .ToList();
+        polygons = [.. polygons.OrderByDescending(points => Math.Abs(Cv2.ContourArea(points)))];
 
         TryRecoverSparseLowerCluster(candidateMask, clusterMask.Size(), polygons);
-        return polygons
-            .Take(MaximumPolygonsPerSession)
-            .Select(points => TranslatePolygon(points, playfieldBounds))
-            .ToList();
+        return
+        [
+            .. polygons
+                .Take(MaximumPolygonsPerSession)
+                .Select(points => TranslatePolygon(points, playfieldBounds))
+        ];
     }
 
     private static void TryRecoverSparseLowerCluster(Mat candidateMask, Size bounds, List<Point[]> polygons)
@@ -1049,17 +1047,15 @@ internal sealed class SampleImageProcessor(
         return new PointClusterEvaluation(polygons, separationRatio);
     }
 
-    private static List<Point> ReduceSeedCenters(IReadOnlyList<Point> seedCenters)
+    private static List<Point> ReduceSeedCenters(List<Point> seedCenters)
     {
         var reducedCenters = new List<Point>(seedCenters.Count);
 
-        foreach (var seedCenter in seedCenters)
+        foreach (var seedCenter in
+                 seedCenters
+                     .Where(seedCenter => !reducedCenters
+                         .Any(existingCenter => Distance(existingCenter, seedCenter) < DensitySeedMinimumCentroidDistance)))
         {
-            if (reducedCenters.Any(existingCenter => Distance(existingCenter, seedCenter) < DensitySeedMinimumCentroidDistance))
-            {
-                continue;
-            }
-
             reducedCenters.Add(seedCenter);
         }
 
@@ -1177,9 +1173,7 @@ internal sealed class SampleImageProcessor(
 
     private static Point[] TranslatePolygon(Point[] polygon, Rect playfieldBounds)
     {
-        return polygon
-            .Select(point => new Point(point.X + playfieldBounds.X, point.Y + playfieldBounds.Y))
-            .ToArray();
+        return [.. polygon.Select(point => new Point(point.X + playfieldBounds.X, point.Y + playfieldBounds.Y))];
     }
 
     private static Point[] ClipPolygonToMaximumY(Point[] polygon, int maximumY)
@@ -1324,15 +1318,15 @@ internal sealed class SampleImageProcessor(
     internal static void FinalizeDetectedPolygons(IList<Point[]> polygons, IReadOnlyList<Rect> markerBounds)
     {
         NormalizePolygons(polygons, mergeCloseNeighboringPoints: false);
-        OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints(polygons.ToArray(), markerBounds));
+        OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints([.. polygons], markerBounds));
         ResolvePolygonCollisions(polygons);
         EnsureMinimumPointSpacing(polygons);
         NormalizePolygons(polygons, mergeCloseNeighboringPoints: false);
-        OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints(polygons.ToArray(), markerBounds));
+        OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints([.. polygons], markerBounds));
         ResolvePolygonCollisions(polygons);
         EnsureMinimumPointSpacing(polygons);
         NormalizePolygons(polygons);
-        OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints(polygons.ToArray(), markerBounds));
+        OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints([.. polygons], markerBounds));
     }
 
     internal static void NormalizePolygons(IList<Point[]> polygons, bool mergeCloseNeighboringPoints = true)
@@ -1386,7 +1380,7 @@ internal sealed class SampleImageProcessor(
             mergedPoints.RemoveAt(mergedPoints.Count - 1);
         }
 
-        return mergedPoints.ToArray();
+        return [.. mergedPoints];
     }
 
     private static void OverwritePolygons(IList<Point[]> target, IReadOnlyList<Point[]> source)
@@ -1511,11 +1505,13 @@ internal sealed class SampleImageProcessor(
 
     internal static Point[] ClampPolygonToBounds(Point[] polygon, Size bounds)
     {
-        return polygon
-            .Select(point => new Point(
-                Math.Clamp(point.X, 0, bounds.Width - 1),
-                Math.Clamp(point.Y, 0, bounds.Height - 1)))
-            .ToArray();
+        return
+        [
+            .. polygon
+                .Select(point => new Point(
+                    Math.Clamp(point.X, 0, bounds.Width - 1),
+                    Math.Clamp(point.Y, 0, bounds.Height - 1)))
+        ];
     }
 
     private static Point[] ExpandBalloonHull(Point[] hull)
@@ -1526,23 +1522,25 @@ internal sealed class SampleImageProcessor(
             MinimumBalloonExpansion,
             MaximumBalloonExpansion);
 
-        return hull
-            .Select(point =>
-            {
-                var dx = point.X - centroid.X;
-                var dy = point.Y - centroid.Y;
-                var length = Math.Sqrt((dx * dx) + (dy * dy));
-                if (length < double.Epsilon)
+        return
+        [
+            .. hull
+                .Select(point =>
                 {
-                    return point;
-                }
+                    var dx = point.X - centroid.X;
+                    var dy = point.Y - centroid.Y;
+                    var length = Math.Sqrt((dx * dx) + (dy * dy));
+                    if (length < double.Epsilon)
+                    {
+                        return point;
+                    }
 
-                var scale = (length + expansion) / length;
-                return new Point(
-                    (int)Math.Round(centroid.X + (dx * scale)),
-                    (int)Math.Round(centroid.Y + (dy * scale)));
-            })
-            .ToArray();
+                    var scale = (length + expansion) / length;
+                    return new Point(
+                        (int)Math.Round(centroid.X + (dx * scale)),
+                        (int)Math.Round(centroid.Y + (dy * scale)));
+                })
+        ];
     }
 
     private static int CalculateMaskPadding(int area)
@@ -1631,11 +1629,15 @@ internal sealed class SampleImageProcessor(
         var finalScale = Math.Sqrt(MinimumPolygonBoundingArea / (double)(width * height));
         var fallbackCenterX = finalBounds.X + ((finalBounds.Width - 1) / 2.0);
         var fallbackCenterY = finalBounds.Y + ((finalBounds.Height - 1) / 2.0);
-        return adjustedPolygon
-            .Select(point => new Point(
-                Math.Clamp((int)Math.Round(fallbackCenterX + ((point.X - fallbackCenterX) * finalScale)), 0, bounds.Width - 1),
-                Math.Clamp((int)Math.Round(fallbackCenterY + ((point.Y - fallbackCenterY) * finalScale)), 0, bounds.Height - 1)))
-            .ToArray();
+        return
+        [
+            .. adjustedPolygon
+                .Select(point => new Point(
+                    Math.Clamp((int)Math.Round(fallbackCenterX + ((point.X - fallbackCenterX) * finalScale)), 0,
+                        bounds.Width - 1),
+                    Math.Clamp((int)Math.Round(fallbackCenterY + ((point.Y - fallbackCenterY) * finalScale)), 0,
+                        bounds.Height - 1)))
+        ];
     }
 
     internal static void ResolvePolygonCollisions(IList<Point[]> polygons)
@@ -2008,9 +2010,7 @@ internal sealed class SampleImageProcessor(
             }
         }
 
-        return clipped
-            .Distinct()
-            .ToArray();
+        return [.. clipped.Distinct()];
     }
 
     private static Point2d GetCentroid(Point[] polygon)
@@ -2058,13 +2058,15 @@ internal sealed class SampleImageProcessor(
 
         var scaleX = targetPlayfield.Width / (double)sourcePlayfieldSize.Width;
         var scaleY = targetPlayfield.Height / (double)sourcePlayfieldSize.Height;
-        return fallbackPolygons
-            .Select(polygon => polygon
-                .Select(point => new Point(
-                    targetPlayfield.X + (int)Math.Round(point.X * scaleX),
-                    targetPlayfield.Y + (int)Math.Round(point.Y * scaleY)))
-                .ToArray())
-            .ToArray();
+        return
+        [
+            .. fallbackPolygons
+                .Select(polygon => polygon
+                    .Select(point => new Point(
+                        targetPlayfield.X + (int)Math.Round(point.X * scaleX),
+                        targetPlayfield.Y + (int)Math.Round(point.Y * scaleY)))
+                    .ToArray())
+        ];
     }
 
     private IReadOnlyList<Point[]> BuildDefaultFallbackPolygons()

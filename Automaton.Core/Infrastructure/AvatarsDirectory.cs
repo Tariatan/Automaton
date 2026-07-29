@@ -1,8 +1,8 @@
 namespace Automaton.Core.Infrastructure;
 
-internal static class PilotAvatarDirectory
+internal static class AvatarsDirectory
 {
-    private const string DefaultFolderName = "pilot";
+    private const string DefaultFolderName = "avatars";
 
     public static string GetDirectory()
     {

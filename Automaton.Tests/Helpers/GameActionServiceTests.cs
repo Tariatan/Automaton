@@ -15,7 +15,7 @@ public sealed class GameActionServiceTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        WritePilotAvatarTemplates(Path.Combine(workspace.Path, "pilot"), 1);
+        WritePilotAvatarTemplates(Path.Combine(workspace.Path, "avatars"), 1);
         using var pilotScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(pilotScreen.Clone),

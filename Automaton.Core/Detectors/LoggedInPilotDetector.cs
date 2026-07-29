@@ -35,7 +35,7 @@ internal sealed class LoggedInPilotDetector : IDisposable
     {
         detection = default;
 
-        var pilotDirectory = Path.GetFullPath(PilotAvatarDirectory.GetDirectory());
+        var pilotDirectory = Path.GetFullPath(AvatarsDirectory.GetDirectory());
         if (screen.Empty() || !IsPortraitRegionAvailable(screen.Size()) || !Directory.Exists(pilotDirectory))
         {
             return false;
