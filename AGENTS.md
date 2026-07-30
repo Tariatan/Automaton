@@ -14,6 +14,16 @@ In Claude Code, use the corresponding slash command: `/project:optimize-class Cl
 - `Automaton.Core` is project-agnostic. It must not contain any game-, discovery-, or domain-specific logic or settings.
 - Domain-specific constants, settings, and configuration belong in the `Automaton` project, not in `Automaton.Core`.
 
+## C# Conventions
+
+Before writing any C# code, fetch and apply these guidelines:
+
+```
+gh api repos/Tariatan/Sharpbox/contents/best-practices-csharp.md --jq '.content' | base64 -d
+```
+
+**Project-level override:** Private instance fields use the `m_` prefix (e.g., `m_CachedCandidates`), not plain camelCase as stated in the shared file.
+
 ## Editing Rules
 
 - Never add an empty line at the end of a file.

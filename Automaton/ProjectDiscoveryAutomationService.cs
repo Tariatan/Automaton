@@ -23,6 +23,7 @@ internal sealed class ProjectDiscoveryAutomationService(
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
     private IProjectDiscoveryAutomationState m_CurrentState = null!;
     private ProjectDiscoveryAutomationContext m_Context = null!;
+    private IProgress<DiscoveryAutomationStateKind>? m_Progress;
 
     public SampleProcessingSummary ProcessSamples()
     {
@@ -58,15 +59,17 @@ internal sealed class ProjectDiscoveryAutomationService(
     public DiscoveryAutomationStepSummary Automate(
         CancellationToken cancellationToken,
         DiscoveryAutomationStateKind startingState = DiscoveryAutomationStateKind.Discover,
-        int initialPilotIndex = InitialPilotIndex)
+        int initialPilotIndex = InitialPilotIndex,
+        IProgress<DiscoveryAutomationStateKind>? progress = null)
     {
         Logger.Information("Automation loop starting. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
         automationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
+        m_Progress = progress;
         m_Context = new ProjectDiscoveryAutomationContext(initialPilotIndex);
 
-        m_CurrentState = CreateState(startingState);
+        SetCurrentState(startingState);
 
         DiscoveryAutomationStepSummary? lastSummary = null;
         try
@@ -167,7 +170,7 @@ internal sealed class ProjectDiscoveryAutomationService(
             transition.NextState,
             transition.Action);
         m_Context.LastAction = transition.Action;
-        m_CurrentState = CreateState(transition.NextState);
+        SetCurrentState(transition.NextState);
 
         return new DiscoveryAutomationStepSummary(
             transition.State,
@@ -194,7 +197,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         DrawPopupDebugOverlay(capture.Image, detection, "Connection lost popup detected");
         screenCaptureService.SaveCapture(capture);
         Logger.Warning("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
-        m_CurrentState = CreateState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
+        SetCurrentState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
         return true;
     }
 
@@ -213,7 +216,7 @@ internal sealed class ProjectDiscoveryAutomationService(
             "Client Is Running button detected during {CurrentState}. CapturePath={CapturePath}",
             m_CurrentState.Kind,
             capture.CapturePath);
-        m_CurrentState = CreateState(DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible);
+        SetCurrentState(DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible);
         return true;
     }
 
@@ -237,6 +240,12 @@ internal sealed class ProjectDiscoveryAutomationService(
 
         DebugOverlay.Annotate(image, (bounds, OverlayColor.RedOrange));
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
+    }
+
+    private void SetCurrentState(DiscoveryAutomationStateKind kind)
+    {
+        m_CurrentState = CreateState(kind);
+        m_Progress?.Report(kind);
     }
 
     private IProjectDiscoveryAutomationState CreateState(DiscoveryAutomationStateKind stateKind)

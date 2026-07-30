@@ -129,11 +129,14 @@ internal partial class MainWindow
 
         try
         {
+            var progress = new Progress<DiscoveryAutomationStateKind>(
+                kind => StatusTextBlock.Text = $"Running: {kind.ToDisplayString()}");
             var automationTask = Task.Run(
                 () => m_ProjectDiscoveryAutomationService.Automate(
                     cancellationSource.Token,
                     m_SelectedDiscoveryStartState,
-                    initialPilotIndex),
+                    initialPilotIndex,
+                    progress),
                 cancellationSource.Token);
             var (automationStateKind, nextState, automationActionKind, capturePath) = await automationTask;
             Logger.Information(
