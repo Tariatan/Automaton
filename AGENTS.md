@@ -7,8 +7,6 @@ Reusable prompt templates live in `prompts/`. Pass the target class name in plac
 - `prompts/optimize-class.md` — SRP and efficiency analysis for a single class
 - `prompts/create-detector.md` — prescriptive rules for implementing a new `*Detector` class
 
-In Claude Code, use the corresponding slash command: `/project:optimize-class ClassName`
-
 ## Architecture
 
 - `Automaton.Core` is project-agnostic. It must not contain any game-, discovery-, or domain-specific logic or settings.
