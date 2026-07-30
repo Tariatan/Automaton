@@ -3,11 +3,13 @@ using System.Windows;
 using Automaton.Core.Infrastructure;
 using Automaton.Detectors;
 using Automaton.Helpers;
+using Automaton.ImageAnalysis;
 using Automaton.Infrastructure;
 using Automaton.Primitives;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCvSharp;
 using Serilog;
+using SampleImageProcessor = Automaton.ImageAnalysis.SampleImageProcessor;
 
 namespace Automaton;
 

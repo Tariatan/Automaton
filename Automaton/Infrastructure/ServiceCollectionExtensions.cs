@@ -5,6 +5,7 @@ using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.ProjectDiscoveryStates;
 using Microsoft.Extensions.DependencyInjection;
+using SampleImageProcessor = Automaton.ImageAnalysis.SampleImageProcessor;
 
 namespace Automaton.Infrastructure;
 

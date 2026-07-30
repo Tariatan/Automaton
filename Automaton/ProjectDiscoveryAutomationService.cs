@@ -3,9 +3,11 @@ using Automaton.Core.Detectors;
 using Automaton.Core.Helpers;
 using Automaton.Core.Primitives;
 using Automaton.Helpers;
+using Automaton.ImageAnalysis;
 using Automaton.ProjectDiscoveryStates;
 using OpenCvSharp;
 using Serilog;
+using SampleImageProcessor = Automaton.ImageAnalysis.SampleImageProcessor;
 
 namespace Automaton;
 

@@ -1,6 +1,7 @@
 using System.IO;
 using Automaton.Core.Helpers;
 using Automaton.Detectors;
+using Automaton.ImageAnalysis;
 using OpenCvSharp;
 
 namespace Automaton.Helpers;

@@ -85,4 +85,88 @@ internal static class GeometryHelper
 
         return bestApproximation ?? contour.Take(maxPoints).ToArray();
     }
+
+    public static double Distance(Point2d a, Point2d b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    public static double Distance(Point a, Point b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    public static double Distance(Point a, Point2d b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    public static Point2d GetCentroid(Point[] polygon) =>
+        new(polygon.Average(p => p.X), polygon.Average(p => p.Y));
+
+    public static Point GetContourCentroid(Point[] contour)
+    {
+        var moments = Cv2.Moments(contour);
+        if (Math.Abs(moments.M00) <= double.Epsilon)
+        {
+            var bounds = Cv2.BoundingRect(contour);
+            return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
+        }
+
+        return new Point(
+            (int)Math.Round(moments.M10 / moments.M00),
+            (int)Math.Round(moments.M01 / moments.M00));
+    }
+
+    public static int GetAxisGap(int firstStart, int firstEnd, int secondStart, int secondEnd)
+    {
+        if (firstEnd < secondStart)
+        {
+            return secondStart - firstEnd;
+        }
+
+        if (secondEnd < firstStart)
+        {
+            return firstStart - secondEnd;
+        }
+
+        return 0;
+    }
+
+    public static double GetAxisOverlapRatio(int firstStart, int firstEnd, int secondStart, int secondEnd)
+    {
+        var overlap = Math.Min(firstEnd, secondEnd) - Math.Max(firstStart, secondStart);
+        if (overlap <= 0)
+        {
+            return 0.0;
+        }
+
+        var shorterLength = Math.Min(firstEnd - firstStart, secondEnd - secondStart);
+        return shorterLength <= 0
+            ? 0.0
+            : overlap / (double)shorterLength;
+    }
+
+    public static Point2d FindClosestPointOnSegment(Point point, Point segmentStart, Point segmentEnd)
+    {
+        var dx = segmentEnd.X - segmentStart.X;
+        var dy = segmentEnd.Y - segmentStart.Y;
+        if (dx == 0 && dy == 0)
+        {
+            return new Point2d(segmentStart.X, segmentStart.Y);
+        }
+
+        var tNumerator = ((point.X - segmentStart.X) * dx) + ((point.Y - segmentStart.Y) * dy);
+        var tDenominator = (dx * dx) + (dy * dy);
+        var t = Math.Clamp(tNumerator / (double)tDenominator, 0.0, 1.0);
+        return new Point2d(
+            segmentStart.X + (dx * t),
+            segmentStart.Y + (dy * t));
+    }
 }

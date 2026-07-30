@@ -4,6 +4,7 @@ using Automaton.Helpers;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;
+using SampleImageProcessor = Automaton.ImageAnalysis.SampleImageProcessor;
 
 namespace Automaton.Tests.ProjectDiscoveryStates;
 

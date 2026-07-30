@@ -5,10 +5,12 @@ using Automaton.Core.Infrastructure;
 using Automaton.Core.Primitives;
 using Automaton.Detectors;
 using Automaton.Helpers;
+using Automaton.ImageAnalysis;
 using OpenCvSharp;
 using Serilog;
 using Point = OpenCvSharp.Point;
 using Rect = OpenCvSharp.Rect;
+using SampleImageProcessor = Automaton.ImageAnalysis.SampleImageProcessor;
 
 namespace Automaton.ProjectDiscoveryStates;
 

@@ -1,6 +1,7 @@
 using Automaton.Detectors;
-using Automaton.Helpers;
+using Automaton.ImageAnalysis;
 using OpenCvSharp;
+using SampleImageProcessor = Automaton.ImageAnalysis.SampleImageProcessor;
 
 namespace Automaton.Tests.Helpers;
 
