@@ -1,5 +1,6 @@
 using Automaton.Core.Helpers;
 using Automaton.Core.Primitives;
+using Automaton.Infrastructure;
 using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;
@@ -7,20 +8,18 @@ namespace Automaton.ProjectDiscoveryStates;
 internal sealed class RecoveryState(
     ScreenCaptureService screenCaptureService,
     IGameActionService gameActionService,
-    IAutomationInputController automationInputController) : IProjectDiscoveryAutomationState
+    IAutomationInputController automationInputController,
+    StartingGameTransitionCounter startingGameTransitionCounter) : IProjectDiscoveryAutomationState
 {
     private const string CaptureSuffix = ".discovery-recovery";
     private readonly ILogger m_Logger = Log.ForContext<RecoveryState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Recovery;
-
-    private static int sStartingGameTransitionsCount;
 
     public DiscoveryAutomationStateTransition Execute(ProjectDiscoveryAutomationContext context, CancellationToken cancellationToken)
     {
         using var capture = screenCaptureService.CaptureCurrentScreen(CaptureSuffix);
         m_Logger.Warning("Executing discovery recovery. CapturePath={CapturePath}", capture.CapturePath);
         automationInputController.Delay(Delays.RecoveryMs, cancellationToken);
-
 
         if (context.LastAction == DiscoveryAutomationActionKind.RestartGame)
         {
@@ -57,8 +56,8 @@ internal sealed class RecoveryState(
         string? capturePath,
         CancellationToken cancellationToken)
     {
-        sStartingGameTransitionsCount++;
-        if (sStartingGameTransitionsCount <= Config.MaximumStartingGameTransitionsBeforeReboot)
+        var count = startingGameTransitionCounter.Increment();
+        if (count <= Config.MaximumStartingGameTransitionsBeforeReboot)
         {
             return new DiscoveryAutomationStateTransition(state, nextState, action, capturePath);
         }
@@ -68,10 +67,5 @@ internal sealed class RecoveryState(
             Config.MaximumStartingGameTransitionsBeforeReboot);
         gameActionService.RebootOperatingSystem(cancellationToken);
         return new DiscoveryAutomationStateTransition(state, nextState, DiscoveryAutomationActionKind.Reboot, capturePath);
-    }
-
-    internal static void ResetStartingGameTransitionsCounterForTests()
-    {
-        sStartingGameTransitionsCount = 0;
     }
 }

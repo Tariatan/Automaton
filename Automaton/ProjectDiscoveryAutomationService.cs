@@ -21,9 +21,6 @@ internal sealed class ProjectDiscoveryAutomationService(
     private const string SamplesFolderName = "samples";
     private const int InitialPilotIndex = 1;
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
-    private IProjectDiscoveryAutomationState m_CurrentState = null!;
-    private ProjectDiscoveryAutomationContext m_Context = null!;
-    private IProgress<DiscoveryAutomationStateKind>? m_Progress;
 
     public SampleProcessingSummary ProcessSamples()
     {
@@ -66,24 +63,22 @@ internal sealed class ProjectDiscoveryAutomationService(
         automationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        m_Progress = progress;
-        m_Context = new ProjectDiscoveryAutomationContext(initialPilotIndex);
-
-        SetCurrentState(startingState);
+        var context = new ProjectDiscoveryAutomationContext(initialPilotIndex);
+        var currentState = SetCurrentState(startingState, progress);
 
         DiscoveryAutomationStepSummary? lastSummary = null;
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (m_CurrentState.Kind == DiscoveryAutomationStateKind.Discover)
+                if (currentState.Kind == DiscoveryAutomationStateKind.Discover)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     using var capture = screenCaptureService.CaptureCurrentScreenImage();
                     gameActionService.TryHideUi(capture, cancellationToken);
                 }
 
-                lastSummary = ExecuteSingleStep(cancellationToken);
+                (lastSummary, currentState) = ExecuteSingleStep(currentState, context, progress, cancellationToken);
 
                 if (lastSummary.Action == DiscoveryAutomationActionKind.Reboot)
                 {
@@ -112,14 +107,16 @@ internal sealed class ProjectDiscoveryAutomationService(
                     return lastSummary;
                 }
 
-                if (TryTransitionToRecoverConnectionLostPopup(cancellationToken))
+                if (TryTransitionToRecoverConnectionLostPopup(currentState, progress, cancellationToken, out var afterConnectionLostState))
                 {
+                    currentState = afterConnectionLostState;
                     continue;
                 }
 
-                if (lastSummary.State != DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible &&
-                    TryTransitionToRecoverClientIsRunningButtonVisible(cancellationToken))
+                if (currentState.Kind != DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible &&
+                    TryTransitionToRecoverClientIsRunningButtonVisible(currentState, progress, cancellationToken, out var afterClientIsRunningState))
                 {
+                    currentState = afterClientIsRunningState;
                     continue;
                 }
 
@@ -143,13 +140,17 @@ internal sealed class ProjectDiscoveryAutomationService(
         return lastSummary ?? throw new OperationCanceledException(cancellationToken);
     }
 
-    private DiscoveryAutomationStepSummary ExecuteSingleStep(CancellationToken cancellationToken)
+    private (DiscoveryAutomationStepSummary Summary, IProjectDiscoveryAutomationState NextState) ExecuteSingleStep(
+        IProjectDiscoveryAutomationState currentState,
+        ProjectDiscoveryAutomationContext context,
+        IProgress<DiscoveryAutomationStateKind>? progress,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         DiscoveryAutomationStateTransition transition = null!;
         for (var attempt = 1; attempt <= Config.DetectionRetryAttempts; attempt++)
         {
-            transition = m_CurrentState.Execute(m_Context, cancellationToken);
+            transition = currentState.Execute(context, cancellationToken);
             if (!ShouldRetryAfterDetectionMiss(transition) || attempt >= Config.DetectionRetryAttempts)
             {
                 break;
@@ -169,14 +170,15 @@ internal sealed class ProjectDiscoveryAutomationService(
             transition.State,
             transition.NextState,
             transition.Action);
-        m_Context.LastAction = transition.Action;
-        SetCurrentState(transition.NextState);
+        context.LastAction = transition.Action;
+        var nextState = SetCurrentState(transition.NextState, progress);
 
-        return new DiscoveryAutomationStepSummary(
+        return (new DiscoveryAutomationStepSummary(
             transition.State,
             transition.NextState,
             transition.Action,
-            transition.CapturePath);
+            transition.CapturePath),
+            nextState);
     }
 
     private static bool ShouldRetryAfterDetectionMiss(DiscoveryAutomationStateTransition transition)
@@ -184,9 +186,14 @@ internal sealed class ProjectDiscoveryAutomationService(
         return transition is { Action: DiscoveryAutomationActionKind.Recover, FailureReason: DiscoveryAutomationFailureReason.DetectionMiss };
     }
 
-    private bool TryTransitionToRecoverConnectionLostPopup(CancellationToken cancellationToken)
+    private bool TryTransitionToRecoverConnectionLostPopup(
+        IProjectDiscoveryAutomationState currentState,
+        IProgress<DiscoveryAutomationStateKind>? progress,
+        CancellationToken cancellationToken,
+        out IProjectDiscoveryAutomationState nextState)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        nextState = currentState;
         using var capture = screenCaptureService.CaptureCurrentScreenInMemory(".discovery-connection-lost-popup-check");
         var detection = connectionLostPopupDetector.Detect(capture.Image);
         if (detection.State != PopupState.ConnectionLost)
@@ -194,44 +201,38 @@ internal sealed class ProjectDiscoveryAutomationService(
             return false;
         }
 
-        DrawPopupDebugOverlay(capture.Image, detection, "Connection lost popup detected");
+        DrawDebugOverlay(capture.Image, detection.Bounds, "Connection lost popup detected");
         screenCaptureService.SaveCapture(capture);
-        Logger.Warning("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", m_CurrentState.Kind, capture.CapturePath);
-        SetCurrentState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup);
+        Logger.Warning("Connection Lost popup detected during {CurrentState}. CapturePath={CapturePath}", currentState.Kind, capture.CapturePath);
+        nextState = SetCurrentState(DiscoveryAutomationStateKind.RecoverConnectionLostPopup, progress);
         return true;
     }
 
-    private bool TryTransitionToRecoverClientIsRunningButtonVisible(CancellationToken cancellationToken)
+    private bool TryTransitionToRecoverClientIsRunningButtonVisible(
+        IProjectDiscoveryAutomationState currentState,
+        IProgress<DiscoveryAutomationStateKind>? progress,
+        CancellationToken cancellationToken,
+        out IProjectDiscoveryAutomationState nextState)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        nextState = currentState;
         using var capture = screenCaptureService.CaptureCurrentScreenInMemory(".discovery-client-is-running-button-check");
         if (!clientIsRunningButtonDetector.Detect(capture.Image, out var location))
         {
             return false;
         }
 
-        DrawButtonDebugOverlay(capture.Image, location.Bounds, "Client Is Running button detected");
+        DrawDebugOverlay(capture.Image, location.Bounds, "Client Is Running button detected");
         screenCaptureService.SaveCapture(capture);
         Logger.Warning(
             "Client Is Running button detected during {CurrentState}. CapturePath={CapturePath}",
-            m_CurrentState.Kind,
+            currentState.Kind,
             capture.CapturePath);
-        SetCurrentState(DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible);
+        nextState = SetCurrentState(DiscoveryAutomationStateKind.RecoverClientIsRunningButtonVisible, progress);
         return true;
     }
 
-    private static void DrawPopupDebugOverlay(Mat image, PopupDetection detection, string label)
-    {
-        if (image.Empty())
-        {
-            return;
-        }
-
-        DebugOverlay.Annotate(image, (detection.Bounds, OverlayColor.RedOrange));
-        DebugOverlay.Label(image, label, OverlayColor.RedOrange);
-    }
-
-    private static void DrawButtonDebugOverlay(Mat image, Rect bounds, string label)
+    private static void DrawDebugOverlay(Mat image, Rect bounds, string label)
     {
         if (image.Empty())
         {
@@ -242,15 +243,13 @@ internal sealed class ProjectDiscoveryAutomationService(
         DebugOverlay.Label(image, label, OverlayColor.RedOrange);
     }
 
-    private void SetCurrentState(DiscoveryAutomationStateKind kind)
+    private IProjectDiscoveryAutomationState SetCurrentState(
+        DiscoveryAutomationStateKind kind,
+        IProgress<DiscoveryAutomationStateKind>? progress)
     {
-        m_CurrentState = CreateState(kind);
-        m_Progress?.Report(kind);
-    }
-
-    private IProjectDiscoveryAutomationState CreateState(DiscoveryAutomationStateKind stateKind)
-    {
-        return discoveryAutomationStateFactory.Create(stateKind);
+        var state = discoveryAutomationStateFactory.Create(kind);
+        progress?.Report(kind);
+        return state;
     }
 }
 

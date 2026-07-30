@@ -1317,14 +1317,20 @@ internal sealed class SampleImageProcessor(
 
     internal static void FinalizeDetectedPolygons(IList<Point[]> polygons, IReadOnlyList<Rect> markerBounds)
     {
+        // Three passes ensure that collision resolution and spacing enforcement don't
+        // reintroduce violations fixed in the previous pass.
         NormalizePolygons(polygons, mergeCloseNeighboringPoints: false);
         OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints([.. polygons], markerBounds));
+
         ResolvePolygonCollisions(polygons);
         EnsureMinimumPointSpacing(polygons);
+
         NormalizePolygons(polygons, mergeCloseNeighboringPoints: false);
         OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints([.. polygons], markerBounds));
+
         ResolvePolygonCollisions(polygons);
         EnsureMinimumPointSpacing(polygons);
+
         NormalizePolygons(polygons);
         OverwritePolygons(polygons, ApplyMarkerBoundaryConstraints([.. polygons], markerBounds));
     }

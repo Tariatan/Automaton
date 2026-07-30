@@ -22,17 +22,15 @@ internal sealed class DiscoverState(
     IAutomationClock automationClock,
     MaxSubmissionsPopupDetector maxSubmissionsPopupDetector,
     SlowDownPopupDetector slowDownPopupDetector,
-    DowntimeDetector downtimeDetector) : IProjectDiscoveryAutomationState
+    DowntimeDetector downtimeDetector,
+    DiscoveryRateLimiter rateLimiter) : IProjectDiscoveryAutomationState
 {
     private const int MaximumConsecutivePlayfieldMisses = 5;
-    private const int MaximumSubmissionsPerWindow = 5;
     private const int HoverMs = 200;
     private const int SubmitResultMs = 5_000;
     private const int SubmitActivationMs = 1_500;
-    private const int SubmissionWindowMs = 70_000;
 
     private static readonly OverlayColor EnabledButtonSearchOverlayColor = OverlayColor.Yellow;
-    private readonly Queue<DateTime> m_SubmittedAtLocal = new();
     private readonly ILogger m_Logger = Log.ForContext<DiscoverState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Discover;
 
@@ -70,7 +68,7 @@ internal sealed class DiscoverState(
             }
         }
 
-        LogDetectedAccuracy(captureSummary.CapturePath, context.CurrentPilotIndex);
+        LogDetectedAccuracy(captureSummary.AccuracyDetection, context.CurrentPilotIndex);
 
         // Polygons
         using (clickTraceRecorder.SuppressRecording())
@@ -104,7 +102,7 @@ internal sealed class DiscoverState(
 
         // Left-click the 'Submit' button.
         automationInputController.LeftClick(cancellationToken);
-        RecordSubmit(automationClock.LocalNow);
+        rateLimiter.RecordSubmit(automationClock.LocalNow);
         automationInputController.Delay(SubmitResultMs, cancellationToken);
 
         // Take focused screen to trace the result of submission.
@@ -183,10 +181,8 @@ internal sealed class DiscoverState(
         }
     }
 
-    private void LogDetectedAccuracy(string capturePath, int pilotIndex)
+    private void LogDetectedAccuracy(AccuracyDetection detection, int pilotIndex)
     {
-        using var image = Cv2.ImRead(capturePath);
-        var detection = AccuracyDetector.Detect(image);
         if (detection.IsFound)
         {
             m_Logger.Information("Pilot {PilotIndex} accuracy = {Accuracy}", pilotIndex, detection.Text);
@@ -212,7 +208,7 @@ internal sealed class DiscoverState(
 
     private void DelayBeforeRateLimitedSubmit(CancellationToken cancellationToken)
     {
-        var delay = GetDelayBeforeNextSubmit(automationClock.LocalNow);
+        var delay = rateLimiter.GetDelayBeforeNextSubmit(automationClock.LocalNow);
         if (delay <= TimeSpan.Zero)
         {
             return;
@@ -220,34 +216,6 @@ internal sealed class DiscoverState(
 
         m_Logger.Information("Waiting before submit because of rate limit. DelayMilliseconds={DelayMilliseconds}", (int)Math.Ceiling(delay.TotalMilliseconds));
         automationInputController.Delay((int)Math.Ceiling(delay.TotalMilliseconds), cancellationToken);
-    }
-
-    private TimeSpan GetDelayBeforeNextSubmit(DateTime localNow)
-    {
-        RemoveExpiredSubmissions(localNow);
-        if (m_SubmittedAtLocal.Count < MaximumSubmissionsPerWindow)
-        {
-            return TimeSpan.Zero;
-        }
-
-        var elapsed = localNow - m_SubmittedAtLocal.Peek();
-        var remaining = TimeSpan.FromMilliseconds(SubmissionWindowMs) - elapsed;
-        return remaining <= TimeSpan.Zero ? TimeSpan.Zero : remaining;
-    }
-
-    private void RecordSubmit(DateTime localNow)
-    {
-        RemoveExpiredSubmissions(localNow);
-        m_SubmittedAtLocal.Enqueue(localNow);
-    }
-
-    private void RemoveExpiredSubmissions(DateTime localNow)
-    {
-        while (m_SubmittedAtLocal.Count > 0 &&
-               (localNow - m_SubmittedAtLocal.Peek()).TotalMilliseconds >= SubmissionWindowMs)
-        {
-            m_SubmittedAtLocal.Dequeue();
-        }
     }
 
     private static void DrawPopupDebugOverlay(string imagePath, PopupDetection detection, string label)
@@ -287,14 +255,16 @@ internal sealed class DiscoverState(
         var capturesDirectory = TelemetryRootDirectory.GetCapturesDirectory();
         using var capture = screenCaptureService.CaptureCurrentScreen();
         var analysis = sampleImageProcessor.AnalyzeImage(capture.Image, capture.CapturePath);
+        var accuracyDetection = AccuracyDetector.Detect(capture.Image);
         var annotatedPath = ImageAnnotator.WriteAnnotatedOutput(capture.Image, analysis, capture.CapturePath);
         var resultWithAnnotatedPath = analysis.Result with { OutputPath = annotatedPath };
         var analysisWithAnnotatedPath = analysis with { Result = resultWithAnnotatedPath };
-        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysisWithAnnotatedPath);
+        return new ScreenCaptureAnalysisSummary(capturesDirectory, capture.CapturePath, analysisWithAnnotatedPath, accuracyDetection);
     }
 }
 
 internal sealed record ScreenCaptureAnalysisSummary(
     string CapturesDirectory,
     string CapturePath,
-    SampleImageAnalysisResult Analysis);
+    SampleImageAnalysisResult Analysis,
+    AccuracyDetection AccuracyDetection);

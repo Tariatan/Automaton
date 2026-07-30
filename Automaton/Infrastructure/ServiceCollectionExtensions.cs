@@ -33,6 +33,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<PilotAvatarDetector>();
         services.AddSingleton<LoggedInPilotDetector>();
 
+        services.AddSingleton<DiscoveryRateLimiter>();
         services.AddSingleton<SampleImageProcessor>();
         services.AddSingleton<ScreenCaptureService>();
 
@@ -42,6 +43,7 @@ internal static class ServiceCollectionExtensions
         services.AddTransient<StartingGameState>();
         services.AddTransient<LoginState>();
         services.AddTransient<DiscoverState>();
+        services.AddSingleton<StartingGameTransitionCounter>();
         services.AddTransient<RecoveryState>();
         services.AddTransient<RecoverOverlapState>();
         services.AddTransient<RecoverSlowDownPopupState>();

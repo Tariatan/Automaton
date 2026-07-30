@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -203,7 +204,7 @@ internal partial class MainWindow
     {
         Logger.Information("Main window closing.");
         StopAutomation();
-        UserSettings.Default.FormLocation = $"{Left},{Top}";
+        UserSettings.Default.FormLocation = FormattableString.Invariant($"{Left},{Top}");
         UserSettings.Default.Save();
         var windowInteropHelper = new WindowInteropHelper(this);
         _ = UnregisterHotKey(windowInteropHelper.Handle, HotKeyId);
@@ -239,7 +240,8 @@ internal partial class MainWindow
         {
             return false;
         }
-        if (!double.TryParse(parts[0], out var x) || !double.TryParse(parts[1], out var y))
+        if (!double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x) ||
+            !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
         {
             return false;
         }
@@ -394,11 +396,25 @@ internal partial class MainWindow
         Logger.Information("Default pilot index changed. DefaultPilotIndex={DefaultPilotIndex}", m_DefaultPilotIndex);
     }
 
-    private void Samples_Click(object sender, RoutedEventArgs e)
+    private async void Samples_Click(object sender, RoutedEventArgs e)
     {
         Logger.Information("Sample processing requested from main window.");
-        m_ProjectDiscoveryAutomationService.ProcessSamples();
-        SetupStatusTextBlock.Text = "Sample processing completed.";
+        ProcessSamplesButton.IsEnabled = false;
+        SetupStatusTextBlock.Text = "Sample processing in progress...";
+        try
+        {
+            await Task.Run(m_ProjectDiscoveryAutomationService.ProcessSamples);
+            SetupStatusTextBlock.Text = "Sample processing completed.";
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "Sample processing failed.");
+            SetupStatusTextBlock.Text = $"Sample processing failed: {exception.Message}";
+        }
+        finally
+        {
+            ProcessSamplesButton.IsEnabled = !m_IsAutomationRunning;
+        }
     }
 
     private void DiscoveryStartStateComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
