@@ -117,7 +117,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             AddTemplateDirectory(directories, adjacentSamplesDirectory);
         }
 
-        AddTemplateDirectory(directories, TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName));
+        AddTemplateDirectory(directories, TelemetryRootDirectory.GetTemplatesDirectory());
         return directories;
     }
 
@@ -189,7 +189,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         polygons = [];
         playfieldSize = default;
 
-        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory();
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedTemplatePath))
         {
@@ -217,7 +217,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     {
         polygons = [];
 
-        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory();
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedTemplatePath))
         {

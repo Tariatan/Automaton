@@ -8,7 +8,11 @@ internal static class TelemetryRootDirectory
 
     public static string GetLogsDirectory() => Path.Combine(GetTelemetryRoot(), Config.LogsFolderName);
 
-    public static string GetTemplatesDirectory(string folderName) => Path.Combine(GetTemplatesRoot(), folderName);
+    public static string GetTemplatesDirectory()
+    {
+        var configured = UserSettings.Default.TemplatesDirectory;
+        return string.IsNullOrWhiteSpace(configured) ? Directory.GetCurrentDirectory() : configured;
+    }
 
     private static string GetTelemetryRoot()
     {
@@ -18,11 +22,5 @@ internal static class TelemetryRootDirectory
 
         var userName = PrivateSettings.UserName;
         return string.IsNullOrWhiteSpace(userName) ? rootBase : Path.Combine(rootBase, userName);
-    }
-
-    private static string GetTemplatesRoot()
-    {
-        var configured = UserSettings.Default.TemplatesDirectory;
-        return string.IsNullOrWhiteSpace(configured) ? Directory.GetCurrentDirectory() : configured;
     }
 }

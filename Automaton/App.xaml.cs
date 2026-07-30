@@ -35,7 +35,7 @@ public partial class App
             "Storage roots. CapturesDirectory={CapturesDirectory}, LogsDirectory={LogsDirectory}, TemplatesDirectory={TemplatesDirectory}, PilotAvatarDirectory={PilotAvatarDirectory}",
             TelemetryRootDirectory.GetCapturesDirectory(),
             TelemetryRootDirectory.GetLogsDirectory(),
-            TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName),
+            TelemetryRootDirectory.GetTemplatesDirectory(),
             AvatarsDirectory.GetDirectory());
 
         try
