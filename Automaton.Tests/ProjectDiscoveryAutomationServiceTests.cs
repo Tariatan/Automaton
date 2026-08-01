@@ -1,3 +1,4 @@
+using System.Reflection;
 using Automaton.Core.Detectors;
 using Automaton.Core.Helpers;
 using Automaton.Core.Infrastructure;
@@ -197,6 +198,56 @@ public sealed class ProjectDiscoveryAutomationServiceTests
     }
 
     [Fact]
+    public void Automate_StartupDelayBegins_PreloadsKnownSampleTemplates()
+    {
+        // Arrange
+        using var workspace = new TemporaryDirectory();
+        var templatesDirectory = Path.Combine(workspace.Path, "templates");
+        DefaultFallbackSampleFactory.Create(templatesDirectory);
+
+        var preloadedDuringStartupDelay = false;
+        var automationInputController = new StubAutomationInputController
+        {
+            OnDelay = delay =>
+            {
+                if (delay != Delays.AutomationStartupDelayMs)
+                {
+                    return;
+                }
+
+                preloadedDuringStartupDelay = SpinWait.SpinUntil(
+                    () => IsKnownSampleTemplateCacheCreated(templatesDirectory),
+                    TimeSpan.FromSeconds(5));
+            }
+        };
+        var shutdownState = new RecordingDiscoveryState(
+            DiscoveryAutomationStateKind.Login,
+            DiscoveryAutomationStateKind.Recovery,
+            DiscoveryAutomationActionKind.Shutdown,
+            () => { });
+        using var serviceHarness = new ProjectDiscoveryAutomationServiceHarness(
+            new FixedDiscoveryAutomationStateFactory(shutdownState),
+            automationInputController: automationInputController);
+
+        // Act
+        var currentDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(templatesDirectory);
+        try
+        {
+            serviceHarness.Service.Automate(
+                CancellationToken.None,
+                DiscoveryAutomationStateKind.Login);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(currentDirectory);
+        }
+
+        // Assert
+        Assert.True(preloadedDuringStartupDelay);
+    }
+
+    [Fact]
     public void Automate_CurrentStateIsNotDiscover_DoesNotHideUiBeforeExecutingStep()
     {
         // Arrange
@@ -307,6 +358,28 @@ public sealed class ProjectDiscoveryAutomationServiceTests
         using var region = new Mat(screen, expectedBounds);
         clientIsRunningButton.CopyTo(region);
         return screen;
+    }
+
+    private static bool IsKnownSampleTemplateCacheCreated(string templatesDirectory)
+    {
+        var cacheField = typeof(KnownSampleMatcher).GetField("TemplateCache", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("Known sample template cache field was not found.");
+        var cache = cacheField.GetValue(null)
+            ?? throw new InvalidOperationException("Known sample template cache was not initialized.");
+        var tryGetValue = cache.GetType().GetMethod("TryGetValue")
+            ?? throw new InvalidOperationException("Known sample template cache lookup method was not found.");
+
+        var arguments = new object?[] { Path.GetFullPath(templatesDirectory), null };
+        var wasFound = (bool)tryGetValue.Invoke(cache, arguments)!;
+        if (!wasFound || arguments[1] is null)
+        {
+            return false;
+        }
+
+        var lazy = arguments[1]!;
+        var isValueCreatedProperty = lazy.GetType().GetProperty("IsValueCreated")
+            ?? throw new InvalidOperationException("Known sample template lazy value state was not found.");
+        return (bool)isValueCreatedProperty.GetValue(lazy)!;
     }
 
     private sealed class FixedDiscoveryAutomationStateFactory(IProjectDiscoveryAutomationState state)
