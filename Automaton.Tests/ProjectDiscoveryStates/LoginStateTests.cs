@@ -1,5 +1,6 @@
 using Automaton.Core.Detectors;
 using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using Automaton.ProjectDiscoveryStates;
 using Automaton.Tests.Stubs;
 using OpenCvSharp;
@@ -10,64 +11,59 @@ namespace Automaton.Tests.ProjectDiscoveryStates;
 public sealed class LoginStateTests
 {
     [Fact]
-    public void Execute_LoginNextPilotAfterFinalPilot_ClosesGameClientAndReturnsNoFurtherPilotsAvailable()
+    public void Execute_CurrentPilotLoginSucceeds_ReturnsDiscover()
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
+        using var loginScreen = SyntheticCommonImageFactory.LoadLoginPilotSelectionScreenImage();
+        using var loggedInScreen = SyntheticCommonImageFactory.LoadLoggedInPilotScreenImage();
+        using var pilotAvatar = SyntheticCommonImageFactory.LoadPilotAvatarImage(2);
+        using var focusedPilotAvatar = SyntheticCommonImageFactory.LoadFocusedPilotAvatarImage(2);
         using var pilotAvatarDetector = new PilotAvatarDetector();
         using var loggedInPilotDetector = new LoggedInPilotDetector();
-        var currentDirectory = Directory.GetCurrentDirectory();
-        var captureExistsBeforeClose = false;
+        var captureCount = 0;
         var screenCaptureService = new ScreenCaptureService(
-            new StubScreenCaptureProvider(() => new Mat(1, 1, MatType.CV_8UC3, Scalar.Black)));
-        var gameActionService = new StubGameActionService
-        {
-            OnCloseGameClient = () =>
+            new StubScreenCaptureProvider(() =>
             {
-                var capturesDirectory = Path.Combine(workspace.Path, "captures");
-                if (!Directory.Exists(capturesDirectory))
-                {
-                    captureExistsBeforeClose = false;
-                    return;
-                }
-
-                captureExistsBeforeClose = Directory.EnumerateFiles(
-                    capturesDirectory,
-                    "*.discovery-no-further-pilots-available.png").Any();
-            }
-        };
+                captureCount++;
+                return captureCount == 1
+                    ? loginScreen.Clone()
+                    : loggedInScreen.Clone();
+            }),
+            persistCaptures: false);
+        var gameActionService = new StubGameActionService();
         var state = new LoginState(
             screenCaptureService,
             gameActionService,
             new StubAutomationInputController(),
             pilotAvatarDetector,
             loggedInPilotDetector);
-        var context = new ProjectDiscoveryAutomationContext(3)
-        {
-            LastAction = DiscoveryAutomationActionKind.LoginNextPilot
-        };
+        var context = new ProjectDiscoveryAutomationContext(2);
+        var originalAvatarDirectory = UserSettings.Default.PilotAvatarDirectory;
 
-        // Act
-        Directory.SetCurrentDirectory(workspace.Path);
-        DiscoveryAutomationStateTransition transition;
         try
         {
-            transition = state.Execute(context, CancellationToken.None);
+            UserSettings.Default.PilotAvatarDirectory = Path.Combine(workspace.Path, "avatars");
+            var pilotDirectory = AvatarsDirectory.GetDirectory();
+            Directory.CreateDirectory(pilotDirectory);
+            Cv2.ImWrite(Path.Combine(pilotDirectory, "2.png"), pilotAvatar);
+            Cv2.ImWrite(Path.Combine(pilotDirectory, "2_focused.png"), focusedPilotAvatar);
+
+            // Act
+            var transition = state.Execute(context, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(DiscoveryAutomationStateKind.Login, transition.State);
+            Assert.Equal(DiscoveryAutomationStateKind.Discover, transition.NextState);
+            Assert.Equal(DiscoveryAutomationActionKind.LoginPilot, transition.Action);
+            Assert.Equal(2, context.CurrentPilotIndex);
+            Assert.False(gameActionService.LogoutCalled);
+            Assert.False(gameActionService.CloseGameClientCalled);
+            Assert.False(gameActionService.QuitGameCalled);
         }
         finally
         {
-            Directory.SetCurrentDirectory(currentDirectory);
+            UserSettings.Default.PilotAvatarDirectory = originalAvatarDirectory;
         }
-
-        // Assert
-        Assert.Equal(DiscoveryAutomationStateKind.Login, transition.State);
-        Assert.Equal(DiscoveryAutomationStateKind.Login, transition.NextState);
-        Assert.Equal(DiscoveryAutomationActionKind.NoFurtherPilotsAvailable, transition.Action);
-        var capturePath = Assert.IsType<string>(transition.CapturePath);
-        Assert.EndsWith(".discovery-no-further-pilots-available.png", capturePath);
-        Assert.True(File.Exists(Path.Combine(workspace.Path, capturePath)));
-        Assert.True(captureExistsBeforeClose);
-        Assert.True(gameActionService.CloseGameClientCalled);
-        Assert.False(gameActionService.QuitGameCalled);
     }
 }

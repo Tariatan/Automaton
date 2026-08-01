@@ -16,6 +16,7 @@ internal sealed class StubGameActionService : IGameActionService
     public int TryHideUiCallCount { get; private set; }
     public Size? LastTryHideUiImageSize { get; private set; }
     public Action? OnCloseGameClient { get; init; }
+    public Action? OnLogout { get; init; }
     public Action? OnTryHideUi { get; init; }
 
     public void QuitGame(CancellationToken cancellationToken)
@@ -40,6 +41,7 @@ internal sealed class StubGameActionService : IGameActionService
         cancellationToken.ThrowIfCancellationRequested();
         LogoutCalled = true;
         LogoutCallCount++;
+        OnLogout?.Invoke();
     }
 
     public void RebootOperatingSystem(CancellationToken cancellationToken)

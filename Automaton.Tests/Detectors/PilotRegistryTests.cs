@@ -11,15 +11,16 @@ public sealed class PilotRegistryTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        var pilotDirectory = Path.Combine(workspace.Path, "avatars");
-        Directory.CreateDirectory(pilotDirectory);
-        File.WriteAllText(Path.Combine(pilotDirectory, "1.png"), string.Empty);
-        File.WriteAllText(Path.Combine(pilotDirectory, "2_focused.png"), string.Empty);
+        var pilotRoot = Path.Combine(workspace.Path, "avatars");
         var originalDirectory = UserSettings.Default.PilotAvatarDirectory;
 
         try
         {
-            UserSettings.Default.PilotAvatarDirectory = pilotDirectory;
+            UserSettings.Default.PilotAvatarDirectory = pilotRoot;
+            var pilotDirectory = AvatarsDirectory.GetDirectory();
+            Directory.CreateDirectory(pilotDirectory);
+            File.WriteAllText(Path.Combine(pilotDirectory, "1.png"), string.Empty);
+            File.WriteAllText(Path.Combine(pilotDirectory, "2_focused.png"), string.Empty);
 
             // Act
             var hasNextPilot = PilotRegistry.TryGetNextPilotIndex(1, out var nextPilotIndex);
