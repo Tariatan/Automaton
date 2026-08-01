@@ -5,9 +5,8 @@ namespace Automaton.Tests;
 
 internal static class DefaultFallbackSampleFactory
 {
-    public static void Create(string workspacePath)
+    public static void Create(string templatesDirectory)
     {
-        var templatesDirectory = Path.Combine(workspacePath, "templates");
         Directory.CreateDirectory(templatesDirectory);
 
         var samplePath = Path.Combine(templatesDirectory, "25.sample.png");
