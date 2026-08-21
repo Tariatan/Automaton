@@ -40,3 +40,11 @@ gh api repos/Tariatan/Sharpbox/contents/best-practices-csharp.md --jq '.content'
 ## Code Reviews
 
 Code review is performed by the `Reviewer` sub-agent defined in `.agents/reviewer.agent.md`, with language-specific guidance in `.agents/skills/`. Do not perform ad-hoc reviews in this file — delegate to that agent instead.
+
+## Merge Requests
+
+- All changes land on `main` through a pull request (merge request) — never push directly to `main`.
+- PR titles, and commit messages within the PR, must follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/): `<type>[optional scope]: <description>`.
+  - Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+  - Mark breaking changes with `!` after the type/scope (e.g. `feat!:`) or a `BREAKING CHANGE:` footer.
+- The PR description should summarize the change and its rationale; reference related issues where applicable.
