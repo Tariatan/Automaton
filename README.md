@@ -31,8 +31,16 @@ Detection uses an HSV color mask as the primary signal (cell clusters are vivid 
 The window has three tabs:
 
 - **Home** — one large Start/Stop button and a live status line. The same action is bound to `Shift+Alt+F11` so the window can stay minimized.
+
+  ![Home tab](docs/view_home.png)
+
 - **Setup** — choose which automation state to start from and which pilot account (1–3) to use first. Also exposes a *Process Samples* action for running the detection pipeline offline against a folder of screenshots.
+
+  ![Setup tab](docs/view_setup.png)
+
 - **Settings** — configure paths for the settings file, telemetry output, pilot avatar images, and known-sample templates.
+
+  ![Settings tab](docs/view_settings.png)
 
 ## Tech stack
 
