@@ -15,10 +15,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		AGENTS.md = AGENTS.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{A9A7BBA0-358E-4AF8-A67D-FD8C3CAB84E1}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{A9A7BBA0-358E-4AF8-A67D-FD8C3CAB84E1}"
 	ProjectSection(SolutionItems) = preProject
-		Documentation\Discovery_Strategy.md = Documentation\Discovery_Strategy.md
-		Documentation\Technical_Design_Description.md = Documentation\Technical_Design_Description.md
+		docs\Polygon-Detection-Heuristics.md = docs\Polygon-Detection-Heuristics.md
+		docs\Technical-Design.md = docs\Technical-Design.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{FA68FD62-F9ED-46CD-9A2D-8C2220A62385}"
@@ -30,6 +30,33 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Prompts", "Prompts", "{CEED
 	ProjectSection(SolutionItems) = preProject
 		prompts\create-detector.md = prompts\create-detector.md
 		prompts\optimize-class.md = prompts\optimize-class.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".agents", ".agents", "{A8009E33-1032-43D3-A6B8-90AC21551E28}"
+	ProjectSection(SolutionItems) = preProject
+		.agents\reviewer.agent.md = .agents\reviewer.agent.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "skills", "skills", "{386FFDB6-20C1-4827-B636-097B6DA1612D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "check-changelog-versioning", "check-changelog-versioning", "{95A9A380-06EE-408E-B5E8-E489EB3ED075}"
+	ProjectSection(SolutionItems) = preProject
+		.agents\skills\check-changelog-versioning\SKILL.md = .agents\skills\check-changelog-versioning\SKILL.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "check-logging", "check-logging", "{91DB6B72-F4FC-4616-81C7-29A83B88BE54}"
+	ProjectSection(SolutionItems) = preProject
+		.agents\skills\check-logging\SKILL.md = .agents\skills\check-logging\SKILL.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "review-csharp", "review-csharp", "{7D29D62B-3A30-410B-88EF-B399C195AF6C}"
+	ProjectSection(SolutionItems) = preProject
+		.agents\skills\review-csharp\SKILL.md = .agents\skills\review-csharp\SKILL.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "review-rust", "review-rust", "{899E142C-6441-4FB6-A839-2800B71C3100}"
+	ProjectSection(SolutionItems) = preProject
+		.agents\skills\review-rust\SKILL.md = .agents\skills\review-rust\SKILL.md
 	EndProjectSection
 EndProject
 Global
@@ -89,5 +116,11 @@ Global
 		{A9A7BBA0-358E-4AF8-A67D-FD8C3CAB84E1} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{FA68FD62-F9ED-46CD-9A2D-8C2220A62385} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{CEED5608-9BC3-4BE3-87E3-32834CFCA8ED} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
+		{A8009E33-1032-43D3-A6B8-90AC21551E28} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
+		{386FFDB6-20C1-4827-B636-097B6DA1612D} = {A8009E33-1032-43D3-A6B8-90AC21551E28}
+		{95A9A380-06EE-408E-B5E8-E489EB3ED075} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
+		{91DB6B72-F4FC-4616-81C7-29A83B88BE54} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
+		{7D29D62B-3A30-410B-88EF-B399C195AF6C} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
+		{899E142C-6441-4FB6-A839-2800B71C3100} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
 	EndGlobalSection
 EndGlobal

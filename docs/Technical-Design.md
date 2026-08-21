@@ -55,7 +55,7 @@ It describes the architectural decisions, the context boundaries, and the key wo
 
 | Reference | Title                    |
 | :-------- | :----------------------- |
-| 1         | Discovery_Strategy.md — polygon identification best practices and known design decisions (repository root) |
+| 1         | Polygon-Detection-Heuristics.md — polygon identification best practices and known design decisions (`docs/`) |
 
 ## Abbreviations and Definitions
 

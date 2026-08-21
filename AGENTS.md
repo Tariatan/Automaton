@@ -39,12 +39,4 @@ gh api repos/Tariatan/Sharpbox/contents/best-practices-csharp.md --jq '.content'
 
 ## Code Reviews
 
-- Check whether the concept is clear in the changes, naming matches the concept, responsibilities are assigned correctly, and any pattern used fits the problem.
-- Check whether related behavior is kept together and properly cleaned up, including disposing, unsubscribing, and similar lifecycle handling.
-- Check whether expected functionality is missing and whether the result is convenient to use without unnecessary repeated actions.
-- Check whether code blocks are easy to read and avoid unnecessary complexity or fancy constructs.
-- Prefer existing functionality and established language or framework features over custom reimplementation.
-- Check whether logic inside loops is limited to work that must happen inside the loop.
-- Treat locally suppressed warnings as a review concern unless there is a strong reason.
-- If feedback is not explicitly covered by an agreed guideline or decision, discuss it as feedback or best practice rather than presenting it as a strict rule.
-- If the concept appears fundamentally mismatched and would require major rework, recommend a discussion with the author instead of only leaving isolated comments.
+Code review is performed by the `Reviewer` sub-agent defined in `.agents/reviewer.agent.md`, with language-specific guidance in `.agents/skills/`. Do not perform ad-hoc reviews in this file — delegate to that agent instead.
