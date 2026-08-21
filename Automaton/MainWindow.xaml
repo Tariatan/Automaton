@@ -8,8 +8,8 @@
         Title="Project Discovery Automation"
         Topmost="True"
         ResizeMode="NoResize"
-        Height="301"
-        Width="532"
+        Height="273"
+        Width="490"
         WindowStyle="None"
         Background="#061018">
     <Window.Resources>
@@ -66,7 +66,7 @@
             </Setter>
         </Style>
         <Style x:Key="NavTabItemStyle" TargetType="{x:Type TabItem}">
-            <Setter Property="Width" Value="132" />
+            <Setter Property="Width" Value="90" />
             <Setter Property="Height" Value="92" />
             <Setter Property="Foreground" Value="#91A7B4" />
             <Setter Property="FontFamily" Value="Segoe UI" />
@@ -84,11 +84,11 @@
                                     HorizontalAlignment="Left"
                                     Background="Transparent" />
                             <Grid x:Name="SelectionIndicator"
-                                  Width="28"
+                                  Width="22"
                                   HorizontalAlignment="Right"
                                   IsHitTestVisible="False"
                                   Opacity="0">
-                                <Border Width="24"
+                                <Border Width="18"
                                         HorizontalAlignment="Right">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
@@ -98,8 +98,8 @@
                                         </LinearGradientBrush>
                                     </Border.Background>
                                 </Border>
-                                <Path Width="16"
-                                      Height="34"
+                                <Path Width="12"
+                                      Height="30"
                                       HorizontalAlignment="Right"
                                       VerticalAlignment="Center"
                                       Data="M2,4 L15,17 L2,30"
@@ -115,7 +115,7 @@
                                               VerticalAlignment="Center"
                                               ContentSource="Header"
                                               RecognizesAccessKey="True" />
-                            </Grid>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="{StaticResource SelectedNavTabBrush}" />
@@ -151,7 +151,7 @@
                     <ControlTemplate TargetType="{x:Type TabControl}">
                         <Grid KeyboardNavigation.TabNavigation="Local">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="132" />
+                                <ColumnDefinition Width="90" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0"
@@ -162,7 +162,7 @@
                                       IsItemsHost="True"
                                       KeyboardNavigation.TabIndex="1" />
                             <Border Grid.Column="1"
-                                    Padding="18"
+                                    Padding="9"
                                     Background="{StaticResource MainPanelBackgroundBrush}">
                                 <ContentPresenter ContentSource="SelectedContent" />
                             </Border>
@@ -180,8 +180,8 @@
         <Style x:Key="SectionTitleStyle" TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="FontFamily" Value="Segoe UI Semilight" />
-            <Setter Property="FontSize" Value="24" />
-            <Setter Property="Margin" Value="0,0,0,14" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
         <Style x:Key="LabelStyle" TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
@@ -436,8 +436,8 @@
         </Style>
     </Window.Resources>
     <Viewbox Stretch="Uniform">
-        <Border Width="760"
-            Height="430"
+        <Border Width="700"
+            Height="390"
             BorderBrush="#31536A"
             BorderThickness="1"
             Background="{StaticResource WindowBackgroundBrush}">
@@ -473,11 +473,11 @@
                             <TextBlock Text="PROJECT DISCOVERY AUTOMATION"
                                    Foreground="#AFC5D2"
                                    FontFamily="Segoe UI Light"
-                                   FontSize="25"
+                                   FontSize="21"
                                    VerticalAlignment="Center" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Right">
+                                HorizontalAlignment="Left" Margin="575,0,0,0">
                             <Button x:Name="PinButton"
                                 Style="{StaticResource ChromeButtonStyle}"
                                 ToolTip="Toggle always on top"
@@ -655,7 +655,7 @@
                                             <Button x:Name="StartButton"
                                                 Style="{StaticResource PrimaryAutomationButtonStyle}"
                                                 Click="Automate_Click"
-                                                Content="START AUTOMATION" />
+                                                Content="START AUTOMATION" Height="59" />
                                             <TextBlock x:Name="HotkeyTextBlock"
                                                    Text="Hotkey: Shift+Alt+F11"
                                                    Foreground="{StaticResource MutedTextBrush}"
@@ -698,7 +698,7 @@
                             </StackPanel>
                         </TabItem.Header>
                         <Border Style="{StaticResource PanelChromeStyle}"
-                            Padding="18">
+                            Padding="18,8,18,18">
                             <Grid x:Name="SetupControlsPanel">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -812,13 +812,13 @@
                             </StackPanel>
                         </TabItem.Header>
                         <Border Style="{StaticResource PanelChromeStyle}"
-                            Padding="18">
+                            Padding="18,8,18,8">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
-                                    <RowDefinition Height="44" />
+                                    <RowDefinition Height="40" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0"
                                        Style="{StaticResource SectionTitleStyle}"
@@ -830,11 +830,11 @@
                                         <ColumnDefinition Width="44" />
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="42" />
-                                        <RowDefinition Height="42" />
-                                        <RowDefinition Height="42" />
-                                        <RowDefinition Height="42" />
-                                        <RowDefinition Height="42" />
+                                        <RowDefinition Height="38" />
+                                        <RowDefinition Height="38" />
+                                        <RowDefinition Height="38" />
+                                        <RowDefinition Height="38" />
+                                        <RowDefinition Height="38" />
                                     </Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0"
                                            Style="{StaticResource LabelStyle}"
@@ -856,8 +856,7 @@
                                     <TextBox x:Name="UserNameTextBox"
                                          Grid.Row="1"
                                          Grid.Column="1"
-                                         Grid.ColumnSpan="2"
-                                         Style="{StaticResource TextInputStyle}" />
+                                         Style="{StaticResource TextInputStyle}" Margin="0,2,0,2" />
                                     <TextBlock Grid.Row="2"
                                            Style="{StaticResource LabelStyle}"
                                            Text="Telemetry root" />
@@ -905,10 +904,10 @@
                                        Grid.Row="2"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontFamily="Segoe UI"
-                                       FontSize="15"
+                                       FontSize="13"
                                        TextWrapping="Wrap"
                                        VerticalAlignment="Bottom"
-                                       Margin="0,16,0,0" />
+                                       Margin="0,8,0,0" />
                                 <Button Grid.Row="3"
                                     Style="{StaticResource SecondaryButtonStyle}"
                                     HorizontalAlignment="Right"

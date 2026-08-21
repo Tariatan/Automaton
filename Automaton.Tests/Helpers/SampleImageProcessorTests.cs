@@ -24,7 +24,8 @@ public sealed class SampleImageProcessorTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        CreateDefaultFallbackTemplate(workspace.Path);
+        var templatesDirectory = Path.Combine(workspace.Path, "templates");
+        CreateDefaultFallbackTemplate(templatesDirectory);
         var imagePath = Path.Combine(workspace.Path, "01.png");
         CreateSolidImage(imagePath, 900, 900);
 
@@ -33,7 +34,7 @@ public sealed class SampleImageProcessorTests
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
+        Directory.SetCurrentDirectory(templatesDirectory);
 
         try
         {
@@ -56,7 +57,8 @@ public sealed class SampleImageProcessorTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        CreateDefaultFallbackTemplate(workspace.Path);
+        var templatesDirectory = Path.Combine(workspace.Path, "templates");
+        CreateDefaultFallbackTemplate(templatesDirectory);
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), Path.Combine(workspace.Path, "05.sample.png"));
         CreateSolidImage(Path.Combine(workspace.Path, "99.png"), 900, 900);
 
@@ -68,7 +70,7 @@ public sealed class SampleImageProcessorTests
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
+        Directory.SetCurrentDirectory(templatesDirectory);
 
         List<SampleProcessingResult> results;
         try
@@ -120,13 +122,14 @@ public sealed class SampleImageProcessorTests
         using var workspace = new TemporaryDirectory();
         var imagePath = Path.Combine(workspace.Path, "blank.png");
         CreateSolidImage(imagePath, 1200, 900);
-        CreateDefaultFallbackTemplate(workspace.Path);
+        var templatesDirectory = Path.Combine(workspace.Path, "templates");
+        CreateDefaultFallbackTemplate(templatesDirectory);
         var processor = new SampleImageProcessor();
         SampleImageAnalysisResult analysis;
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
+        Directory.SetCurrentDirectory(templatesDirectory);
 
         try
         {
@@ -150,13 +153,14 @@ public sealed class SampleImageProcessorTests
         using var workspace = new TemporaryDirectory();
         var imagePath = Path.Combine(workspace.Path, "fullscreen.png");
         CreateSolidImage(imagePath, 1792, 1414);
-        CreateDefaultFallbackTemplate(workspace.Path);
+        var templatesDirectory = Path.Combine(workspace.Path, "templates");
+        CreateDefaultFallbackTemplate(templatesDirectory);
         var processor = new SampleImageProcessor();
         SampleImageAnalysisResult analysis;
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
+        Directory.SetCurrentDirectory(templatesDirectory);
 
         try
         {
@@ -234,10 +238,11 @@ public sealed class SampleImageProcessorTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        Directory.CreateDirectory(Path.Combine(workspace.Path, "templates"));
+        var templatesDirectory = Path.Combine(workspace.Path, "templates");
+        Directory.CreateDirectory(templatesDirectory);
 
-        var samplePath = Path.Combine(workspace.Path, "templates", "02.sample.png");
-        var maskedPath = Path.Combine(workspace.Path, "templates", "02.sample.template.masked.png");
+        var samplePath = Path.Combine(templatesDirectory, "02.sample.png");
+        var maskedPath = Path.Combine(templatesDirectory, "02.sample.template.masked.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         File.Copy(samplePath, capturePath);
@@ -264,7 +269,7 @@ public sealed class SampleImageProcessorTests
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
+        Directory.SetCurrentDirectory(templatesDirectory);
         SampleImageAnalysisResult analysis;
 
         try
@@ -300,10 +305,11 @@ public sealed class SampleImageProcessorTests
     {
         // Arrange
         using var workspace = new TemporaryDirectory();
-        Directory.CreateDirectory(Path.Combine(workspace.Path, "templates"));
+        var templatesDirectory = Path.Combine(workspace.Path, "templates");
+        Directory.CreateDirectory(templatesDirectory);
 
-        var samplePath = Path.Combine(workspace.Path, "templates", "15.sample.png");
-        var maskedTemplatesPath = Path.Combine(workspace.Path, "templates", "15.sample.template.masked.png");
+        var samplePath = Path.Combine(templatesDirectory, "15.sample.png");
+        var maskedTemplatesPath = Path.Combine(templatesDirectory, "15.sample.template.masked.png");
         var capturePath = Path.Combine(workspace.Path, "capture.png");
         File.Copy(SyntheticDiscoveryImageFactory.GetTwoClusterImagePath(), samplePath);
         File.Copy(samplePath, capturePath);
@@ -330,7 +336,7 @@ public sealed class SampleImageProcessorTests
 
         // Act
         var currentDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(workspace.Path);
+        Directory.SetCurrentDirectory(templatesDirectory);
         SampleImageAnalysisResult analysis;
 
         try
@@ -1137,9 +1143,9 @@ public sealed class SampleImageProcessorTests
         Cv2.ImWrite(path, image);
     }
 
-    private static void CreateDefaultFallbackTemplate(string workspacePath)
+    private static void CreateDefaultFallbackTemplate(string templatesDirectory)
     {
-        DefaultFallbackSampleFactory.Create(workspacePath);
+        DefaultFallbackSampleFactory.Create(templatesDirectory);
     }
 
     private static void WriteMaskedTemplatesOverlay(string samplePath, string maskedTemplatePath, IReadOnlyList<Point[]> localPolygons)

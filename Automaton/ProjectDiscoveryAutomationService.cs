@@ -1,7 +1,9 @@
 using System.IO;
 using Automaton.Core.Detectors;
 using Automaton.Core.Helpers;
+using Automaton.Core.Infrastructure;
 using Automaton.Core.Primitives;
+using Automaton.Detectors;
 using Automaton.Helpers;
 using Automaton.ImageAnalysis;
 using Automaton.ProjectDiscoveryStates;
@@ -23,6 +25,9 @@ internal sealed class ProjectDiscoveryAutomationService(
     private const string SamplesFolderName = "samples";
     private const int InitialPilotIndex = 1;
     private static readonly ILogger Logger = Log.ForContext<ProjectDiscoveryAutomationService>();
+    private readonly object m_KnownSampleTemplatePreloadLock = new();
+    private Task? m_KnownSampleTemplatePreloadTask;
+    private string? m_KnownSampleTemplatePreloadDirectory;
 
     public SampleProcessingSummary ProcessSamples()
     {
@@ -62,6 +67,7 @@ internal sealed class ProjectDiscoveryAutomationService(
         IProgress<DiscoveryAutomationStateKind>? progress = null)
     {
         Logger.Information("Automation loop starting. InitialPilotIndex={InitialPilotIndex}", initialPilotIndex);
+        BeginKnownSampleTemplatePreload(cancellationToken);
         automationInputController.Delay(Delays.AutomationStartupDelayMs, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -140,6 +146,38 @@ internal sealed class ProjectDiscoveryAutomationService(
         }
 
         return lastSummary ?? throw new OperationCanceledException(cancellationToken);
+    }
+
+    private void BeginKnownSampleTemplatePreload(CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var templatesDirectory = Path.GetFullPath(TelemetryRootDirectory.GetTemplatesDirectory());
+        Task preloadTask;
+        lock (m_KnownSampleTemplatePreloadLock)
+        {
+            if (m_KnownSampleTemplatePreloadTask is { IsCompleted: false } &&
+                string.Equals(m_KnownSampleTemplatePreloadDirectory, templatesDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            m_KnownSampleTemplatePreloadDirectory = templatesDirectory;
+            // Keep preload independent of per-run cancellation; it warms a process-wide cache.
+            preloadTask = Task.Run(
+                () => KnownSampleMatcher.PreloadTemplateCache(templatesDirectory),
+                CancellationToken.None);
+            m_KnownSampleTemplatePreloadTask = preloadTask;
+        }
+
+        _ = preloadTask.ContinueWith(
+            task => Logger.Warning(task.Exception!.GetBaseException(), "Known sample template preload failed."),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     private (DiscoveryAutomationStepSummary Summary, IProjectDiscoveryAutomationState NextState) ExecuteSingleStep(

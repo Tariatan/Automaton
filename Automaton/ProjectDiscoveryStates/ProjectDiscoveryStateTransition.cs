@@ -55,7 +55,6 @@ internal enum DiscoveryAutomationActionKind
     RestartGame,
     Reboot,
     LoginPilot,
-    LoginNextPilot,
     DiscoverAndSubmit,
     Recover,
     RecoverOverlap,

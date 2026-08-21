@@ -29,6 +29,23 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     private static readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<KnownSampleTemplate>>> TemplateCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ILogger Logger = Log.ForContext<KnownSampleMatcher>();
 
+    public static void PreloadTemplateCache(string samplesDirectory)
+    {
+        using var preloadPlayfieldDetector = new PlayfieldDetector();
+        new KnownSampleMatcher(preloadPlayfieldDetector).PreloadTemplates(samplesDirectory);
+    }
+
+    public void PreloadTemplates(string samplesDirectory)
+    {
+        Logger.Information("Start preloading of known sample template");
+
+        var directories = new List<string>();
+        AddTemplateDirectory(directories, samplesDirectory);
+        var templateCount = directories.Sum(directory => GetTemplates(directory).Count);
+
+        Logger.Information("Finished preloading of known sample templates. TemplateDirectory={TemplateDirectory}, TemplateCount={TemplateCount}", directories.FirstOrDefault(), templateCount);
+    }
+
     public bool TryMatch(
         Mat playfieldImage,
         string? sourceImagePath,
@@ -117,7 +134,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
             AddTemplateDirectory(directories, adjacentSamplesDirectory);
         }
 
-        AddTemplateDirectory(directories, TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName));
+        AddTemplateDirectory(directories, TelemetryRootDirectory.GetTemplatesDirectory());
         return directories;
     }
 
@@ -189,7 +206,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
         polygons = [];
         playfieldSize = default;
 
-        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory();
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedTemplatePath))
         {
@@ -217,7 +234,7 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
     {
         polygons = [];
 
-        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory(DiscoverySettings.TemplatesFolderName);
+        var samplesDirectory = TelemetryRootDirectory.GetTemplatesDirectory();
         if (!Directory.Exists(samplesDirectory) ||
             !TryFindDefaultFallbackSample(samplesDirectory, out var samplePath, out var maskedTemplatePath))
         {
@@ -246,10 +263,20 @@ internal sealed class KnownSampleMatcher(PlayfieldDetector playfieldDetector)
 
     private IReadOnlyList<KnownSampleTemplate> GetTemplates(string samplesDirectory)
     {
-        return TemplateCache.GetOrAdd(
+        var lazyTemplates = TemplateCache.GetOrAdd(
             samplesDirectory,
-            key => new Lazy<IReadOnlyList<KnownSampleTemplate>>(() => LoadTemplates(key)))
-            .Value;
+            key => new Lazy<IReadOnlyList<KnownSampleTemplate>>(() => LoadTemplates(key)));
+
+        try
+        {
+            return lazyTemplates.Value;
+        }
+        catch
+        {
+            // If loading templates fails, don’t leave a failed Lazy stuck in the cache; let the next attempt retry.
+            TemplateCache.TryRemove(samplesDirectory, out _);
+            throw;
+        }
     }
 
     private List<KnownSampleTemplate> LoadTemplates(string samplesDirectory)

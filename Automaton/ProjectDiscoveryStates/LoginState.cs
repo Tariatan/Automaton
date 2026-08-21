@@ -1,7 +1,6 @@
 using Automaton.Core.CommonAutomationStates;
 using Automaton.Core.Detectors;
 using Automaton.Core.Helpers;
-using Automaton.Detectors;
 using Serilog;
 
 namespace Automaton.ProjectDiscoveryStates;
@@ -14,37 +13,12 @@ internal sealed class LoginState(
     LoggedInPilotDetector loggedInPilotDetector) : IProjectDiscoveryAutomationState
 {
     private const string CaptureSuffix = ".discovery-login";
-    private const string NoFurtherPilotsAvailableCaptureSuffix = ".discovery-no-further-pilots-available";
     private readonly CommonLoginState m_CommonLoginState = new(gameActionService, automationInputController, pilotAvatarDetector, loggedInPilotDetector);
     private readonly ILogger m_Logger = Log.ForContext<LoginState>();
     public DiscoveryAutomationStateKind Kind => DiscoveryAutomationStateKind.Login;
 
     public DiscoveryAutomationStateTransition Execute(ProjectDiscoveryAutomationContext context, CancellationToken cancellationToken)
     {
-        if (context.LastAction == DiscoveryAutomationActionKind.LoginNextPilot)
-        {
-            if (!PilotRegistry.TryGetNextPilotIndex(context.CurrentPilotIndex, out var nextPilotIndex))
-            {
-                using var capture = screenCaptureService.CaptureCurrentScreen(NoFurtherPilotsAvailableCaptureSuffix);
-                m_Logger.Warning(
-                    "Failed to resolve next pilot index. CurrentPilotIndex={CurrentPilotIndex}, CapturePath={CapturePath}",
-                    context.CurrentPilotIndex,
-                    capture.CapturePath);
-                gameActionService.CloseGameClient(cancellationToken);
-                return new DiscoveryAutomationStateTransition(
-                    Kind,
-                    Kind,
-                    DiscoveryAutomationActionKind.NoFurtherPilotsAvailable,
-                    capture.CapturePath);
-            }
-
-            m_Logger.Information(
-                "Resolved next pilot index. CurrentPilotIndex={CurrentPilotIndex}, NextPilotIndex={NextPilotIndex}",
-                context.CurrentPilotIndex,
-                nextPilotIndex);
-            context.CurrentPilotIndex = nextPilotIndex;
-        }
-
         m_Logger.Information("Attempting pilot {PilotIndex} login", context.CurrentPilotIndex);
         if (!m_CommonLoginState.TryLoginPilot(
             screenCaptureService,
