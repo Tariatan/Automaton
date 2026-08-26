@@ -2,10 +2,10 @@
 
 ## Prompts
 
-Reusable prompt templates live in `prompts/`. Pass the target class name in place of `{ClassName}`.
+Reusable prompt skills live under `.agents/skills/`. When a request matches, read and follow the corresponding skill file, substituting the target class name in place of `{ClassName}` / `{DetectorName}`.
 
-- `prompts/optimize-class.md` — SRP and efficiency analysis for a single class
-- `prompts/create-detector.md` — prescriptive rules for implementing a new `*Detector` class
+- `.agents/skills/optimize-class/SKILL.md` — SRP and efficiency analysis for a single class. Use when asked to optimize or review a class.
+- `.agents/skills/create-detector/SKILL.md` — prescriptive rules for implementing a new `*Detector` class. Use when asked to create a new detector.
 
 ## Architecture
 

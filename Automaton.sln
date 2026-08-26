@@ -26,12 +26,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{FA68
 		scripts\Crop-PngTopLeft.ps1 = scripts\Crop-PngTopLeft.ps1
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Prompts", "Prompts", "{CEED5608-9BC3-4BE3-87E3-32834CFCA8ED}"
-	ProjectSection(SolutionItems) = preProject
-		prompts\create-detector.md = prompts\create-detector.md
-		prompts\optimize-class.md = prompts\optimize-class.md
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".agents", ".agents", "{A8009E33-1032-43D3-A6B8-90AC21551E28}"
 	ProjectSection(SolutionItems) = preProject
 		.agents\reviewer.agent.md = .agents\reviewer.agent.md
@@ -57,6 +51,16 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "review-rust", "review-rust", "{899E142C-6441-4FB6-A839-2800B71C3100}"
 	ProjectSection(SolutionItems) = preProject
 		.agents\skills\review-rust\SKILL.md = .agents\skills\review-rust\SKILL.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "optimize-class", "optimize-class", "{4B1E7A2D-6F83-4C05-9A17-D2E4F6A8B1C3}"
+	ProjectSection(SolutionItems) = preProject
+		.agents\skills\optimize-class\SKILL.md = .agents\skills\optimize-class\SKILL.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "create-detector", "create-detector", "{E7A93C5F-2B14-4D6A-8F09-C3D5A7E9F0B2}"
+	ProjectSection(SolutionItems) = preProject
+		.agents\skills\create-detector\SKILL.md = .agents\skills\create-detector\SKILL.md
 	EndProjectSection
 EndProject
 Global
@@ -115,12 +119,13 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{A9A7BBA0-358E-4AF8-A67D-FD8C3CAB84E1} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{FA68FD62-F9ED-46CD-9A2D-8C2220A62385} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
-		{CEED5608-9BC3-4BE3-87E3-32834CFCA8ED} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{A8009E33-1032-43D3-A6B8-90AC21551E28} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{386FFDB6-20C1-4827-B636-097B6DA1612D} = {A8009E33-1032-43D3-A6B8-90AC21551E28}
 		{95A9A380-06EE-408E-B5E8-E489EB3ED075} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
 		{91DB6B72-F4FC-4616-81C7-29A83B88BE54} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
 		{7D29D62B-3A30-410B-88EF-B399C195AF6C} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
 		{899E142C-6441-4FB6-A839-2800B71C3100} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
+		{4B1E7A2D-6F83-4C05-9A17-D2E4F6A8B1C3} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
+		{E7A93C5F-2B14-4D6A-8F09-C3D5A7E9F0B2} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
 	EndGlobalSection
 EndGlobal

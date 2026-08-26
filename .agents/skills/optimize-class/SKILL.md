@@ -1,3 +1,8 @@
+---
+name: optimize-class
+description: Use when asked to optimize, review, or clean up a class for SRP adherence, efficiency, or dead/redundant code. Trigger on requests like "optimize ClassName", "review this class", "is this class doing too much".
+---
+
 # Optimize the code
 Target: Analyze the **{ClassName}** class to ensure it fulfills its core purpose with maximum efficiency, effectiveness, and strict adherence to the Single Responsibility Principle (SRP).
 You are an expert software architect and code optimization agent. Your task is to perform a rigorous analysis of the provided class and identify areas for improvement based on three distinct pillars: Purpose, Efficiency, and Scope.

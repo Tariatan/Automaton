@@ -1,3 +1,8 @@
+---
+name: create-detector
+description: Use when asked to create a new *Detector class in this codebase (e.g. "create a HealthBar detector"). Encodes the mandatory structure, guard clauses, threshold constants, and OpenCV performance patterns established by prior detector implementations.
+---
+
 # Create a new Detector class
 
 Target: Implement a new `{DetectorName}` class following the established patterns and lessons learned from prior detector implementations in this codebase.
