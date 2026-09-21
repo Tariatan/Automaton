@@ -39,7 +39,7 @@ gh api repos/Tariatan/Sharpbox/contents/best-practices-csharp.md --jq '.content'
 
 ## Code Reviews
 
-Code review is performed by the `Reviewer` sub-agent defined in `.agents/reviewer.agent.md`, with language-specific guidance in `.agents/skills/`. Do not perform ad-hoc reviews in this file — delegate to that agent instead.
+Code review is performed by the `Reviewer` sub-agent defined in `.agents/context-engineering/reviewer.agent.md` (a git submodule pointing at [Tariatan/ContextEngineering](https://github.com/Tariatan/ContextEngineering)), with language-specific guidance in `.agents/context-engineering/skills/`. Do not perform ad-hoc reviews in this file — delegate to that agent instead.
 
 ## Merge Requests
 
