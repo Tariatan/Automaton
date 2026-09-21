@@ -1,0 +1,3 @@
+[submodule ".agents/context-engineering"]
+	path = .agents/context-engineering
+	url = https://github.com/Tariatan/ContextEngineering.git
