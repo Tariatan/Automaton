@@ -37,10 +37,6 @@ gh api repos/Tariatan/Sharpbox/contents/best-practices-csharp.md --jq '.content'
 - Prefer `[TestInitialize]` for complicated test setup. Use the test class constructor only for simple setup.
 - Before broader refactoring, prefer characterization tests that cover existing workflow behavior over low-value tests for trivial methods.
 
-## Code Reviews
-
-Code review is performed by the `Reviewer` sub-agent defined in `.agents/context-engineering/reviewer.agent.md` (a git submodule pointing at [Tariatan/ContextEngineering](https://github.com/Tariatan/ContextEngineering)), with language-specific guidance in `.agents/context-engineering/skills/`. Do not perform ad-hoc reviews in this file — delegate to that agent instead.
-
 ## Merge Requests
 
 - All changes land on `main` through a pull request (merge request) — never push directly to `main`.
