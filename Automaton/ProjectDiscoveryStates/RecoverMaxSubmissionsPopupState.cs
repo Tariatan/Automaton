@@ -32,6 +32,8 @@ internal sealed class RecoverMaxSubmissionsPopupState(
 
             m_Logger.Warning("No further pilots are available. CurrentPilotIndex={CurrentPilotIndex}, CapturePath={CapturePath}", context.CurrentPilotIndex, capture.CapturePath);
 
+            gameActionService.QuitGame(cancellationToken);
+
             // Transition to NoFurtherPilotsAvailable to stop automation
             return new DiscoveryAutomationStateTransition(
                 Kind,
