@@ -61,4 +61,4 @@ The window has three tabs:
 ## Documentation
 
 - [`docs/Polygon-Detection-Heuristics.md`](docs/Polygon-Detection-Heuristics.md) — polygon identification best practices and design decisions for the detection pipeline
-- [`docs/Technical-Design.md`](docs/Technical-Design.md) — full technical design description covering architecture, key decisions, and context diagrams
+- [`docs/Technical_Design_Description.md`](docs/Technical_Design_Description.md) — full technical design description covering architecture, key decisions, and context diagrams

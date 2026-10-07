@@ -90,8 +90,6 @@ internal sealed class CommonLoginState(
         CancellationToken cancellationToken,
         out string capturePath)
     {
-        gameActionService.CloseActiveWindow(cancellationToken);
-
         using var capture = screenCaptureService.CaptureCurrentScreen($"{captureSuffix}-{pilotIndex}");
         capturePath = capture.CapturePath;
         cancellationToken.ThrowIfCancellationRequested();
