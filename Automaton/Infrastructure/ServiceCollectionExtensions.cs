@@ -31,6 +31,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<SlowDownPopupDetector>();
         services.AddSingleton<AccuracyDetector>();
         services.AddSingleton<DowntimeDetector>();
+        services.AddSingleton<DailyGiftDetector>();
         services.AddSingleton<PilotAvatarDetector>();
         services.AddSingleton<LoggedInPilotDetector>();
 

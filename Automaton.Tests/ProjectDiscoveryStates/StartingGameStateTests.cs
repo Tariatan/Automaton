@@ -18,10 +18,9 @@ public sealed class StartingGameStateTests
         var screenCaptureService = new ScreenCaptureService(
             new StubScreenCaptureProvider(screen.Clone));
         var automationInputController = new StubAutomationInputController();
-        var gameActionService = new StubGameActionService();
         var state = new StartingGameState(
             screenCaptureService,
-            new CommonStartGameState(automationInputController, gameActionService, new PlayNowButtonDetector(ResourceLoader.Assembly)));
+            new CommonStartGameState(automationInputController, new PlayNowButtonDetector(ResourceLoader.Assembly)));
         var context = new ProjectDiscoveryAutomationContext(1)
         {
             ConsecutivePlayfieldMisses = 4

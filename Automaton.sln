@@ -1,7 +1,6 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36221.1
+# Visual Studio Version 18
+VisualStudioVersion = 18.10.12210.168 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Automaton.Core", "Automaton.Core\Automaton.Core.csproj", "{2C4A8D5E-3F7B-4E9C-A621-B1D5E8F32A74}"
 EndProject
@@ -11,14 +10,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Automaton.Tests", "Automato
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}"
 	ProjectSection(SolutionItems) = preProject
-		README.md = README.md
 		AGENTS.md = AGENTS.md
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{A9A7BBA0-358E-4AF8-A67D-FD8C3CAB84E1}"
 	ProjectSection(SolutionItems) = preProject
+		docs\PLAN.md = docs\PLAN.md
 		docs\Polygon-Detection-Heuristics.md = docs\Polygon-Detection-Heuristics.md
-		docs\Technical-Design.md = docs\Technical-Design.md
+		docs\Technical_Design_Description.md = docs\Technical_Design_Description.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{FA68FD62-F9ED-46CD-9A2D-8C2220A62385}"
@@ -85,14 +85,14 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {58402C57-072B-4D71-9D22-6E7E5640BE88}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A9A7BBA0-358E-4AF8-A67D-FD8C3CAB84E1} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{FA68FD62-F9ED-46CD-9A2D-8C2220A62385} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{A8009E33-1032-43D3-A6B8-90AC21551E28} = {7EDA8165-8FDB-4D58-89D8-5C1A37CE4ADE}
 		{386FFDB6-20C1-4827-B636-097B6DA1612D} = {A8009E33-1032-43D3-A6B8-90AC21551E28}
 		{E7A93C5F-2B14-4D6A-8F09-C3D5A7E9F0B2} = {386FFDB6-20C1-4827-B636-097B6DA1612D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {58402C57-072B-4D71-9D22-6E7E5640BE88}
 	EndGlobalSection
 EndGlobal
