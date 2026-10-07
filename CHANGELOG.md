@@ -11,6 +11,12 @@ Versioning rule:
 - **Minor** - new backward-compatible feature
 - **Patch** - backward-compatible bug fix only
 
+## Automaton [1.1.3] - 2026-10-07
+
+### Added
+
+- Display the application version.
+
 ## Automaton [1.1.2] - 2026-10-07
 
 ### Added
