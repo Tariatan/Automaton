@@ -46,7 +46,7 @@ characterization tests before broader refactoring. Consult
 when changing polygon detection.
 
 Use the actual solution and project configuration for restore/build/test/run
-commands for Automaton.sln; do not assume another project's SDK, dependency
+commands for Automaton.slnx; do not assume another project's SDK, dependency
 locks, or commands apply here. Automaton.Tests uses xUnit. Close running
 Automaton instances before rebuilding.
 

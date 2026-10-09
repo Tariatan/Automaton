@@ -11,6 +11,31 @@ Versioning rule:
 - **Minor** - new backward-compatible feature
 - **Patch** - backward-compatible bug fix only
 
+## Automaton [1.2.0] - 2026-10-07
+
+### Changed
+
+- Target .NET 10 for the WPF application and its publish profile; deployments require the .NET 10 desktop runtime unless self-contained.
+- Migrate the solution to Automaton.slnx, preserving projects, configuration mappings, and solution items; select the .NET 10 SDK with global.json.
+
+## Automaton.Core [1.1.0] - 2026-10-07
+
+### Changed
+
+- Target .NET 10 for shared infrastructure.
+
+## Automaton.Tests [1.1.0] - 2026-10-07
+
+### Changed
+
+- Target .NET 10 for the existing xUnit suite.
+
+## Automaton [1.1.3] - 2026-10-07
+
+### Added
+
+- Display the application version.
+
 ## Automaton [1.1.2] - 2026-10-07
 
 ### Added

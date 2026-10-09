@@ -158,9 +158,20 @@
                                     Background="#08131D"
                                     BorderBrush="#183246"
                                     BorderThickness="0,0,1,0" />
-                            <TabPanel Grid.Column="0"
-                                      IsItemsHost="True"
-                                      KeyboardNavigation.TabIndex="1" />
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TabPanel IsItemsHost="True"
+                                          KeyboardNavigation.TabIndex="1" />
+                                <TextBlock Grid.Row="1"
+                                           Margin="10,0,0,10"
+                                           FontFamily="Segoe UI"
+                                           FontSize="13"
+                                           Foreground="{StaticResource MutedTextBrush}"
+                                           Text="{Binding AppVersionText, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" />
+                            </Grid>
                             <Border Grid.Column="1"
                                     Padding="9"
                                     Background="{StaticResource MainPanelBackgroundBrush}">

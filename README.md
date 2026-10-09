@@ -3,7 +3,7 @@
 A Windows desktop tool that automates the *Project Discovery* citizen-science mini-game in *EVE Online*. The game presents scatter plots of real biological cell data and asks players to draw polygon annotations around visible cell clusters. Automaton captures the screen, identifies the clusters using computer vision, draws the polygons, and submits the result — unattended.
 
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
-![Framework](https://img.shields.io/badge/.NET-9.0-purple)
+![Framework](https://img.shields.io/badge/.NET-10.0-purple)
 ![Language](https://img.shields.io/badge/language-C%23-239120)
 
 ---
@@ -44,11 +44,11 @@ The window has three tabs:
 
 ## Tech stack
 
-- **.NET 9 / WPF** (Windows only)
+- **.NET 10 / WPF** (Windows only)
 - **OpenCvSharp** — image processing and computer vision
 - **Serilog** — structured logging and telemetry
 - **Microsoft.Extensions.DependencyInjection** — DI container
-- **MSTest** — unit and integration tests
+- **xUnit** — unit and integration tests
 
 ## Project structure
 
@@ -62,3 +62,12 @@ The window has three tabs:
 
 - [`docs/Polygon-Detection-Heuristics.md`](docs/Polygon-Detection-Heuristics.md) — polygon identification best practices and design decisions for the detection pipeline
 - [`docs/Technical_Design_Description.md`](docs/Technical_Design_Description.md) — full technical design description covering architecture, key decisions, and context diagrams
+
+## Build and test
+
+Install the .NET 10 SDK and open `Automaton.slnx` in an IDE that supports the XML solution format.
+
+```powershell
+dotnet build Automaton.slnx --configuration Release
+dotnet test Automaton.slnx --configuration Release
+```

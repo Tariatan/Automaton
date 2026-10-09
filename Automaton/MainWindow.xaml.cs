@@ -75,6 +75,8 @@ internal partial class MainWindow
             m_AutoStartAutomation);
     }
 
+    public string AppVersionText => $"v. {typeof(MainWindow).Assembly.GetName().Version!.ToString(3)}";
+
     private void InitializeControls()
     {
         DiscoveryStartStateComboBox.ItemsSource = m_DiscoveryStartStateOptions;
