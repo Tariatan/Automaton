@@ -11,6 +11,24 @@ Versioning rule:
 - **Minor** - new backward-compatible feature
 - **Patch** - backward-compatible bug fix only
 
+## Automaton [1.2.1] - 2026-10-10
+
+### Fixed
+
+- Use the shared daily logging update from Automaton.Core.
+
+## Automaton.Core [1.1.1] - 2026-10-10
+
+### Fixed
+
+- Name logs by the local startup date (`yyyy-MM-dd.log`), appending subsequent sessions to the same day's file and publishing the combined log to telemetry on exit. Remove the file-size cap so logging continues throughout the day.
+
+## Automaton.Tests [1.1.1] - 2026-10-10
+
+### Added
+
+- Verify same-day restart appending, combined telemetry publication, and separate files for starts on different days.
+
 ## Automaton [1.2.0] - 2026-10-07
 
 ### Changed

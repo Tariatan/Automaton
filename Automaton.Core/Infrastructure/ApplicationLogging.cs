@@ -9,15 +9,16 @@ internal static class ApplicationLogging
 {
     private const int PublishAttemptCount = 3;
     private const int PublishRetryDelayMilliseconds = 150;
-    private const string LogFileTimestampFormat = "yyyy-MM-dd-HH-mm-ss";
+    private const string LogFileDateFormat = "yyyy-MM-dd";
     private const string LogFileExtension = ".log";
     private const string OutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}][{SourceContext}]{Message:lj}{NewLine}{Exception}";
 
     public static ApplicationLogFiles Configure()
+        => Configure(GetActiveLogsDirectory(), TelemetryRootDirectory.GetLogsDirectory(), DateTime.Now);
+
+    internal static ApplicationLogFiles Configure(string activeLogsDirectory, string telemetryLogsDirectory, DateTime localDate)
     {
-        var logFileName = $"{DateTime.Now.ToString(LogFileTimestampFormat, CultureInfo.InvariantCulture)}{LogFileExtension}";
-        var activeLogsDirectory = GetActiveLogsDirectory();
-        var telemetryLogsDirectory = TelemetryRootDirectory.GetLogsDirectory();
+        var logFileName = $"{localDate.ToString(LogFileDateFormat, CultureInfo.InvariantCulture)}{LogFileExtension}";
         Directory.CreateDirectory(activeLogsDirectory);
 
         var logFiles = new ApplicationLogFiles(
@@ -28,6 +29,7 @@ internal static class ApplicationLogging
             .MinimumLevel.Is(LogEventLevel.Information)
             .WriteTo.File(
                 logFiles.ActiveLogFilePath,
+                fileSizeLimitBytes: null,
                 outputTemplate: OutputTemplate)
             .CreateLogger();
 
